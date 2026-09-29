@@ -159,6 +159,20 @@ h1, h2, h3 {
   text-wrap: balance;
 }
 
+/*
+ * 可點選的元素一律顯示手指游標（DESIGN.md「實作規則」）。
+ * Tailwind CSS 4 預設讓按鈕維持一般游標，所以在這裡統一補上。
+ * 停用的元素用一般游標（例如作答後鎖定的測驗選項，用禁止符號會讓人以為出錯）。
+ * 用 :where() 讓權重為 0，元件需要時仍可用 utility 覆寫。
+ */
+:where(a[href], button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], summary, label[for], select, input[type="checkbox"], input[type="radio"]):not(:disabled, [aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+:where(button, [role="button"], [role="tab"], input, select):is(:disabled, [aria-disabled="true"]) {
+  cursor: default;
+}
+
 /* 全站統一的鍵盤 focus 樣式（DESIGN.md「無障礙」） */
 :where(a, button, summary, [role="tab"], [tabindex]):focus-visible {
   outline: 2px solid var(--ui-primary);
