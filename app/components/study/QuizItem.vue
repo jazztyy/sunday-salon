@@ -32,7 +32,7 @@ const choose = (j: number) => {
 }
 
 const optionClass = (j: number) => {
-  if (!answered.value) return 'border-default bg-muted hover:border-accented'
+  if (!answered.value) return 'border-default bg-muted transition-colors hover:border-secondary/70 hover:bg-accented'
   if (j === props.item.a) return 'border-success bg-success-soft'
   if (j === props.pick) return 'border-error bg-error-soft'
   return 'border-default bg-muted'

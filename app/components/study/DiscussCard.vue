@@ -23,11 +23,14 @@ const panelId = useId()
     </p>
     <p v-if="item.note" class="text-small text-muted">{{ item.note }}</p>
 
+    <!-- 揭曉按鈕：暮色藍外框＋淡底＋箭頭，看得出是可以點的；打開後箭頭轉向 -->
     <UButton
-      color="neutral"
-      variant="ghost"
-      class="self-start rounded-control px-2 text-ui"
-      :label="open ? '收起' : '我想好了，看 Kagan 怎麼說'"
+      color="secondary"
+      variant="subtle"
+      trailing-icon="i-lucide-chevron-down"
+      class="self-start rounded-control px-3 py-1.5 text-ui font-medium hover:bg-secondary/25 hover:ring-secondary"
+      :ui="{ trailingIcon: ['size-4 transition-transform', open ? 'rotate-180' : ''] }"
+      :label="open ? '收起 Kagan 的觀點' : '我想好了，看 Kagan 怎麼說'"
       :aria-expanded="open"
       :aria-controls="panelId"
       @click="open = !open"

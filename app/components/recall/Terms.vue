@@ -76,7 +76,7 @@ const cardClass = (id: string) => {
       >
         <button
           type="button"
-          class="flex min-h-[110px] cursor-pointer flex-col gap-1.5 rounded-card p-3.5 text-left text-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="flex min-h-[110px] cursor-pointer flex-col gap-1.5 rounded-card p-3.5 text-left text-default transition-colors hover:bg-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           :aria-expanded="!!opened[c.id]"
           @click="toggle(c.id)"
         >
@@ -100,7 +100,7 @@ const cardClass = (id: string) => {
             :key="r"
             type="button"
             class="flex-1 cursor-pointer rounded-control border bg-muted py-1 text-ui focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            :class="rates[c.id] === r ? 'border-inverted font-bold text-highlighted' : 'border-default font-medium text-toned'"
+            :class="rates[c.id] === r ? 'border-inverted font-bold text-highlighted' : 'border-default font-medium text-toned transition-colors hover:border-secondary/70 hover:text-highlighted'"
             :aria-pressed="rates[c.id] === r"
             @click="rate(c.id, r)"
           >

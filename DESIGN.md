@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.4 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.6 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -205,7 +205,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 主要按鈕 | `color="neutral"`（solid，預設） | 反相底色。每個畫面最多一個主要動作（例如「下一步」） |
 | 次要按鈕 | `color="neutral" variant="outline"` | 有邊框、沒有底色。重設、篩選、收起影片 |
 | 文字按鈕 | `color="secondary" variant="link"` | 看起來像連結。「直接看答案」「重新猜」「對照重點」 |
-| 揭曉按鈕 | `color="neutral" variant="ghost"` | 沒有框線和底色，hover 才有底。討論題的「我想好了，看 Kagan 怎麼說」 |
+| 揭曉按鈕 | `color="secondary" variant="subtle"`＋`trailing-icon="i-lucide-chevron-down"` | 暮色藍外框＋淡底加向下箭頭（soft 在暗色主題太淡），一眼看得出可以點；打開後箭頭轉 180°、文字變「收起 Kagan 的觀點」。討論題的「我想好了，看 Kagan 怎麼說」。不要用 ghost（沒有底色會看起來像一般文字） |
 
 按鈕文字用動詞開頭，直接說出按下去會發生什麼事，例如「打亂順序，重新作答」。
 
@@ -311,11 +311,26 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 - **可點選的元素一律是手指游標。** 在 `main.css` 全域設定（連結、按鈕、分頁、`summary`…），停用的元素用一般游標（例如作答後鎖定的測驗選項）。新增可點的東西時用真正的 `<button>` 或連結，不要用 `<div @click>`，全域規則才會自動套用。
 - Nuxt UI 內建文字（深淺色切換、抽屜關閉等無障礙標籤）用繁體中文：`app.vue` 的 `<UApp :locale="zh_tw">`。
+- **可點選的元素一律要有 hover 變化**，照下表，不要自創：
+
+| 元素類型 | hover | 例子 |
+|---|---|---|
+| 文字連結 | `hover:underline`（`underline-offset-2`） | `<VideoLink>`、參考段落、內文連結 |
+| 收合標題列 | `hover:bg-accented` | 論證卡、白紙回想、Kagan 的立場 |
+| 卡片連結 | `hover:border-secondary/70 hover:bg-accented` | 概念卡、場次卡 |
+| 可選取的項目 | `hover:border-secondary/70 hover:bg-accented` | 測驗選項、名詞卡、自評按鈕 |
+| 可點選的前提 | `hover:border-primary`（暗示「選它」） | 論證卡的 P1、P2… |
+| 導覽文字 | `text-muted` → `hover:text-highlighted`；站名 `hover:text-primary` | 全站導覽 |
+| Nuxt UI 按鈕 | 用內建的 hover；內建太弱時加強（揭曉按鈕：`hover:bg-secondary/25 hover:ring-secondary`） | `UButton`、`UTabs` |
+
+  目前所在的頁面或分頁（選中項目）不需要 hover 變化。都加上 `transition-colors`。暗色主題的 `--ui-border-accented` 調亮到 `#545C80`。框線的 hover 用暮色藍（`border-secondary/70`），灰色框線在暗色主題下變化太小。
 
 ## 修改紀錄
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-09-29 | 3.6 | 新增 hover 規則表並全面套用；暗色 `--ui-border-accented` 調亮；揭曉按鈕改 subtle |
+| 2026-09-29 | 3.5 | 揭曉按鈕改成暮色藍淡底＋箭頭（原本 ghost 看起來不像可以點） |
 | 2026-09-29 | 3.4 | 可點選元素全域手指游標；Nuxt UI 語系改為繁體中文 |
 | 2026-09-29 | 3.3 | 頁首層級：全站導覽只用字色區分（選中金色），金色底線只留給學習階段；第二列加場次標記；步驟數字改成和文字置中（不加框，目前階段用金色） |
 | 2026-09-29 | 3.2 | 新增影片子分頁；章節清單改成一次一支影片。版面規則：頁面底部留白要放在 `<main>`（grid 的子元素）上，不能放在 grid 外或 grid 的 padding，否則捲到頁尾時 sticky 側欄會被推上去蓋到頂部列 |

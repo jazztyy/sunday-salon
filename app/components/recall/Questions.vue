@@ -21,7 +21,7 @@ const lecName = (v: Video) => v.lec.split(' · ')[0]
       <template #default="{ open }">
         <button
           type="button"
-          class="flex w-full items-center justify-between gap-3 rounded-card px-3.5 py-3 text-left font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="flex w-full items-center justify-between gap-3 rounded-card px-3.5 py-3 text-left font-bold transition-colors hover:bg-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           <span>{{ lecName(v) }}：{{ v.short }}</span>
           <span class="font-mono text-title font-medium text-muted" aria-hidden="true">{{ open ? '−' : '+' }}</span>

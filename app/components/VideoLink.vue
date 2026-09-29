@@ -18,5 +18,5 @@ const onClick = (e: MouseEvent) => {
 </script>
 
 <template>
-  <a :href="href" target="_blank" rel="noopener" class="text-secondary" @click="onClick"><slot /></a>
+  <a :href="href" target="_blank" rel="noopener" class="text-secondary underline-offset-2 hover:underline" @click="onClick"><slot /></a>
 </template>

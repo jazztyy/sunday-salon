@@ -57,7 +57,7 @@ const stanceOpen = ref(false)
   >
     <button
       type="button"
-      class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-card px-3.5 py-3 text-left font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-card px-3.5 py-3 text-left font-bold transition-colors hover:bg-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       <span>Kagan 自己站在哪一邊</span>
       <span aria-hidden="true" class="flex-none font-mono text-title font-medium text-muted">{{ stanceOpen ? '−' : '+' }}</span>

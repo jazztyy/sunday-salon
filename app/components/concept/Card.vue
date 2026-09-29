@@ -9,7 +9,7 @@ const props = withDefaults(defineProps<{ concept: Concept, count?: number }>(), 
 <template>
   <NuxtLink
     :to="`/c/${props.concept.id}`"
-    class="flex h-full flex-col gap-3 rounded-card border border-default bg-elevated p-4 transition-colors hover:border-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    class="flex h-full flex-col gap-3 rounded-card border border-default bg-elevated p-4 transition-colors hover:border-secondary/70 hover:bg-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
   >
     <div class="flex flex-col gap-0.5">
       <h3 class="font-serif text-title font-black leading-snug text-highlighted">{{ props.concept.title }}</h3>

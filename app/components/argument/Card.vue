@@ -27,7 +27,7 @@ const premClass = (j: number, weak: boolean) => {
   const base = 'grid w-full grid-cols-[2.4em_1fr] items-start gap-2 rounded-control border px-2.5 py-2 text-left'
   const border = pick.value === j ? 'border-primary' : 'border-transparent'
   if (!done.value) {
-    return [base, border, 'cursor-pointer bg-accented hover:border-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary']
+    return [base, border, 'cursor-pointer bg-accented transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary']
   }
   return [base, border, weak ? 'bg-error-soft' : 'bg-success-soft']
 }
@@ -47,7 +47,7 @@ const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-
   <UCollapsible v-model:open="open" class="rounded-card border border-default bg-elevated">
     <button
       type="button"
-      class="flex w-full cursor-pointer items-center gap-3 rounded-card px-3.5 py-3 text-left"
+      class="flex w-full cursor-pointer items-center gap-3 rounded-card px-3.5 py-3 text-left transition-colors hover:bg-accented"
       :class="focusRing"
     >
       <span class="flex min-w-0 flex-col">

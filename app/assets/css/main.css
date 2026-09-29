@@ -128,7 +128,7 @@
 
   --ui-border: #2B3149;
   --ui-border-muted: #1E2339;
-  --ui-border-accented: #3A4160;
+  --ui-border-accented: #545C80; /* hover 框線要看得出變化 */
   --ui-border-inverted: #E7E8EF;
 
   --salon-primary-soft: #2F2815;

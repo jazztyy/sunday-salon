@@ -49,7 +49,7 @@ const onTabChange = (value: string | number) => {
         <div class="flex min-w-0 items-center gap-3 sm:gap-4">
           <NuxtLink
             to="/"
-            class="shrink-0 rounded-control font-serif text-title font-black tracking-normal text-highlighted sm:tracking-[.08em] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+            class="shrink-0 rounded-control font-serif text-title font-black tracking-normal text-highlighted transition-colors hover:text-primary sm:tracking-[.08em] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
           >
             悅讀聊天室
           </NuxtLink>
