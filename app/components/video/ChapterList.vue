@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// 影片章節清單：側欄（桌機）與手機抽屜共用。每支影片一個收合群組，點時間跳到該段。
+// 影片章節清單：側欄（桌機）與手機抽屜共用。一次只列一支影片的章節，上方的按鈕可以切換。
+// 預設跟著播放器目前的影片（「邊看邊想」切子分頁、點到別支影片的段落時都會換過來）。
 // 依播放器目前的影片與秒數標出目前章節（SPEC.md「播放器規格」）。
 import type { Session } from '~/types/session'
 
@@ -9,14 +10,15 @@ const emit = defineEmits<{ played: [] }>()
 
 const { vid, seconds } = usePlayer()
 
-const initialOpen = () => Object.fromEntries(props.session.videos.map((v, i) => [v.id, i === 0]))
-const open = ref<Record<string, boolean>>(initialOpen())
+const shownId = ref(props.session.videos[0]?.id ?? '')
+const shown = computed(() => props.session.videos.find(v => v.id === shownId.value) ?? props.session.videos[0])
 
-watch(() => props.session.slug, () => { open.value = initialOpen() })
-
+// 播放器換影片時，清單跟著換
 watch(vid, (id) => {
-  if (id && id in open.value) open.value[id] = true
-})
+  if (id && props.session.videos.some(v => v.id === id)) shownId.value = id
+}, { immediate: true })
+
+watch(() => props.session.slug, () => { shownId.value = props.session.videos[0]?.id ?? '' })
 
 /** 目前章節的秒數（最後一個 <= 目前秒數的章節），不是目前影片時為 null */
 const nowT = computed(() => {
@@ -29,50 +31,53 @@ const isNow = (id: string, t: number) => vid.value === id && nowT.value === t
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <div class="mb-1 flex items-baseline justify-between gap-3 border-b border-default pb-2">
+  <div class="flex flex-col gap-2.5">
+    <div class="flex items-baseline justify-between gap-3 border-b border-default pb-2">
       <b v-if="!hideTitle" class="font-serif text-body text-highlighted">影片章節</b>
       <span class="text-ui text-muted">點時間直接跳到該段</span>
     </div>
 
-    <UCollapsible
-      v-for="v in session.videos"
-      :key="v.id"
-      v-model:open="open[v.id]"
-      class="border-b border-default"
-    >
-      <button
-        type="button"
-        class="flex w-full flex-col items-start py-2.5 text-left focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">{{ v.lec }}</span>
-        <span class="text-small font-bold text-highlighted">{{ v.short }}</span>
-      </button>
+    <!-- 切換要看哪一支影片的章節 -->
+    <div class="flex flex-wrap gap-1.5" role="group" aria-label="選擇影片">
+      <UButton
+        v-for="v in session.videos"
+        :key="v.id"
+        :label="lecOf(session, v.id)"
+        :aria-pressed="v.id === shownId"
+        color="neutral"
+        :variant="v.id === shownId ? 'solid' : 'outline'"
+        size="xs"
+        class="rounded-full px-3"
+        :ui="{ label: 'text-ui font-medium' }"
+        @click="shownId = v.id"
+      />
+    </div>
 
-      <template #content>
-        <div class="flex flex-col gap-2.5 pb-2.5">
-          <VideoLink :vid="v.id" :t="0" class="self-start text-meta" @played="emit('played')">從頭播放</VideoLink>
-          <ol class="flex flex-col">
-            <li
-              v-for="[t, label] in v.chapters"
-              :key="t"
-              class="grid grid-cols-[3.4em_1fr] gap-2 py-0.5 text-ui"
-              :class="isNow(v.id, t) ? 'font-bold text-highlighted' : 'text-toned'"
-              :aria-current="isNow(v.id, t) ? 'true' : undefined"
-            >
-              <VideoLink
-                :vid="v.id"
-                :t="t"
-                class="pt-px font-mono text-meta font-medium tabular-nums no-underline hover:underline"
-                @played="emit('played')"
-              >
-                <span :class="{ 'text-primary': isNow(v.id, t) }">{{ mmss(t) }}</span>
-              </VideoLink>
-              <span>{{ label }}</span>
-            </li>
-          </ol>
-        </div>
-      </template>
-    </UCollapsible>
+    <div v-if="shown" class="flex flex-col gap-2">
+      <div class="flex flex-col">
+        <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">{{ shown.lec }}</span>
+        <span class="text-small font-bold text-highlighted">{{ shown.short }}</span>
+      </div>
+      <VideoLink :vid="shown.id" :t="0" class="self-start text-meta" @played="emit('played')">從頭播放</VideoLink>
+      <ol class="flex flex-col">
+        <li
+          v-for="[t, label] in shown.chapters"
+          :key="t"
+          class="grid grid-cols-[3.4em_1fr] gap-2 py-0.5 text-ui"
+          :class="isNow(shown.id, t) ? 'font-bold text-highlighted' : 'text-toned'"
+          :aria-current="isNow(shown.id, t) ? 'true' : undefined"
+        >
+          <VideoLink
+            :vid="shown.id"
+            :t="t"
+            class="pt-px font-mono text-meta font-medium tabular-nums no-underline hover:underline"
+            @played="emit('played')"
+          >
+            <span :class="{ 'text-primary': isNow(shown.id, t) }">{{ mmss(t) }}</span>
+          </VideoLink>
+          <span>{{ label }}</span>
+        </li>
+      </ol>
+    </div>
   </div>
 </template>

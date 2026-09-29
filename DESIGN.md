@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.1 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.2 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -214,7 +214,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
 |---|---|---|---|
 | 播放器面板 | `video/Panel.vue`（`<VideoPanel>`） | `UButton`（收起影片） | 呼叫 `usePlayer().mount()` 建立播放器。只在 `embed` 為 true（YouTube API 載入成功）時顯示播放器。下方狀態列顯示「講座 N・目前章節」 |
-| 章節清單 | `video/ChapterList.vue`（`<VideoChapterList>`） | `UCollapsible` | 每支影片一組，可以收合。目前播放的章節用 `text-primary font-bold`。側欄和手機抽屜共用 |
+| 章節清單 | `video/ChapterList.vue`（`<VideoChapterList>`） | `UButton` | **一次只列一支影片的章節**，上方有「講座 N」切換按鈕（膠囊，選中為 solid），預設跟著播放器目前的影片。目前播放的章節用 `text-primary font-bold`。側欄和手機抽屜共用 |
+| 影片子分頁 | `tab/During.vue` | `UTabs`（`variant="pill"`、`color="neutral"`） | 「邊看邊想」的講座 5｜講座 6｜講座 7｜整合回顧。sticky 在頂部列下方（`top-[var(--tb)]`、`bg-default`），每段底部有 outline 的「下一段：… →」 |
 | 抽屜 | `SessionView.vue` 裡的 `UDrawer` | `UDrawer` | 手機版的章節清單。點遮罩或按 Esc 關閉，點章節後自動關閉 |
 | 時間戳連結 | `VideoLink.vue`（`<VideoLink vid t>`） | — | **所有指向影片的連結都要用 `<VideoLink>`**，不可以手寫 `<a href="https://www.youtube.com/…">`。有播放器時攔截點擊改成跳段，沒有時開新分頁 |
 | 段落連結 | `<VideoLink>` ＋ `utils/videoRef.ts` | — | 測驗解析、討論答案下方的 `refs`。每段一個連結，文字用 `refLabel()` 產生（`▸ 講座 5 · 17:17`），`font-mono text-meta`，多段時 `flex-wrap` 橫排。秒數格式一律用 `mmss()`，講座標籤用 `lecOf()`，不要各自手寫 |
@@ -310,6 +311,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-09-29 | 3.2 | 新增影片子分頁；章節清單改成一次一支影片。版面規則：頁面底部留白要放在 `<main>`（grid 的子元素）上，不能放在 grid 外或 grid 的 padding，否則捲到頁尾時 sticky 側欄會被推上去蓋到頂部列 |
 | 2026-09-29 | 1.0 | 初版。字級收斂成 10 級 token（18px→19px、22px→24px），圓角收斂成 5 級，移除所有 inline style 與寫死的顏色 |
 | 2026-09-29 | 2.0 | 改用 Nuxt 4 + Nuxt UI 4 + Tailwind CSS 4。token 改成 Tailwind `@theme` 與 Nuxt UI `--ui-*` 變數，文件改列 utility class。暗色改為預設。斷點 1000px → 1024px。元件目錄改成對應 Vue 元件檔案與 Nuxt UI 元件。新增「實作規則」。網站名稱從「週日沙龍」改為「悅讀聊天室」 |
 | 2026-09-29 | 3.0 | 新增設計原則「概念是連結的單位」。頂部列改成三個導覽（本週／全部場次／概念卡），移除場次 chip，分頁只在場次頁顯示。場次標頭加 tag 列。新增 6.8「瀏覽與概念卡」：tag 標籤、場次卡、tag 篩選 pill、`<ConceptCard>`、概念卡頁區塊、`<RelatedSessions>` 與兩種來源徽章。名詞卡改用概念卡。新增 8.1「概念卡」文案規範。實作規則加上內容查詢與站內連結 |

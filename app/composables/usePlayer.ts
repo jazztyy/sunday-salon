@@ -6,6 +6,7 @@
 
 interface YTPlayer {
   loadVideoById: (opts: { videoId: string, startSeconds?: number }) => void
+  cueVideoById: (opts: { videoId: string, startSeconds?: number }) => void
   seekTo: (seconds: number, allowSeekAhead: boolean) => void
   playVideo: () => void
   pauseVideo: () => void
@@ -23,6 +24,7 @@ declare global {
 let yt: YTPlayer | null = null
 let ready = false
 let pending: [string, number] | null = null
+let pendingCue: string | null = null
 let timer: ReturnType<typeof setInterval> | null = null
 let apiPromise: Promise<void> | null = null
 
@@ -65,6 +67,10 @@ export const usePlayer = () => {
             const [id, t] = pending
             pending = null
             play(id, t)
+          } else if (pendingCue) {
+            const id = pendingCue
+            pendingCue = null
+            cue(id)
           }
         },
       },
@@ -99,11 +105,23 @@ export const usePlayer = () => {
     seconds.value = t
   }
 
+  /** 換成指定影片但不播放（「邊看邊想」切換子分頁時，讓右側跟著左側） */
+  const cue = (id: string) => {
+    if (!ready || !yt) {
+      pendingCue = id
+      return
+    }
+    if (vid.value === id) return
+    yt.cueVideoById({ videoId: id })
+    vid.value = id
+    seconds.value = 0
+  }
+
   /** 手機版收起播放器 */
   const hide = () => {
     yt?.pauseVideo()
     playing.value = false
   }
 
-  return { embed, playing, vid, seconds, mount, unmount, play, hide }
+  return { embed, playing, vid, seconds, mount, unmount, play, cue, hide }
 }
