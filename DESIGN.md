@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.8 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.10 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -141,7 +141,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 寬度 | 版面 |
 |---|---|
-| ≥ 1024px（`lg:`） | 兩欄：主內容（最寬 760px）＋側欄。有播放器時側欄 420px，沒有時 300px。整體最寬 1240px |
+| ≥ 1024px（`lg:`） | 兩欄：主內容（最寬 760px）＋側欄。有播放器時側欄 420px，沒有時 300px。整體最寬 1240px。**「看之前」不顯示側欄**：單欄置中、最寬 760px（和 `/archive` 一樣），點了精選片段開始播放後才變回兩欄。切換分頁時內容會左右移動，這是已知的取捨（Kai 選擇置中） |
 | < 1024px | 單欄。章節清單收進「影片章節」抽屜（`UDrawer`）；開始播放後，播放器固定在頂部列下方，可以收起 |
 
 - 斷點只用 Tailwind 預設的 `lg`（1024px）。v1 是 1000px，2.0 改成 1024px。
@@ -163,7 +163,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。影片章節按鈕在 640px 以下只顯示圖示（`i-lucide-list-video`，保留 `aria-label`），避免把導覽擠出畫面。640px 以下站名降一級（`text-lead`）、間距收緊，**兩列在 360px 寬都不需要橫向捲動**：第二列分頁的 trigger 用 `px-1 gap-1`、文字 `text-ui`（640px 以上 `px-2.5 gap-1.5 text-small`）。**導覽層級**：第一列全站導覽**只用字色區分**（選中 `text-primary`、其他 `text-muted`，沒有底色也沒有底線）；第二列學習階段是這一頁的主導覽，**金色底線只給它用**，前面有場次標記「10/4 靈魂 ›」（`context`，640px 以上才顯示）。步驟數字不加框（`font-mono text-meta leading-none`），和文字垂直置中（trigger 用 `items-center`），目前階段的數字用 `text-primary`。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
 | 導覽 | 在 `<SalonHeader>` 裡 | `UButton`（`color="neutral" variant="link"`） | 三項：本週（`/`）・全部場次（`/archive`）・概念卡（`/concepts`），`text-ui`。目前所在的項目用 `text-primary`。2.0 的場次 chip 列已移除 |
 | 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | **只在場次頁顯示**（`/`、`/s/{slug}`）。五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
-| 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，引導到下一個分頁 |
+| 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，靠右一個主要按鈕「下一步：看完回想 →」，不另外加文字標籤和分隔線。「邊看邊想」只在最後一段（整合回顧）顯示，其他段落由「下一段」按鈕代替，**同一個畫面只有一個往下走的按鈕** |
 
 ### 6.2 分頁
 
@@ -213,9 +213,9 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
 |---|---|---|---|
-| 播放器面板 | `video/Panel.vue`（`<VideoPanel>`） | `UButton`（收起影片）、`UIcon` | 呼叫 `usePlayer().mount()` 建立播放器。只在 `embed` 為 true（YouTube API 載入成功）時顯示播放器。下方狀態列顯示「講座 N・目前章節」，再下面是字幕說明（`captionTip`，`i-lucide-captions` 圖示＋`text-meta text-muted`）：語言是看影片的第一個門檻，所以放在播放器正下方 |
+| 播放器面板 | `video/Panel.vue`（`<VideoPanel>`） | `UButton`（收起影片）、`UIcon` | 呼叫 `usePlayer().mount()` 建立播放器。只在 `embed` 為 true（YouTube API 載入成功）時顯示播放器。下方狀態列顯示「講座 N・目前章節」，再下面是字幕說明（`captionTip`，`i-lucide-captions` 圖示＋`text-meta text-muted`）：語言是看影片的第一個門檻，所以放在播放器正下方。**放大**（1024px 以上）：狀態列右側有次要按鈕「放大影片」（`i-lucide-maximize-2`），按下去播放器浮到畫面中間（`fixed` 置中、最寬 `max-w-3xl`、`bg-default rounded-card border-default` 加陰影）。**不加遮罩**：懸浮視窗以外的地方照樣可以捲動和點擊，邊看影片邊讀內容。側欄原位留一塊 `border-dashed` 的占位，裡面有「縮回側欄」。**可以拖曳**：懸浮視窗側邊垂直置中凸出一個小分頁當把手（只有 `i-lucide-grip-vertical` 圖示，`aria-label="拖曳移動"`，`bg-default border-default`，靠外的兩角 `rounded-card`，`cursor-grab`）。**把手永遠朝向畫面中間**：視窗中心在右半邊（含一開始置中）時把手在左側，拖過中線到左半邊時換到右側，拖曳中即時切換；把手那一側留出把手寬度，另一側可以貼齊畫面邊緣。**平常隱藏**，滑鼠碰到把手的位置、或經過視窗邊框與狀態列時淡入，拖曳中保持顯示。滑鼠停在影片畫面上時偵測不到（YouTube iframe 是跨網域，外層頁面收不到任何事件），所以把手放在視窗外側：從那一側靠近時一定先經過它。按住就能移動，視窗和把手都不會拖出畫面。每次放大都從中間開始，視窗大小改變時回到中間。按「縮回側欄」（`i-lucide-minimize-2`）或按 Esc 回到側欄。預設在側欄，不記住狀態。放大只切換同一個元素的樣式，**不可以用 Teleport 或搬動 DOM**，iframe 一搬就會重新載入、中斷播放 |
 | 章節清單 | `video/ChapterList.vue`（`<VideoChapterList>`） | `UButton` | **一次只列一支影片的章節**，上方有「講座 N」切換按鈕（膠囊，選中為 solid），預設跟著播放器目前的影片。目前播放的章節用 `text-primary font-bold`。側欄和手機抽屜共用 |
-| 影片子分頁 | `tab/During.vue` | `UTabs`（`variant="pill"`、`color="neutral"`） | 「邊看邊想」的講座 5｜講座 6｜講座 7｜整合回顧。該段測驗全部作答後，標籤前面加 `i-lucide-circle-check`（`text-success`）。sticky 在頂部列下方（`top-[var(--tb)]`、`bg-default`），每段底部有 outline 的「下一段：… →」 |
+| 影片子分頁 | `tab/During.vue` | `UTabs`（`variant="pill"`、`color="neutral"`） | 「邊看邊想」的講座 5｜講座 6｜講座 7｜整合回顧。該段測驗全部作答後，標籤前面加 `i-lucide-circle-check`（`text-success`）。sticky 在頂部列下方（`top-[var(--tb)]`、`bg-default`），每段底部有 outline 的「下一段：… →」。最後一段沒有「下一段」，改由頁面的「下一步」主要按鈕接手 |
 | 抽屜 | `SessionView.vue` 裡的 `UDrawer` | `UDrawer` | 手機版的章節清單。點遮罩或按 Esc 關閉，點章節後自動關閉 |
 | 時間戳連結 | `VideoLink.vue`（`<VideoLink vid t>`） | — | **所有指向影片的連結都要用 `<VideoLink>`**，不可以手寫 `<a href="https://www.youtube.com/…">`。有播放器時攔截點擊改成跳段，沒有時開新分頁 |
 | 段落連結 | `<VideoLink>` ＋ `utils/videoRef.ts` | — | 測驗解析、討論答案下方的 `refs`。每段一個連結，文字用 `refLabel()` 產生（`▸ 講座 5 · 17:17`），`font-mono text-meta`，多段時 `flex-wrap` 橫排。秒數格式一律用 `mmss()`，講座標籤用 `lecOf()`，不要各自手寫 |
@@ -258,7 +258,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 ## 7. 實作規則
 
-- **只用 Tailwind utility。** 元件裡不寫 `<style>`，不寫 inline `style`，不寫 hex 色碼，不寫 px 字級。全域樣式只放在 `main.css`。
+- **只用 Tailwind utility。** 元件裡不寫 `<style>`，不寫 inline `style`，不寫 hex 色碼，不寫 px 字級。全域樣式只放在 `main.css`。唯一的例外是**跟著滑鼠即時計算的位置**（懸浮播放器拖曳時的 `transform`），只能用 `:style` 綁定。
 - **Nuxt UI 優先。** 按鈕、分頁、抽屜、收合、徽章、主題切換都用 Nuxt UI 元件。Nuxt UI 沒有的才自己寫。
 - **調整 Nuxt UI 元件用 `ui` prop**（例如 `:ui="{ base: 'rounded-full' }"`），不要用全域 CSS 覆寫它的 class。要全站改，改 `app.config.ts`。
 - **所有影片連結都用 `<VideoLink>`。**
@@ -323,6 +323,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 可選取的項目 | `hover:border-secondary/70 hover:bg-accented` | 測驗選項、名詞卡、自評按鈕 |
 | 可點選的前提 | `hover:border-primary`（暗示「選它」） | 論證卡的 P1、P2… |
 | 導覽文字 | `text-muted` → `hover:text-highlighted`；站名 `hover:text-primary` | 全站導覽 |
+| 拖曳把手 | 平常 `opacity-0`，碰到把手或視窗邊框時淡入（`hover:opacity-100`、`group-hover:opacity-100`）；`text-muted` → `hover:text-highlighted`，游標 `cursor-grab`，拖曳中 `cursor-grabbing` | 懸浮播放器側邊的小分頁 |
 | Nuxt UI 按鈕 | 用內建的 hover；內建太弱時加強（揭曉按鈕：`hover:bg-secondary/25 hover:ring-secondary`） | `UButton`、`UTabs` |
 
   目前所在的頁面或分頁（選中項目）不需要 hover 變化。都加上 `transition-colors`。暗色主題的 `--ui-border-accented` 調亮到 `#545C80`。框線的 hover 用暮色藍（`border-secondary/70`），灰色框線在暗色主題下變化太小。
@@ -331,6 +332,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-09-29 | 3.10 | 播放器可以「放大影片」浮到畫面中間（桌機，不加遮罩，頁面照樣可以捲動），預設在側欄，可以拖曳移動。「看之前」單欄改成置中 |
+| 2026-09-29 | 3.9 | 「看之前」不顯示側欄，開始播放後才出現；「下一步」列拿掉文字標籤與分隔線，只留靠右的主要按鈕；「邊看邊想」同一時間只有一個往下走的按鈕（下一段／下一步） |
 | 2026-09-29 | 3.8 | 立場題只有一輪：拿掉「討論前／討論後」兩列與改變提示；活動回顧的「立場變化」改成「大家的立場」 |
 | 2026-09-29 | 3.7 | 場次標頭只在「看之前」顯示；手機頂部列在 360px 寬不需橫向捲動；影片長度一律寫「分鐘」（新增 `minutesLabel`、`totalLabel`）；字幕說明移到播放器下方；手機「播放這一講」按鈕；影片子分頁完成打勾；自我測驗預設打亂、出處作答後才顯示；討論卡加「我的想法」並與 Kagan 觀點並排；週日討論「複製我的筆記」；新增活動回顧區塊 |
 | 2026-09-29 | 3.6 | 新增 hover 規則表並全面套用；暗色 `--ui-border-accented` 調亮；揭曉按鈕改 subtle |

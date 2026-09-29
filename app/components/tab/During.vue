@@ -45,6 +45,12 @@ const part = ref(props.session.videos[0]?.id ?? 'all')
 const currentVideo = computed(() => props.session.videos.find(v => v.id === part.value))
 const nextPart = computed(() => parts.value[parts.value.findIndex(p => p.key === part.value) + 1])
 
+// 最後一段沒有「下一段」，讓頁面的「下一步」按鈕接手（SessionView）
+const atLastPart = defineModel<boolean>('atLastPart', { default: false })
+watchEffect(() => {
+  atLastPart.value = !nextPart.value
+})
+
 const partsBar = useTemplateRef<HTMLElement>('partsBar')
 
 const selectPart = (key: string, scroll = true) => {

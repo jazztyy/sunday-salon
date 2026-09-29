@@ -16,7 +16,7 @@ const TABS: { key: TabKey, label: string }[] = [
 const route = useRoute()
 const router = useRouter()
 const lastTab = useSalonStorage<TabKey>('salon-tab', 'before')
-const { embed, playing } = usePlayer()
+const { embed, playing, floating } = usePlayer()
 
 const isTab = (v: string): v is TabKey => TABS.some(t => t.key === v)
 
@@ -37,6 +37,13 @@ watch(tab, (value) => {
 
 const nextTab = computed(() => TABS[TABS.findIndex(t => t.key === tab.value) + 1])
 
+// 「邊看邊想」還有下一段時由分頁自己的「下一段」按鈕帶路，同一個畫面只留一個往下走的按鈕
+const duringAtLastPart = ref(false)
+const showNext = computed(() => nextTab.value && (tab.value !== 'during' || duringAtLastPart.value))
+
+// 「看之前」還沒開始看影片，不顯示側欄；點了精選片段開始播放後才出現
+const showAside = computed(() => tab.value !== 'before' || playing.value)
+
 const chaptersOpen = ref(false)
 
 const totalSeconds = computed(() => props.session.videos.reduce((sum, v) => sum + v.duration, 0))
@@ -50,8 +57,10 @@ const totalSeconds = computed(() => props.session.videos.reduce((sum, v) => sum 
     <SalonHeader v-model:tab="tab" :tabs="TABS" :context="session.chip" @open-chapters="chaptersOpen = true" />
 
     <div
-      class="mx-auto grid max-w-[1240px] grid-cols-1 gap-10 px-4 pt-7 lg:grid-cols-[minmax(0,1fr)_300px]"
-      :class="{ 'lg:grid-cols-[minmax(0,1fr)_420px]': embed }"
+      class="mx-auto grid grid-cols-1 gap-10 px-4 pt-7"
+      :class="showAside
+        ? ['max-w-[1240px]', embed ? 'lg:grid-cols-[minmax(0,1fr)_420px]' : 'lg:grid-cols-[minmax(0,1fr)_300px]']
+        : 'max-w-[760px]'"
     >
       <main class="flex min-w-0 max-w-[760px] flex-col gap-10 pb-20">
         <!-- 場次標頭只在「看之前」顯示：切到其他分頁代表已經知道在哪一場，把第一屏留給內容 -->
@@ -79,14 +88,13 @@ const totalSeconds = computed(() => props.session.videos.reduce((sum, v) => sum 
         <h1 v-else class="sr-only">{{ session.title }}</h1>
 
         <TabBefore v-if="tab === 'before'" :session="session" />
-        <TabDuring v-else-if="tab === 'during'" :session="session" />
+        <TabDuring v-else-if="tab === 'during'" v-model:at-last-part="duringAtLastPart" :session="session" />
         <TabRecall v-else-if="tab === 'recall'" :session="session" />
         <TabSunday v-else-if="tab === 'sunday'" :session="session" />
         <TabAfter v-else :session="session" />
 
-        <div v-if="nextTab" class="flex flex-wrap items-center justify-between gap-3 border-t border-default pt-4">
-          <span class="text-small text-muted">下一步</span>
-          <UButton color="neutral" :label="`${nextTab.label} →`" @click="tab = nextTab.key" />
+        <div v-if="showNext" class="flex justify-end">
+          <UButton color="neutral" :label="`下一步：${nextTab!.label} →`" @click="tab = nextTab!.key" />
         </div>
 
         <footer class="flex flex-col gap-1.5 border-t border-default pt-5 text-ui text-muted">
@@ -96,11 +104,17 @@ const totalSeconds = computed(() => props.session.videos.reduce((sum, v) => sum 
       </main>
 
       <!-- 桌機：側欄固定。手機：開始播放後播放器固定在頂部（章節清單改用抽屜） -->
+      <!-- 用 class 隱藏而不是 v-if：播放器要一直掛著，「看之前」點精選片段才能直接播放 -->
       <aside
-        class="lg:sticky lg:top-[calc(var(--tb,116px)+16px)] lg:block lg:max-h-[calc(100dvh-var(--tb,116px)-32px)] lg:self-start lg:overflow-y-auto"
-        :class="embed && playing
-          ? 'sticky top-[var(--tb,116px)] z-10 order-first -mx-4 block border-b border-default bg-default px-4 pt-2 lg:order-none lg:mx-0 lg:border-0 lg:px-0 lg:pt-0'
-          : 'hidden'"
+        class="lg:sticky lg:top-[calc(var(--tb,116px)+16px)] lg:max-h-[calc(100dvh-var(--tb,116px)-32px)] lg:self-start lg:overflow-y-auto"
+        :class="[
+          embed && playing
+            ? 'sticky top-[var(--tb,116px)] z-10 order-first -mx-4 block border-b border-default bg-default px-4 pt-2 lg:order-none lg:mx-0 lg:border-0 lg:px-0 lg:pt-0'
+            : 'hidden',
+          showAside ? 'lg:block' : 'lg:hidden',
+          // 側欄是 sticky（自成一層），放大的播放器要蓋過頂部列（z-20），側欄本身得先浮上來
+          floating && 'lg:z-30',
+        ]"
       >
         <VideoPanel :session="session" />
       </aside>
