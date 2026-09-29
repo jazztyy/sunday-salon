@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 頂部列：站名＋網站導覽（本週／全部場次／概念卡）＋手機「影片章節」按鈕＋深淺色切換。
 // 場次頁會傳入 tabs，第二列顯示五個學習階段分頁；其他頁面只有第一列。
-// 層級：第一列是全站導覽（低調的膠囊樣式），第二列是「這一場」的學習階段（金色底線，唯一有底線的導覽），
+// 層級：第一列是全站導覽（只用字色：選中金色、其他灰色，沒有底色或底線），第二列是「這一場」的學習階段（金色底線，唯一有底線的導覽），
 // 第二列前面的場次標記（context）說明這些分頁屬於哪一場。
 // 規格見 DESIGN.md「導覽」。頂部列高度寫入 CSS 變數 --tb，SessionView 的 sticky 位移依賴它。
 import type { TabKey } from '~/types/session'
@@ -64,7 +64,7 @@ const onTabChange = (value: string | number) => {
               :to="item.to"
               :aria-current="item.active ? 'page' : undefined"
               class="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-ui font-medium sm:px-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
-              :class="item.active ? 'bg-accented text-highlighted' : 'text-muted hover:text-highlighted'"
+              :class="item.active ? 'text-primary' : 'text-muted hover:text-highlighted'"
             >
               {{ item.label }}
             </NuxtLink>
@@ -110,10 +110,10 @@ const onTabChange = (value: string | number) => {
         }"
         @update:model-value="onTabChange"
       >
-        <!-- 步驟數字：小圓圈，和文字垂直置中；目前階段填滿金色 -->
+        <!-- 步驟數字：不加框，和文字垂直置中（leading-none）；目前階段用金色 -->
         <template #leading="{ index }">
           <span
-            class="inline-flex size-4.5 shrink-0 items-center justify-center rounded-full border border-current font-mono text-label font-medium leading-none tabular-nums group-data-[state=active]:border-primary group-data-[state=active]:bg-primary group-data-[state=active]:text-inverted"
+            class="shrink-0 font-mono text-meta font-medium leading-none tabular-nums group-data-[state=active]:text-primary"
           >{{ index + 1 }}</span>
         </template>
       </UTabs>
