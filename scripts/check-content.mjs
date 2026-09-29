@@ -60,9 +60,26 @@ for (const { file, data: s } of sessions) {
       if (hasObj === hasAcc) err(file, `論證「${a.name}」P${i + 1}：質疑與接受必須剛好填一個`)
     })
   }
+  // 測驗與討論題：範圍是影片 id 或 'all'，參考段落的影片要存在
+  const scopes = new Set([...videoIds, 'all'])
+  const checkItem = (kind, item) => {
+    if (!scopes.has(item.scope)) err(file, `${kind}「${item.q}」的 scope「${item.scope}」不是影片 id 也不是 all`)
+    if (!item.refs?.length) err(file, `${kind}「${item.q}」至少要有一個參考段落`)
+    for (const [vid] of item.refs ?? []) checkVid(vid, `${kind}「${item.q}」的參考段落`)
+  }
   for (const q of s.quiz ?? []) {
     if (q.a >= q.o.length) err(file, `測驗「${q.q}」的正解索引超出選項數`)
-    checkVid(q.t[0], `測驗「${q.q}」`)
+    checkItem('測驗', q)
+  }
+  for (const d of s.discuss ?? []) {
+    checkItem('討論題', d)
+    if (!d.answer) err(file, `討論題「${d.q}」缺少 answer（Kagan 怎麼說）`)
+  }
+  // 每支影片和整合回顧都至少要有一題測驗、一題討論（邊看邊想依影片排列）
+  for (const sc of scopes) {
+    const label = sc === 'all' ? '整合回顧' : `影片 ${sc}`
+    if (!(s.quiz ?? []).some(q => q.scope === sc)) err(file, `${label}沒有測驗題`)
+    if (!(s.discuss ?? []).some(d => d.scope === sc)) err(file, `${label}沒有討論題`)
   }
 }
 for (const { file, data: s } of sessions) {

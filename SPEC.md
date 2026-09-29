@@ -1,6 +1,6 @@
 # 悅讀聊天室 功能規格
 
-> 版本 3.0 ・ 2026-09-29
+> 版本 3.1 ・ 2026-09-29
 >
 > 這份文件描述網站**做什麼、怎麼運作、資料怎麼放**。視覺規範請看 [DESIGN.md](DESIGN.md)。
 > 要改功能時，先在這份文件寫下變更並討論，確定後再改程式，最後更新文末的修改紀錄。
@@ -101,13 +101,15 @@ site/
 │   │   ├── video/                   # Panel.vue、ChapterList.vue
 │   │   ├── tab/                     # Before / During / Recall / Sunday / After
 │   │   ├── argument/Card.vue        # 論證卡片
+│   │   ├── study/                   # VideoSection / QuizItem / DiscussCard（邊看邊想、週日討論共用）
 │   │   ├── recall/                  # Timeline / Questions / Quiz / Terms
-│   │   └── sunday/                  # Vote / Discuss
+│   │   └── sunday/                  # Vote
 │   ├── composables/
 │   │   ├── useContent.ts            # 所有內容查詢的入口
 │   │   ├── useRelatedSessions.ts    # 延續討論的計算
 │   │   ├── usePlayer.ts             # 播放器共用狀態
 │   │   └── useSalonStorage.ts       # 瀏覽器儲存
+│   ├── utils/videoRef.ts            # 影片段落的顯示文字（mmss、lecOf、refLabel）
 │   └── types/session.ts             # 元件用的型別（要和 content.config.ts 同步）
 ├── legacy/index.html                # v1 單一檔案版本（凍結）
 ├── public/                          # 原樣複製的靜態檔案（favicon 等）
@@ -247,9 +249,27 @@ site/
 | 講者的立場 | 講者本人的觀點整理 | 收合 |
 | 延續討論 | 相關場次（見 4.3） | 點了進入該場 |
 
-### 5.2 邊看邊想（`during`，`<TabDuring>`）— 論證地圖
+### 5.2 邊看邊想（`during`，`<TabDuring>`）— 逐支影片
 
-每個論證一張可以收合的卡片（`<ArgumentCard>`），標題列顯示「已作答／未作答」。
+**依影片分段，照順序排。** 每支影片一段（`<StudyVideoSection>`），由上到下：
+
+| 區塊 | 內容 | 互動 |
+|---|---|---|
+| 影片標頭 | 講座標籤、標題、「從頭播放」 | 點「從頭播放」→ 播放器從 0 秒開始播這支 |
+| 帶著這個問題看 | 這支影片的 `guide` | — |
+| 論證 | 這支影片的論證卡片（`args` 裡 `vid` 是這支的） | 預測試，見下方 |
+| 看完這段，測一下 | `quiz` 裡 `scope` 是這支的題目（`<StudyQuizItem>`） | 作答後鎖定，顯示正解、解析和原片段連結 |
+| 想一想 | `discuss` 裡 `scope` 是這支的題目（`<StudyDiscussCard>`） | 按「我想好了，看 Kagan 怎麼說」→ 顯示 `answer` 和參考段落連結 |
+
+所有影片之後是**「整合回顧」**：`scope` 是 `'all'` 的測驗題與討論題，跨影片整合。
+
+**這樣排的原因**：題目和討論要跟正在看的影片對齊，看完一段就練一段。跨影片的整合放在最後。
+
+- 每一則測驗解析、每一則討論答案都連回一段或多段影片（`refs`）。
+- 這裡的測驗作答另外存（`salon-quiz-inline-{slug}`），不影響「看完回想」的自我測驗。
+- 討論題的「看 Kagan 怎麼說」只在這次瀏覽展開，不存進瀏覽器。
+
+**論證卡片**：每個論證一張可以收合的卡片（`<ArgumentCard>`），標題列顯示「已作答／未作答」。
 
 **流程（預測試）**：
 1. 使用者打開卡片，看到前提和結論，還看不到講者的判斷。
@@ -267,16 +287,20 @@ site/
 |---|---|---|
 | 複習節奏 | `<RecallTimeline>` | 四個時間點：看完當天 → 隔天 → 活動前 → 活動後一週 |
 | 白紙回想 | `<RecallQuestions>` | 每支影片 3 題，先自己回答，再打開「對照重點」 |
-| 自我測驗 | `<RecallQuiz>` | 單選題。作答後鎖定選項，顯示正解、解析和原片段連結。分數即時更新。「打亂順序，重新作答」會清空作答紀錄並重新排序題目 |
+| 自我測驗 | `<RecallQuiz>` | 本場**全部**測驗題（含整合回顧），打亂順序。作答後鎖定選項，顯示正解、解析和原片段連結。分數即時更新。「打亂順序，重新作答」會清空作答紀錄並重新排序題目 |
 | 名詞卡 | `<RecallTerms>` | 內容就是本場 `concepts` 列出的概念卡（詞條、英文、`summary`）。點卡片翻面 → 自評「還不熟／記得」。可以篩選「只看還不熟的」，上方顯示各狀態張數 |
+
+- 自我測驗是給隔天或活動前**重新測一次**用的（間隔重複＋交錯練習）。題目和「邊看邊想」一樣，但作答紀錄分開存，所以這裡從頭開始。
 
 ### 5.4 週日討論（`sunday`，`<TabSunday>`）
 
 | 區塊 | 元件 | 功能 |
 |---|---|---|
-| 進行方式 | — | 同儕教學四步驟：先各自表態 → 看分布 → 和立場不同的人互相說服 → 再表態 |
 | 立場題 | `<SundayVote>` | 每題有「討論前」「討論後」兩列選項。兩次選擇不同時，提示「你從 A 改成了 B，是哪個理由說動你的？」 |
-| 討論題 | `<SundayDiscuss>` | 帶編號的問題清單，超出影片內容的題目標上「延伸」 |
+| 討論議題 | `<StudyDiscussCard>` | 本場全部討論題，先依影片分組，最後是「整合回顧」。卡片和「邊看邊想」相同，一樣可以看 Kagan 怎麼說和參考段落 |
+
+- 討論題只有一份資料（`discuss`），兩個分頁共用，不另外寫一套題目。
+- 3.0 的「進行方式」（同儕教學四步驟）區塊已移除。
 
 > 立場題的選擇**只存在每個人自己的瀏覽器**，網站看不到全體的分布。現場的立場分布要用會議軟體的投票功能統計。
 
@@ -357,18 +381,28 @@ argsNote: …                       # 可省略：論證地圖上方的補充說
 votes:                            # 2–4 題，每題 2–4 個選項
   - q: 立場題
     o: [選項, 選項]
-discuss:                          # [題目, 補充說明, 是否延伸]
-  - [ …, …, false ]
-quiz:
-  - q: 題目
+discuss:                          # 每支影片至少 1 題，'all' 至少 1 題
+  - scope: S-fwH_uBPD0            # 影片 id，或 all（整合回顧，跨影片）
+    q: 題目
+    note: 補充說明                # 可省略
+    ext: false                    # 超出影片內容的延伸題設 true，可省略（預設 false）
+    answer: Kagan 怎麼說          # 影片沒回答時要明說
+    refs:                         # 參考段落 [videoId, 秒數]，至少一段
+      - [S-fwH_uBPD0, 1037]
+quiz:                             # 每支影片至少 1 題，'all' 至少 1 題
+  - scope: S-fwH_uBPD0
+    q: 題目
     o: [選項, 選項, 選項]
     a: 0                          # 正解索引，從 0 開始
     e: 解析
-    t: [S-fwH_uBPD0, 1037]        # 原片段
+    refs:                         # 原片段 [videoId, 秒數]，至少一段
+      - [S-fwH_uBPD0, 1037]
 after: 活動後區塊的說明文字
 ```
 
 2.0 → 3.0 的欄位變動：`id` 改名為 `slug`（值 `w1` 不變，localStorage 才不會失效）；`date` 改成 ISO 日期，原本的顯示文字移到 `dateLabel`；新增 `tags`、`concepts`、`related`；`terms` 移除，名詞卡改用本場的概念卡。
+
+3.0 → 3.1 的欄位變動：`quiz` 新增 `scope`，原本單一的 `t` 改成 `refs`（可以多段）；`discuss` 從 `[題目, 補充說明, 是否延伸]` 改成物件，新增 `scope`、`answer`、`refs`。
 
 ### 7.2 概念卡：`content/concepts/{id}.md`
 
@@ -413,6 +447,9 @@ facets:
 
 - 每個前提的「質疑」和「接受」必須剛好填一個。
 - 所有秒數都要對照逐字稿確認，不可以估算。
+- `quiz` 和 `discuss` 的 `scope` 只能是本場某支影片的 id，或 `'all'`。
+- 每支影片至少要有一題測驗、一題討論；`'all'` 也至少各一題。
+- 討論題的 `answer` 在影片沒回答時要直接說明（例如延伸題：「Kagan 在影片裡沒有談到……」），不可以替講者補答案。
 - 講者的觀點要寫成「Kagan 認為……」，不可以寫成事實（見 DESIGN.md「文案規範」）。
 - 概念卡的 `summary` 只寫中立、通用的定義（見 4.2）。
 
@@ -433,7 +470,9 @@ facets:
 | `related` 的場次不存在，或連到自己 | 場次 |
 | 前提的質疑與接受不是剛好填一個 | 場次 `args` |
 | 測驗正解索引超出選項數 | 場次 `quiz` |
-| 影片 id 不在本場 `videos` 裡 | 場次 `picks`、`args`、`quiz` |
+| 影片 id 不在本場 `videos` 裡 | 場次 `picks`、`args`、`quiz` 與 `discuss` 的 `refs` |
+| `scope` 不是本場影片 id 也不是 `'all'` | 場次 `quiz`、`discuss` |
+| 某支影片或 `'all'` 沒有測驗題或討論題 | 場次 `quiz`、`discuss` |
 | 檔案不在 `date` 年份的資料夾 | 場次 |
 
 ---
@@ -450,13 +489,17 @@ facets:
 |---|---|
 | `salon-tab` | 上次停留的分頁 |
 | `salon-arg-{slug}` | 論證卡片的猜題紀錄 `{卡片索引: 前提索引}`，`-1` 表示直接看答案 |
-| `salon-quiz-{slug}` | 測驗 `{order: [題目順序], ans: {題目索引: 選項索引}}` |
+| `salon-quiz-{slug}` | 「看完回想」的自我測驗 `{sig: 題目簽章, order: [題目順序], ans: {題目索引: 選項索引}}` |
+| `salon-quiz-inline-{slug}` | 「邊看邊想」的測驗作答 `{sig: 題目簽章, ans: {題目索引: 選項索引}}`，索引是 `quiz` 陣列裡的位置（3.1 起） |
 | `salon-cards-{slug}` | 名詞卡自評 `{概念卡 id: 'shaky' 或 'known'}`（3.0 起） |
 | `salon-vote-{slug}` | 立場題 `{題目索引: {pre: 選項, post: 選項}}` |
 
 - `slug` 就是 2.0 的 `id`，值沒變，所以舊訪客的進度都還在。
 - `salon-cards-{slug}` 在 3.0 改成用概念卡 id 當 key。2.0 用卡片索引（`"0"`、`"1"`）存的舊值會被忽略，名詞卡自評等於重來一次。
 - `salon-session`（上次查看的場次）在 3.0 已不再使用。
+- `salon-quiz-inline-{slug}` 和 `salon-quiz-{slug}` 分開存，所以隔天在「看完回想」重測時從頭開始。
+- 兩者都記下**題目簽章**（`utils/quizSignature.ts`，由題目、選項、正解算出）。發佈後修改了任何一題，簽章就會不同，作答紀錄自動重置，避免舊答案對到新題目。
+- 討論題的「看 Kagan 怎麼說」展開狀態不存。
 
 > 修改資料結構時要考慮舊資料的相容性。例如 1.0 版測驗改成 `{order, ans}` 格式時，就有加上舊格式的判斷，避免舊訪客打開時出錯。
 
@@ -466,6 +509,10 @@ facets:
 
 1. **取得來源**：用 `yt-dlp` 下載字幕並轉成帶時間戳的逐字稿，存到 `~/Documents/sunday-salon/`（逐字稿**不放進 repo**）。
 2. **撰寫場次**：照第 7.1 節，新增 `content/sessions/{年}/{月-日}-{主題}.yml`。
+   - 測驗題和討論題**逐支影片寫**：每支至少一題測驗、一題討論，`scope` 填那支影片的 id。
+   - 每題的 `refs` 都要對照逐字稿，確認段落真的談到這件事。
+   - 最後寫 2 題以上的整合題（`scope: all`），測驗和討論都要有。
+   - 延伸題的 `answer` 要說明影片沒有回答。
 3. **Claude 提案**：Claude 列出這場要用的概念卡，分成三類給 Kai 確認：
    - **沿用**：已經有的概念卡。
    - **新增**：新的概念卡草稿（詞條、英文、別名、中立的 `summary`、內文）。
@@ -476,6 +523,7 @@ facets:
 7. **本機測試**：`npm run check` 和 `npm run typecheck` 通過，再用 `npm run dev` 打開確認：
    - 每個時間戳都能跳到正確的段落
    - 每張論證卡片揭曉後，所有前提都有判斷
+   - 「邊看邊想」每支影片都有測驗和討論，解析和答案的段落連結都正確
    - 名詞卡、概念卡頁的反向連結、延續討論都正確
    - 暗色、淺色主題，390px 寬度沒有橫向捲軸
 8. **發佈**：commit 並 push 到 GitHub。部署 workflow 啟用自動觸發後，push 到 `main` 就會自動更新網站；在那之前要到 GitHub Actions 手動執行（見第 11 節）。
@@ -506,3 +554,4 @@ facets:
 | 2026-09-29 | 1.0 | 初版：五個分頁、論證地圖預測試、白紙回想、測驗、名詞卡自評、立場題、內嵌播放器 |
 | 2026-09-29 | 2.0 | 改寫成 Nuxt 4 + Nuxt UI 4 + Tailwind CSS 4 + VueUse + TypeScript，用 `nuxt generate` 輸出靜態網站。每場一個網址 `/s/{id}`。資料改成 TypeScript 型別、每場一個檔案。v1 移到 `legacy/index.html` 凍結。新增 GitHub Pages 部署 workflow（目前只能手動觸發）。網站名稱從「週日沙龍」改為「悅讀聊天室」，repo、網址前綴、localStorage key、元件名稱沿用舊名 |
 | 2026-09-29 | 3.0 | 內容改用 Nuxt Content 3：場次是 `content/sessions/{年}/` 下的 YAML，概念卡是 `content/concepts/{id}.md`，tag 受控於 `taxonomy.yml`。新增概念卡模型（參考 Zettelkasten／Heptabase 形式）：`[[wikilink]]`、反向連結、相關概念。新增 `/archive`（依月份、依主題）、`/concepts`、`/c/{id}`，場次網址改為 `/s/{slug}`。新增「延續討論」（主辦人推薦＋共同概念）。頂部列改成三個導覽，移除場次 chip，分頁只在場次頁。新增建置前內容檢查 `npm run check`。欄位 `id` → `slug`、`date` 改 ISO 並新增 `dateLabel`、移除 `terms`。`salon-cards-{slug}` 改用概念卡 id。初次載入同時保留 hash 與 query。每週流程改成 Claude 提案、Kai 確認 |
+| 2026-09-29 | 3.1 | 「邊看邊想」改成逐支影片分段：影片標頭 → 帶著這個問題看 → 論證 → 看完這段，測一下 → 想一想（「我想好了，看 Kagan 怎麼說」），最後是「整合回顧」。「看完回想」保留全部題目打亂的自我測驗，作答和邊看邊想分開存（新增 `salon-quiz-inline-{slug}`）。「週日討論」移除「進行方式」，改成立場題＋依影片分組的「討論議題」，和邊看邊想共用 `discuss`。`quiz` 改成 `{scope, q, o, a, e, refs}`（移除 `t`），`discuss` 改成 `{scope, q, note?, ext, answer, refs}`。內容檢查新增 `scope` 與每支影片至少一題測驗、一題討論的規則。新增 `utils/videoRef.ts`、`study/` 元件，移除 `sunday/Discuss.vue`。每週流程加上逐支影片寫題 |

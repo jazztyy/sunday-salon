@@ -42,7 +42,7 @@ const onTabChange = (value: string | number) => {
   <div ref="root" class="sticky top-0 z-20 border-b border-default bg-default">
     <div class="mx-auto flex max-w-[1240px] flex-col gap-2 px-4 pt-2.5" :class="{ 'pb-2.5': !tabs }">
       <div class="flex items-center justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-4">
+        <div class="flex min-w-0 items-center gap-3 sm:gap-4">
           <NuxtLink
             to="/"
             class="shrink-0 rounded-control font-serif text-title font-black tracking-[.08em] text-highlighted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
@@ -68,16 +68,19 @@ const onTabChange = (value: string | number) => {
         </div>
 
         <div class="flex shrink-0 items-center gap-2">
+          <!-- 手機寬度只顯示圖示，讓出空間給導覽列；文字在 sm 以上才出現 -->
           <UButton
             v-if="tabs"
-            label="影片章節"
+            icon="i-lucide-list-video"
+            aria-label="影片章節"
             color="neutral"
             variant="outline"
             size="xs"
-            class="rounded-full px-3 lg:hidden"
-            :ui="{ label: 'text-ui font-medium' }"
+            class="rounded-full sm:px-3 lg:hidden"
             @click="emit('open-chapters')"
-          />
+          >
+            <span class="hidden text-ui font-medium sm:inline">影片章節</span>
+          </UButton>
           <UColorModeButton size="xs" />
         </div>
       </div>

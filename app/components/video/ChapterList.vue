@@ -9,9 +9,6 @@ const emit = defineEmits<{ played: [] }>()
 
 const { vid, seconds } = usePlayer()
 
-/** 秒數 → mm:ss */
-const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
-
 const initialOpen = () => Object.fromEntries(props.session.videos.map((v, i) => [v.id, i === 0]))
 const open = ref<Record<string, boolean>>(initialOpen())
 

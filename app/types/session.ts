@@ -50,18 +50,35 @@ export interface Vote {
   o: string[]
 }
 
-/** [題目, 補充說明, 是否為延伸題] */
-export type DiscussItem = [question: string, context: string, extended: boolean]
+/** [videoId, 秒數]：影片段落 */
+export type VideoRef = [videoId: string, seconds: number]
+
+/** 題目範圍：某支影片的 id，或 'all'（整合回顧，跨影片） */
+export type Scope = string
+
+export interface DiscussItem {
+  scope: Scope
+  q: string
+  /** 補充說明 */
+  note?: string
+  /** 超出影片內容的延伸題 */
+  ext: boolean
+  /** 「Kagan 怎麼說」：想完才打開；影片沒回答時要明說 */
+  answer: string
+  /** 參考段落，至少一段 */
+  refs: VideoRef[]
+}
 
 export interface QuizItem {
+  scope: Scope
   q: string
   o: string[]
   /** 正解索引 */
   a: number
   /** 解析 */
   e: string
-  /** [videoId, 秒數] 原片段 */
-  t: [videoId: string, seconds: number]
+  /** 原片段，至少一段 */
+  refs: VideoRef[]
 }
 
 /** [講座標籤, videoId, 秒數, '起–迄', 說明] */

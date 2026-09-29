@@ -4,6 +4,9 @@ import { defineCollection, defineContentConfig, z } from '@nuxt/content'
 
 const chapter = z.tuple([z.number().int().nonnegative(), z.string()])
 
+// [videoId, 秒數]：影片段落
+const ref = z.tuple([z.string(), z.number().int().nonnegative()])
+
 const video = z.object({
   id: z.string(), // YouTube video id
   lec: z.string(), // 例：'講座 5 · 48:02'
@@ -57,13 +60,22 @@ export default defineContentConfig({
         args: z.array(argument),
         argsNote: z.string().optional(),
         votes: z.array(z.object({ q: z.string(), o: z.array(z.string()) })),
-        discuss: z.array(z.tuple([z.string(), z.string(), z.boolean()])),
+        // 討論題與測驗題都標明範圍：某支影片的 id，或 'all'（整合回顧，跨影片）
+        discuss: z.array(z.object({
+          scope: z.string(),
+          q: z.string(), // 題目
+          note: z.string().optional(), // 補充說明（灰字）
+          ext: z.boolean().default(false), // 超出影片內容的延伸題
+          answer: z.string(), // 「Kagan 怎麼說」：想完才打開；影片沒回答時要明說
+          refs: z.array(ref).min(1), // 參考段落
+        })),
         quiz: z.array(z.object({
+          scope: z.string(),
           q: z.string(),
           o: z.array(z.string()),
           a: z.number().int().nonnegative(),
-          e: z.string(),
-          t: z.tuple([z.string(), z.number()]),
+          e: z.string(), // 解析
+          refs: z.array(ref).min(1), // 原片段
         })),
         after: z.string(),
       }),
