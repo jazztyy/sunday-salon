@@ -1,6 +1,6 @@
 # 悅讀聊天室 功能規格
 
-> 版本 3.3 ・ 2026-09-29
+> 版本 3.4 ・ 2026-09-29
 >
 > 這份文件描述網站**做什麼、怎麼運作、資料怎麼放**。視覺規範請看 [DESIGN.md](DESIGN.md)。
 > 要改功能時，先在這份文件寫下變更並討論，確定後再改程式，最後更新文末的修改紀錄。
@@ -569,12 +569,178 @@ facets:
 | 上線方式 | GitHub Pages 免費方案需要**公開 repo**。目前 repo 是私人、Pages 關閉。`.github/workflows/deploy.yml` 目前**只能手動觸發**（`workflow_dispatch`），等 Kai 確認後再開啟 push 到 `main` 自動部署 |
 | 部署時的內容檢查 | `deploy.yml` 目前直接執行 `npx nuxt generate`，**不會跑內容檢查**。應改成 `npm run generate` |
 | 錄音平台 | 「活動後」目前只放錄音連結。平台（Spotify、SoundCloud、YouTube…）決定後再考慮內嵌播放器，和剪輯流程一起討論 |
-| 全體立場統計 | 目前：用現場會議軟體投票，人數填進 `recap.votes`；立場題存在各自的瀏覽器。**已決定的下一步**：接 Supabase，用「**名字＋4 位數 PIN**」辨識參加者（先取名的人拿到名字；換裝置輸入名字＋PIN 就看得到自己之前的選擇）。不用 IP 或瀏覽器指紋。PIN 只存雜湊、在資料庫函式裡比對，要限制猜錯次數。同一套身分之後也用來同步「我的想法」筆記。詳細規格在實作前另寫並確認 |
+| 全體立場統計 | 目前：用現場會議軟體投票，人數填進 `recap.votes`；立場題存在各自的瀏覽器。**已決定的下一步**：接 Supabase，用「**名字＋4 位數 PIN**」辨識參加者（先取名的人拿到名字；換裝置輸入名字＋PIN 就看得到自己之前的選擇）。不用 IP 或瀏覽器指紋。規格草案見**第 12 節** |
 | favicon | 目前沒有，放進 `public/` 即可。圖示還沒決定 |
 | Heptabase 匯入 | Kai 之後會透過 MCP 連線在 Heptabase 做筆記和討論。**未決定、未實作**：是否要把 Heptabase 的卡片匯入或同步成概念卡？同步方向、以哪邊為準都還沒定 |
 | 語意相似（4.3 的 C） | 什麼時候加 embeddings？初步想法是累積約 30–40 場再評估，要在建置時算好，不能在瀏覽器呼叫 API |
 | 概念卡命名慣例 | 譯名有多種時選哪個當 `title`？書名要不要加《》？人名概念（例如「笛卡兒的二元論」）要獨立成卡還是寫在內文？ |
 | 圖譜或白板檢視 | 讀者之後需不需要看到概念卡之間的關係圖，或每場的白板檢視？目前只有列表 |
+
+## 12. 身分與雲端資料（Supabase）— 草案，未實作
+
+> 狀態：**草案，等 Kai 確認**。確認前不建資料表、不改程式。Supabase 專案 ref：`ibeqhpspudnmbozoejzf`。
+> 目標：讓參加者用「**名字＋4 位數 PIN**」辨識自己，**換裝置也看得到自己之前的選擇**，並讓大家看到全體的立場分布。
+
+### 12.1 哪些資料要搬到 Supabase
+
+依第 9 節的瀏覽器儲存逐一判斷：
+
+| 資料 | 目前的 key | 搬到 Supabase？ | 原因 |
+|---|---|---|---|
+| 立場題 | `salon-vote-{slug}` | **要（第一期）** | 需要全體統計，也要跨裝置看到自己的選擇 |
+| 我的想法（討論筆記） | `salon-notes-{slug}` | **要（第二期）** | 跨裝置同步；只有本人看得到 |
+| 測驗作答 | `salon-quiz-{slug}`、`salon-quiz-inline-{slug}` | 暫不（第三期再評估） | 只是個人進度，換裝置重做影響不大 |
+| 論證猜題 | `salon-arg-{slug}` | 暫不（第三期再評估） | 同上 |
+| 名詞卡自評 | `salon-cards-{slug}` | 暫不（第三期再評估） | 同上 |
+| 上次的分頁、子分頁 | `salon-tab`、`salon-during-part-{slug}` | **不要** | 介面偏好，本來就該跟著裝置 |
+
+不需要 Supabase 的：場次內容、概念卡、tag（仍是建置時產生的靜態資料）。已決定不做的：活動資訊、事先收集問題、複習提醒（見修改紀錄 3.3）。
+
+### 12.2 身分：名字＋PIN
+
+**使用者看到的流程**
+
+1. **沒取名也能用**：和現在一樣，選擇存在瀏覽器，但**不算進全體統計**，也不能跨裝置。立場題上方提示「取個名字，選擇就會存到雲端、算進大家的統計」。
+2. **取新名字**：輸入名字＋設定 4 位數 PIN（輸入兩次）。名字沒人用過就取得成功，瀏覽器裡已有的選擇與筆記**一起上傳**。名字已被使用時顯示「這個名字已經有人用了，換一個，或用 PIN 登入」。
+3. **用已有的名字登入**（換裝置時）：輸入名字＋PIN。成功後載入雲端的選擇；這個瀏覽器原本的選擇，雲端沒有的才補上去，**雲端已有的以雲端為準**。
+4. **已登入時**：顯示「以『小明』的身分儲存」，旁邊可以「登出」「改 PIN」「刪除我的資料」。
+5. **忘記 PIN**：沒有 email，無法自助重設。顯示「忘記 PIN 請聯絡主辦人」，由 Kai（或 Claude 透過 Supabase）重設。
+
+**規則**
+
+| 項目 | 規則 |
+|---|---|
+| 名字 | 去掉前後空白，1–20 個字。比對時不分大小寫、全半形（NFKC 正規化後轉小寫），「Kai」和「ｋａｉ」算同一個名字 |
+| PIN | 剛好 4 位數字。資料庫只存雜湊（`pgcrypto` 的 `crypt()` + bcrypt），比對在資料庫函式裡做，前端拿不到雜湊 |
+| 猜錯限制 | 同一個名字連續錯 5 次，鎖 15 分鐘，期間一律回「請稍後再試」 |
+| 錯誤訊息 | 登入失敗一律顯示「名字或 PIN 不正確」，不說是哪一個錯 |
+| 誰看得到名字 | **網站上不公開任何人的名字**，統計只顯示人數。主辦人在 Supabase 後台看得到名字和選擇，頁面上要寫明 |
+| 一個名字幾台裝置 | 不限，每台裝置登入後各自保持登入 |
+
+> 安全性說明：4 位數 PIN 只有一萬種組合，搭配猜錯鎖定，足以擋住隨手冒用，但不是高安全性的設計。立場題和討論筆記不是機密資料，這個取捨可以接受；網站上不要收集更敏感的資料。
+
+**技術做法**
+
+用 Supabase 的**匿名登入**（`signInAnonymously()`）管理「這台裝置」的登入狀態，名字＋PIN 則是在資料庫裡把這台裝置連到某個參加者：
+
+1. 頁面第一次需要雲端時，呼叫 `signInAnonymously()`，這台裝置得到一個 `auth.uid()`，supabase-js 會自動保存與更新登入狀態。
+2. 「取名」和「登入」都是資料庫函式（RPC），成功時把 `auth.uid()` 寫進 `participant_devices`，連到那個參加者。
+3. 所有權限規則（RLS）都透過「這個 `auth.uid()` 連到哪個參加者」判斷。
+4. 登出＝刪掉這台裝置的連結，再 `signOut()`。
+
+這樣不用自己發 token，登入狀態的保存、過期、更新都交給 supabase-js。
+
+### 12.3 資料表
+
+```sql
+-- 參加者：名字唯一，PIN 只存雜湊。前端不能直接讀這張表
+participants (
+  id              uuid primary key default gen_random_uuid(),
+  name            text not null,              -- 顯示用，保留使用者輸入的樣子
+  name_key        text not null unique,       -- 比對用：NFKC 正規化＋小寫＋去空白
+  pin_hash        text not null,
+  failed_attempts int  not null default 0,
+  locked_until    timestamptz,
+  created_at      timestamptz not null default now()
+)
+
+-- 裝置：哪個匿名登入（auth.uid）屬於哪個參加者
+participant_devices (
+  auth_uid       uuid primary key references auth.users on delete cascade,
+  participant_id uuid not null references participants on delete cascade,
+  created_at     timestamptz not null default now()
+)
+
+-- 立場題：同一人、同一場、同一題、同一階段只有一筆（再選就是改選）
+votes (
+  participant_id uuid not null references participants on delete cascade,
+  session_slug   text not null,               -- 例：w1
+  question       int  not null,               -- votes 的題目索引
+  phase          text not null check (phase in ('pre', 'post')),
+  choice         int  not null,
+  updated_at     timestamptz not null default now(),
+  primary key (participant_id, session_slug, question, phase)
+)
+
+-- 我的想法（第二期）：key 和瀏覽器版一樣用題目文字的雜湊
+notes (
+  participant_id uuid not null references participants on delete cascade,
+  session_slug   text not null,
+  question_hash  text not null,               -- textHash(題目)
+  body           text not null check (char_length(body) <= 5000),
+  updated_at     timestamptz not null default now(),
+  primary key (participant_id, session_slug, question_hash)
+)
+```
+
+### 12.4 資料庫函式與權限
+
+| 函式 | 誰能呼叫 | 做什麼 |
+|---|---|---|
+| `current_participant()` | 內部用 | 依 `auth.uid()` 找 `participant_devices`，回傳參加者 id；沒有就是 null |
+| `claim_name(name, pin)` | 已匿名登入 | 名字沒人用 → 建立參加者並連結這台裝置。已被使用 → 錯誤 `name_taken` |
+| `login(name, pin)` | 已匿名登入 | 驗證 PIN（含猜錯鎖定）→ 連結這台裝置。錯誤：`invalid`、`locked` |
+| `me()` | 已匿名登入 | 回傳自己的名字；沒取名回傳 null |
+| `logout()` | 已連結 | 刪掉這台裝置的連結 |
+| `change_pin(old_pin, new_pin)` | 已連結 | 驗證舊 PIN 後更新 |
+| `delete_me()` | 已連結 | 刪除參加者（票、筆記、所有裝置連結一起刪） |
+| `vote_counts(session_slug)` | 任何人（不用登入） | 回傳每題每階段各選項的**人數**，不含任何身分資訊 |
+
+RLS：
+
+- `participants`、`participant_devices`：前端**不能直接讀寫**，只能透過上面的函式（`security definer`）。
+- `votes`、`notes`：只能讀寫 `participant_id = current_participant()` 的列，也就是只看得到、改得到自己的。
+- 統計只透過 `vote_counts()`，不直接開放 `votes` 給別人讀。
+
+### 12.5 立場題的新行為（第一期）
+
+| 狀態 | 行為 |
+|---|---|
+| 沒取名 | 和現在一樣存在瀏覽器；不算進統計 |
+| 已取名 | 選擇直接寫進 `votes`（樂觀更新：畫面先變，失敗再退回並提示） |
+| 全體分布 | **自己投過那一階段之後才顯示**該階段的分布，避免先看到多數意見再投。沒投過只顯示「已有 N 人投票」 |
+| 人數太少 | 某題某階段不到 3 人時不顯示比例，只顯示人數，避免從比例推回是誰 |
+| 「活動後」分頁 | 立場變化改成讀 `vote_counts()`（即時）。場次檔的 `recap.votes` 保留，**有填時優先使用**（例如改用現場會議軟體統計的那一場） |
+
+### 12.6 前端架構
+
+- 套件：直接用 `@supabase/supabase-js`，只在瀏覽器端建立（`plugins/supabase.client.ts`）。不用 `@nuxtjs/supabase` 模組，它是為伺服器端渲染的 cookie 登入設計的，這個網站是純靜態。
+- 設定：`runtimeConfig.public.supabaseUrl`、`supabaseKey`（anon／publishable key，可以公開）。建置時由環境變數 `NUXT_PUBLIC_SUPABASE_URL`、`NUXT_PUBLIC_SUPABASE_KEY` 帶入；GitHub Actions 用 repository variables。**service_role key 絕對不能出現在前端或 repo**。
+- 新增 composable：
+  - `useIdentity()`：`name`、`status`（`anonymous`／`named`／`offline`）、`claim()`、`login()`、`logout()`、`changePin()`、`deleteMe()`。
+  - `useVotes(slug)`：取代 `<SundayVote>` 裡的 `useSalonStorage`；沒取名時退回瀏覽器儲存。
+  - `useDiscussNotes(slug)`（第二期）：已取名時改讀寫 `notes`，介面不變。
+- 身分入口：**不放在頂部列**（手機已經沒有空間，見 DESIGN.md 3.7）。放在需要它的地方：「立場題」區塊標題下方，第二期再加上「我的想法」的標籤旁。取名／登入用 `UModal`，裡面兩個分頁「取新名字」「用已有的名字登入」，PIN 用 `UPinInput`（4 格、`type="number"`、`mask`）。
+- **連不上 Supabase 時**（沒設定、網路問題、免費方案專案暫停）：網站照常運作，全部退回瀏覽器儲存；身分入口顯示「雲端暫時無法使用」，不擋住任何功能。
+
+### 12.7 營運與注意事項
+
+- **免費方案會暫停**：Supabase 免費專案一段時間沒有活動會自動暫停（以官方說明為準），暫停時網站會進入上一節的離線模式。每週都有人用的話，通常不會碰到。
+- **匿名登入防濫用**：在 Supabase 開啟匿名登入時，同時開啟 CAPTCHA（Cloudflare Turnstile），並保留預設的匿名登入頻率限制。
+- **資料說明**：立場題區塊放一行說明「取名後，你的名字和選擇會存在雲端；主辦人看得到，其他參加者只看得到人數。隨時可以刪除」。
+- **重設 PIN**：主辦人在 Supabase 後台（或請 Claude）更新該參加者的 `pin_hash`、清空 `failed_attempts` 和 `locked_until`。
+- **測試**：用 SQL 驗證 RLS：A 看不到、改不到 B 的票和筆記，未登入只能呼叫 `vote_counts()`，猜錯 5 次會鎖定。再用 Playwright 跑兩個獨立瀏覽器：取名 → 投票 → 另一個瀏覽器登入同名 → 看到同樣的選擇。
+
+### 12.8 分期
+
+| 期 | 內容 |
+|---|---|
+| 第一期 | 名字＋PIN 身分、立場題上雲、全體分布、「活動後」讀即時統計 |
+| 第二期 | 「我的想法」上雲同步 |
+| 第三期（再評估） | 測驗、論證猜題、名詞卡的進度同步 |
+
+### 12.9 待 Kai 確認
+
+| # | 問題 | 建議 |
+|---|---|---|
+| 1 | 沒取名能不能投票？ | 可以，只存瀏覽器、不算統計（12.5） |
+| 2 | 全體分布什麼時候顯示？ | 自己投過那一階段才顯示；不到 3 人只顯示人數 |
+| 3 | 「討論前」的票要不要在活動開始後鎖定？ | 建議鎖定（例如活動當天 20:00 後不能改），否則「討論前」會被事後修改。需要場次檔多一個活動開始時間欄位 |
+| 4 | 主辦人看得到誰投了什麼，要不要在頁面上寫明？ | 要寫明（12.7） |
+| 5 | 忘記 PIN 由主辦人手動重設可以嗎？ | 可以，人數不多時最簡單 |
+| 6 | 名字規則（長度、禁用字）？ | 1–20 字，先不做禁用字，有問題再由主辦人處理 |
+| 7 | 第二期、第三期要不要做？ | 第二期要（筆記跨裝置有實際需求），第三期先不做 |
+
 
 ---
 
@@ -582,6 +748,7 @@ facets:
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-09-29 | 3.4 | 新增第 12 節「身分與雲端資料（Supabase）」草案：名字＋4 位數 PIN、匿名登入連結裝置、資料表與 RLS、立場題上雲與全體分布、分期與待確認問題。尚未實作 |
 | 2026-09-29 | 3.3 | 依參加者試用回饋調整：場次標頭只在「看之前」；影片長度改成 `duration` 並顯示「48 分鐘」、標頭顯示全場總長；字幕說明移到播放器下方並改寫（影片有內嵌中文字幕）；手機「播放這一講」；子分頁完成打勾；自我測驗預設打亂、出處作答後才顯示；討論題「我的想法」（`salon-notes-{slug}`）與「複製我的筆記」；「活動後」新增 `recap`。不做：網站上的活動資訊（時間、連結、報名）、事先收集問題、複習提醒 |
 | 2026-09-29 | 3.2 | 「邊看邊想」改成子分頁（講座 5｜講座 6｜講座 7｜整合回顧），一次一段；切換時播放器 `cue()` 換片、章節清單跟著換。章節清單一次只列一支影片，上方有影片切換按鈕。新增 `salon-during-part-{slug}` |
 | 2026-09-29 | 1.0 | 初版：五個分頁、論證地圖預測試、白紙回想、測驗、名詞卡自評、立場題、內嵌播放器 |
