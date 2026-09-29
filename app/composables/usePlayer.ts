@@ -3,6 +3,8 @@
 // - embed：YouTube IFrame API 載入成功、播放器可用。false 時所有 <VideoLink> 退回一般連結（開新分頁）。
 // - playing：手機版是否展開固定在頂部的播放器。
 // - vid / seconds：目前的影片與播放秒數（每秒更新），用來標出目前章節。
+// - selected：使用者「選擇的講座」。左側子分頁和右側章節的講座按鈕都用 select() 設定，
+//   兩邊互相跟隨；點參考段落跳到別支影片只改 vid，不改 selected（只是去看一下，不是換講座）。
 
 interface YTPlayer {
   loadVideoById: (opts: { videoId: string, startSeconds?: number }) => void
@@ -46,6 +48,7 @@ export const usePlayer = () => {
   const playing = useState('player-playing', () => false)
   const vid = useState<string | null>('player-vid', () => null)
   const seconds = useState('player-seconds', () => 0)
+  const selected = useState<string | null>('player-selected', () => null)
 
   /** 在指定元素上建立播放器。只在 client 端、由 <VideoPanel> 呼叫一次。 */
   const mount = async (el: HTMLElement, firstVideoId: string) => {
@@ -117,11 +120,17 @@ export const usePlayer = () => {
     seconds.value = 0
   }
 
+  /** 選擇講座：播放器換成這支影片（不播放），左側子分頁與右側章節清單都會跟著換 */
+  const select = (id: string) => {
+    selected.value = id
+    cue(id)
+  }
+
   /** 手機版收起播放器 */
   const hide = () => {
     yt?.pauseVideo()
     playing.value = false
   }
 
-  return { embed, playing, vid, seconds, mount, unmount, play, cue, hide }
+  return { embed, playing, vid, seconds, selected, mount, unmount, play, cue, select, hide }
 }

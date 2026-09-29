@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 影片章節清單：側欄（桌機）與手機抽屜共用。一次只列一支影片的章節，上方的按鈕可以切換。
+// 影片章節清單：側欄（桌機）與手機抽屜共用。一次只列一支影片的章節，上方的按鈕選擇講座（播放器一起換）。
 // 預設跟著播放器目前的影片（「邊看邊想」切子分頁、點到別支影片的段落時都會換過來）。
 // 依播放器目前的影片與秒數標出目前章節（SPEC.md「播放器規格」）。
 import type { Session } from '~/types/session'
@@ -8,7 +8,7 @@ import type { Session } from '~/types/session'
 const props = defineProps<{ session: Session, hideTitle?: boolean }>()
 const emit = defineEmits<{ played: [] }>()
 
-const { vid, seconds } = usePlayer()
+const { vid, seconds, select } = usePlayer()
 
 const shownId = ref(props.session.videos[0]?.id ?? '')
 const shown = computed(() => props.session.videos.find(v => v.id === shownId.value) ?? props.session.videos[0])
@@ -37,7 +37,7 @@ const isNow = (id: string, t: number) => vid.value === id && nowT.value === t
       <span class="text-ui text-muted">點時間直接跳到該段</span>
     </div>
 
-    <!-- 切換要看哪一支影片的章節 -->
+    <!-- 選擇講座：播放器、章節清單、左側「邊看邊想」的子分頁一起換 -->
     <div class="flex flex-wrap gap-1.5" role="group" aria-label="選擇影片">
       <UButton
         v-for="v in session.videos"
@@ -49,7 +49,7 @@ const isNow = (id: string, t: number) => vid.value === id && nowT.value === t
         size="xs"
         class="rounded-full px-3"
         :ui="{ label: 'text-ui font-medium' }"
-        @click="shownId = v.id"
+        @click="select(v.id)"
       />
     </div>
 

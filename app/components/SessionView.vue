@@ -45,7 +45,7 @@ const chaptersOpen = ref(false)
   <!-- 底部留白放在 <main>（grid 的子元素）上：sticky 側欄只能在 grid 的內容區裡移動（padding 不算），
        留白放在 grid 外或 grid 的 padding 上，捲到頁尾時側欄都會被往上推、蓋到頂部列 -->
   <div class="min-h-dvh">
-    <SalonHeader v-model:tab="tab" :tabs="TABS" @open-chapters="chaptersOpen = true" />
+    <SalonHeader v-model:tab="tab" :tabs="TABS" :context="session.chip" @open-chapters="chaptersOpen = true" />
 
     <div
       class="mx-auto grid max-w-[1240px] grid-cols-1 gap-10 px-4 pt-7 lg:grid-cols-[minmax(0,1fr)_300px]"

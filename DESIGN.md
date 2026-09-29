@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.2 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.3 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -160,7 +160,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
 |---|---|---|---|
 | 場次頁 | `SessionView.vue` | `UButton`、`UDrawer` | 頂部列＋場次標頭＋分頁內容＋下一步＋頁尾＋側欄。分頁與網址 hash 同步 |
-| 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。影片章節按鈕在 640px 以下只顯示圖示（`i-lucide-list-video`，保留 `aria-label`），避免把導覽擠出畫面。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
+| 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。影片章節按鈕在 640px 以下只顯示圖示（`i-lucide-list-video`，保留 `aria-label`），避免把導覽擠出畫面。**導覽層級**：第一列全站導覽用低調的膠囊（選中 `bg-accented text-highlighted`，沒有底線）；第二列學習階段是這一頁的主導覽，**金色底線只給它用**，前面有場次標記「10/4 靈魂 ›」（`context`，640px 以上才顯示）。步驟數字是小圓圈（`size-4.5`、`border-current`），和文字垂直置中，目前階段填滿 `bg-primary`。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
 | 導覽 | 在 `<SalonHeader>` 裡 | `UButton`（`color="neutral" variant="link"`） | 三項：本週（`/`）・全部場次（`/archive`）・概念卡（`/concepts`），`text-ui`。目前所在的項目用 `text-primary`。2.0 的場次 chip 列已移除 |
 | 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | **只在場次頁顯示**（`/`、`/s/{slug}`）。五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
 | 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，引導到下一個分頁 |
@@ -311,6 +311,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-09-29 | 3.3 | 頁首層級：全站導覽改成低調膠囊，金色底線只留給學習階段；第二列加場次標記；步驟數字改成置中的小圓圈 |
 | 2026-09-29 | 3.2 | 新增影片子分頁；章節清單改成一次一支影片。版面規則：頁面底部留白要放在 `<main>`（grid 的子元素）上，不能放在 grid 外或 grid 的 padding，否則捲到頁尾時 sticky 側欄會被推上去蓋到頂部列 |
 | 2026-09-29 | 1.0 | 初版。字級收斂成 10 級 token（18px→19px、22px→24px），圓角收斂成 5 級，移除所有 inline style 與寫死的顏色 |
 | 2026-09-29 | 2.0 | 改用 Nuxt 4 + Nuxt UI 4 + Tailwind CSS 4。token 改成 Tailwind `@theme` 與 Nuxt UI `--ui-*` 變數，文件改列 utility class。暗色改為預設。斷點 1000px → 1024px。元件目錄改成對應 Vue 元件檔案與 Nuxt UI 元件。新增「實作規則」。網站名稱從「週日沙龍」改為「悅讀聊天室」 |

@@ -27,7 +27,7 @@ const h3Class = 'font-serif text-title font-bold text-highlighted'
 
 // 子分頁：一次只看一支影片（或整合回顧）。切到某支影片時，右側播放器與章節也跟著換（不自動播放）。
 // 選擇記在 salon-during-part-{slug}。
-const { cue } = usePlayer()
+const { cue, select, selected } = usePlayer()
 const parts = computed(() => [
   ...props.session.videos.map(v => ({ key: v.id, label: lecOf(props.session, v.id) })),
   ...(allQuiz.value.length || allDiscuss.value.length ? [{ key: 'all', label: '整合回顧' }] : []),
@@ -43,7 +43,7 @@ const selectPart = (key: string, scroll = true) => {
   if (!parts.value.some(p => p.key === key)) return
   part.value = key
   storedPart.value = key
-  if (key !== 'all') cue(key)
+  if (key !== 'all') select(key)
   // 換段後回到子分頁列的位置，不必自己往上捲
   if (scroll && partsBar.value) {
     const tb = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tb')) || 0
@@ -52,9 +52,16 @@ const selectPart = (key: string, scroll = true) => {
   }
 }
 
+// 右側章節清單選了別的講座 → 左側子分頁跟著換
+watch(selected, (id) => {
+  if (id && id !== part.value) selectPart(id)
+})
+
+// 初始段落：剛才在右側選過的講座優先，其次是上次停留的位置，都沒有就是第一支影片
 onMounted(() => {
-  if (storedPart.value) selectPart(storedPart.value, false)
-  else cue(part.value)
+  const initial = selected.value ?? storedPart.value
+  if (initial) selectPart(initial, false)
+  else select(part.value)
 })
 </script>
 

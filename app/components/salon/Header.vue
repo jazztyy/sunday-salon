@@ -1,11 +1,15 @@
 <script setup lang="ts">
 // 頂部列：站名＋網站導覽（本週／全部場次／概念卡）＋手機「影片章節」按鈕＋深淺色切換。
 // 場次頁會傳入 tabs，第二列顯示五個學習階段分頁；其他頁面只有第一列。
+// 層級：第一列是全站導覽（低調的膠囊樣式），第二列是「這一場」的學習階段（金色底線，唯一有底線的導覽），
+// 第二列前面的場次標記（context）說明這些分頁屬於哪一場。
 // 規格見 DESIGN.md「導覽」。頂部列高度寫入 CSS 變數 --tb，SessionView 的 sticky 位移依賴它。
 import type { TabKey } from '~/types/session'
 
 defineProps<{
   tabs?: { key: TabKey, label: string }[]
+  /** 第二列前面的場次標記，例：'10/4 靈魂' */
+  context?: string
 }>()
 
 const emit = defineEmits<{ 'open-chapters': [] }>()
@@ -45,22 +49,22 @@ const onTabChange = (value: string | number) => {
         <div class="flex min-w-0 items-center gap-3 sm:gap-4">
           <NuxtLink
             to="/"
-            class="shrink-0 rounded-control font-serif text-title font-black tracking-[.08em] text-highlighted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+            class="shrink-0 rounded-control font-serif text-title font-black tracking-normal text-highlighted sm:tracking-[.08em] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
           >
             悅讀聊天室
           </NuxtLink>
 
           <nav
             aria-label="網站"
-            class="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            class="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <NuxtLink
               v-for="item in navItems"
               :key="item.to"
               :to="item.to"
               :aria-current="item.active ? 'page' : undefined"
-              class="shrink-0 whitespace-nowrap border-b-2 px-1.5 py-1 text-ui font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
-              :class="item.active ? 'border-primary text-highlighted' : 'border-transparent text-muted hover:text-highlighted'"
+              class="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-ui font-medium sm:px-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              :class="item.active ? 'bg-accented text-highlighted' : 'text-muted hover:text-highlighted'"
             >
               {{ item.label }}
             </NuxtLink>
@@ -85,8 +89,11 @@ const onTabChange = (value: string | number) => {
         </div>
       </div>
 
+      <div v-if="tabs" class="flex min-w-0 items-center gap-2">
+        <span v-if="context" class="hidden shrink-0 items-center gap-2 font-mono text-meta text-muted sm:inline-flex">
+          {{ context }}<span aria-hidden="true" class="text-dimmed">›</span>
+        </span>
       <UTabs
-        v-if="tabs"
         :model-value="tab"
         :items="tabs"
         value-key="key"
@@ -94,19 +101,23 @@ const onTabChange = (value: string | number) => {
         color="primary"
         :content="false"
         aria-label="學習階段"
-        class="-mx-1 min-w-0"
+        class="-mx-1 min-w-0 sm:mx-0"
         :ui="{
           list: 'mb-0 gap-0.5 overflow-x-auto border-b-0 p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           indicator: 'bottom-0 h-0.5',
-          trigger: 'flex-none items-baseline rounded-none px-2.5 pt-2 pb-2.5 data-[state=inactive]:text-muted data-[state=active]:text-highlighted',
-          label: 'text-small',
+          trigger: 'group flex-none items-center gap-1.5 rounded-none px-2.5 pt-2 pb-2.5 data-[state=inactive]:text-muted data-[state=active]:text-highlighted',
+          label: 'text-small leading-none',
         }"
         @update:model-value="onTabChange"
       >
+        <!-- 步驟數字：小圓圈，和文字垂直置中；目前階段填滿金色 -->
         <template #leading="{ index }">
-          <span class="font-mono text-label font-medium">{{ index + 1 }}</span>
+          <span
+            class="inline-flex size-4.5 shrink-0 items-center justify-center rounded-full border border-current font-mono text-label font-medium leading-none tabular-nums group-data-[state=active]:border-primary group-data-[state=active]:bg-primary group-data-[state=active]:text-inverted"
+          >{{ index + 1 }}</span>
         </template>
       </UTabs>
+      </div>
     </div>
   </div>
 </template>
