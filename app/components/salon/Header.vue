@@ -46,10 +46,10 @@ const onTabChange = (value: string | number) => {
   <div ref="root" class="sticky top-0 z-20 border-b border-default bg-default">
     <div class="mx-auto flex max-w-[1240px] flex-col gap-2 px-4 pt-2.5" :class="{ 'pb-2.5': !tabs }">
       <div class="flex items-center justify-between gap-3">
-        <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+        <div class="flex min-w-0 items-center gap-2 sm:gap-4">
           <NuxtLink
             to="/"
-            class="shrink-0 rounded-control font-serif text-title font-black tracking-normal text-highlighted transition-colors hover:text-primary sm:tracking-[.08em] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+            class="shrink-0 rounded-control font-serif text-lead font-black sm:text-title tracking-normal text-highlighted transition-colors hover:text-primary sm:tracking-[.08em] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
           >
             悅讀聊天室
           </NuxtLink>
@@ -63,7 +63,7 @@ const onTabChange = (value: string | number) => {
               :key="item.to"
               :to="item.to"
               :aria-current="item.active ? 'page' : undefined"
-              class="shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-ui font-medium sm:px-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              class="shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-ui font-medium sm:px-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
               :class="item.active ? 'text-primary' : 'text-muted hover:text-highlighted'"
             >
               {{ item.label }}
@@ -71,7 +71,7 @@ const onTabChange = (value: string | number) => {
           </nav>
         </div>
 
-        <div class="flex shrink-0 items-center gap-2">
+        <div class="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <!-- 手機寬度只顯示圖示，讓出空間給導覽列；文字在 sm 以上才出現 -->
           <UButton
             v-if="tabs"
@@ -103,13 +103,14 @@ const onTabChange = (value: string | number) => {
         aria-label="學習階段"
         class="-mx-1 min-w-0 sm:mx-0"
         :ui="{
-          list: 'mb-0 gap-0.5 overflow-x-auto border-b-0 p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          list: 'mb-0 gap-0 overflow-x-auto sm:gap-0.5 border-b-0 p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           indicator: 'bottom-0 h-0.5',
-          trigger: 'group flex-none items-center gap-1.5 rounded-none px-2.5 pt-2 pb-2.5 data-[state=inactive]:text-muted data-[state=active]:text-highlighted',
-          label: 'text-small leading-none',
+          trigger: 'group flex-none items-center gap-1 rounded-none px-1 pt-2 pb-2.5 sm:gap-1.5 sm:px-2.5 data-[state=inactive]:text-muted data-[state=active]:text-highlighted',
+          label: 'text-ui leading-none sm:text-small',
         }"
         @update:model-value="onTabChange"
       >
+        <!-- 手機寬度縮小間距與字級，讓五個分頁不用橫向捲動就放得下（360px 寬） -->
         <!-- 步驟數字：不加框，和文字垂直置中（leading-none）；目前階段用金色 -->
         <template #leading="{ index }">
           <span

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // 「自我測驗」：全部題目（各影片 + 整合回顧）打亂混考，單題顯示交給 StudyQuizItem（SPEC.md 4.3）。
+// 第一次打開就是打亂的順序；出處（講座幾）作答後才顯示，免得題目還沒答就先透露答案在哪一講。
 // 儲存格式 { sig: 題目簽章, order: 題目順序, ans: {題目索引: 選項索引} }；簽章不同（題目改過）或舊格式一律重設。
 import type { Session } from '~/types/session'
 
@@ -39,6 +40,12 @@ const answer = (i: number, pick: number) => {
 const reset = () => {
   stored.value = { sig: sig.value, order: shuffle(defaultOrder()), ans: {} }
 }
+
+// 沒有紀錄（第一次來）或題目改過時，直接給一個打亂的順序。
+// 放在掛載後：預先產生的 HTML 用固定順序，避免 hydration 不一致；useSalonStorage 的讀取先於這裡執行。
+onMounted(() => {
+  if (stored.value?.sig !== sig.value) reset()
+})
 </script>
 
 <template>
@@ -58,6 +65,7 @@ const reset = () => {
         :item="session.quiz[i]!"
         :number="n + 1"
         :pick="state.ans[i]"
+        source-after-answer
         @pick="answer(i, $event)"
       />
     </div>

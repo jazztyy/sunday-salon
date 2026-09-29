@@ -14,8 +14,10 @@ const props = withDefaults(
     as?: 'h3' | 'h4'
     /** 隱藏出處標籤：已經在某支影片或整合回顧的區塊裡時不需要重複顯示（只有混合測驗需要） */
     hideSource?: boolean
+    /** 作答後才顯示出處（混合測驗用：出處本身就是提示） */
+    sourceAfterAnswer?: boolean
   }>(),
-  { pick: undefined, as: 'h3', hideSource: false },
+  { pick: undefined, as: 'h3', hideSource: false, sourceAfterAnswer: false },
 )
 
 const emit = defineEmits<{ pick: [option: number] }>()
@@ -25,6 +27,7 @@ const correct = computed(() => props.pick === props.item.a)
 
 /** 題目出處：某支影片的講座標籤，或「整合回顧」 */
 const source = computed(() => (props.item.scope === 'all' ? '整合回顧' : lecOf(props.session, props.item.scope)))
+const showSource = computed(() => !!source.value && !props.hideSource && (!props.sourceAfterAnswer || answered.value))
 
 const choose = (j: number) => {
   if (answered.value) return
@@ -42,7 +45,7 @@ const optionClass = (j: number) => {
 <template>
   <div class="flex flex-col gap-2.5">
     <component :is="as" class="text-body font-bold">
-      <span v-if="source && !hideSource" class="block font-mono text-label font-medium text-muted">{{ source }}</span>
+      <span v-if="showSource" class="block font-mono text-label font-medium text-muted">{{ source }}</span>
       {{ number }}. {{ item.q }}
     </component>
 

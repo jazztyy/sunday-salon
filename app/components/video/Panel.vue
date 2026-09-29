@@ -34,7 +34,7 @@ const nowLabel = computed(() => {
   const v = props.session.videos.find(x => x.id === vid.value)
   if (!v || !v.chapters.length) return ''
   const chapter = v.chapters.reduce((hit, c) => (seconds.value >= c[0] ? c : hit), v.chapters[0]!)
-  return `${v.lec.split(' · ')[0]}・${chapter[1]}`
+  return `${v.lec}・${chapter[1]}`
 })
 </script>
 
@@ -56,6 +56,11 @@ const nowLabel = computed(() => {
           @click="hide"
         />
       </div>
+      <!-- 字幕說明放在播放器正下方：語言是看影片的第一個門檻 -->
+      <p v-if="session.captionTip" class="flex gap-1.5 text-meta leading-relaxed text-muted">
+        <UIcon name="i-lucide-captions" class="mt-0.5 size-4 flex-none" aria-hidden="true" />
+        <span>{{ session.captionTip }}</span>
+      </p>
     </div>
 
     <div class="hidden lg:block">

@@ -28,9 +28,17 @@ const h3Class = 'font-serif text-title font-bold text-highlighted'
 // 子分頁：一次只看一支影片（或整合回顧）。切到某支影片時，右側播放器與章節也跟著換（不自動播放）。
 // 選擇記在 salon-during-part-{slug}。
 const { cue, select, selected } = usePlayer()
+
+/** 這一段（影片 id 或 'all'）的測驗是否全部作答：子分頁打勾用 */
+const isDone = (scope: string) => {
+  const items = withIndex(props.session.quiz).filter(({ item }) => item.scope === scope)
+  return items.length > 0 && items.every(({ index }) => picks.value[String(index)] !== undefined)
+}
+const doneIcon = (scope: string) => (isDone(scope) ? 'i-lucide-circle-check' : undefined)
+
 const parts = computed(() => [
-  ...props.session.videos.map(v => ({ key: v.id, label: lecOf(props.session, v.id) })),
-  ...(allQuiz.value.length || allDiscuss.value.length ? [{ key: 'all', label: '整合回顧' }] : []),
+  ...props.session.videos.map(v => ({ key: v.id, label: lecOf(props.session, v.id), icon: doneIcon(v.id) })),
+  ...(allQuiz.value.length || allDiscuss.value.length ? [{ key: 'all', label: '整合回顧', icon: doneIcon('all') }] : []),
 ])
 const storedPart = useSalonStorage(`salon-during-part-${props.session.slug}`, '')
 const part = ref(props.session.videos[0]?.id ?? 'all')
@@ -84,7 +92,7 @@ onMounted(() => {
       size="sm"
       :content="false"
       aria-label="影片"
-      :ui="{ list: 'w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', trigger: 'flex-1 min-w-fit', label: 'text-ui font-medium' }"
+      :ui="{ list: 'w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', trigger: 'flex-1 min-w-fit', label: 'text-ui font-medium', leadingIcon: 'size-4 text-success' }"
       @update:model-value="selectPart(String($event))"
     />
   </div>

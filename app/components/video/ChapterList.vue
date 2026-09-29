@@ -55,7 +55,7 @@ const isNow = (id: string, t: number) => vid.value === id && nowT.value === t
 
     <div v-if="shown" class="flex flex-col gap-2">
       <div class="flex flex-col">
-        <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">{{ shown.lec }}</span>
+        <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">{{ shown.lec }}・{{ minutesLabel(shown.duration) }}</span>
         <span class="text-small font-bold text-highlighted">{{ shown.short }}</span>
       </div>
       <VideoLink :vid="shown.id" :t="0" class="self-start text-meta" @played="emit('played')">從頭播放</VideoLink>

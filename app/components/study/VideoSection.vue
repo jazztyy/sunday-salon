@@ -20,15 +20,33 @@ const quiz = computed(() => withIndex(props.session.quiz).filter(({ item }) => i
 const discuss = computed(() => withIndex(props.session.discuss).filter(({ item }) => item.scope === props.video.id))
 
 const h3Class = 'font-serif text-title font-bold text-highlighted'
+
+// 手機版的播放器平常收起來，這顆按鈕是看影片的主要入口（桌機右側已經有播放器，用文字連結即可）。
+// 沒有內嵌播放器時照常開新分頁到 YouTube，行為同 <VideoLink>。
+const { embed, play } = usePlayer()
+const youtubeUrl = computed(() => `https://www.youtube.com/watch?v=${props.video.id}`)
+const playFromStart = (e: MouseEvent) => {
+  if (!embed.value) return
+  e.preventDefault()
+  play(props.video.id, 0)
+}
 </script>
 
 <template>
   <section class="flex flex-col gap-6 border-t-2 border-accented pt-6">
     <header class="flex flex-col gap-1">
-      <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">{{ video.lec }}</span>
+      <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">{{ video.lec }}・{{ minutesLabel(video.duration) }}</span>
       <h2 class="font-serif text-h2 font-black leading-snug text-highlighted">{{ video.short }}</h2>
       <p class="text-small text-muted">{{ video.title }}</p>
-      <VideoLink :vid="video.id" :t="0" class="self-start text-ui">▸ 從頭播放</VideoLink>
+      <VideoLink :vid="video.id" :t="0" class="hidden self-start text-ui lg:inline">▸ 從頭播放</VideoLink>
+      <UButton
+        :to="youtubeUrl"
+        target="_blank"
+        icon="i-lucide-play"
+        label="播放這一講"
+        class="mt-2 self-start rounded-control px-3.5 lg:hidden"
+        @click="playFromStart"
+      />
     </header>
 
     <div class="flex flex-col gap-1.5 rounded-card border border-default bg-elevated p-3.5">

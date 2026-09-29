@@ -51,7 +51,21 @@ for (const { file, data: s } of sessions) {
   for (const c of s.concepts ?? []) if (!conceptIds.has(c)) err(file, `概念卡「${c}」不存在`)
   const videoIds = new Set((s.videos ?? []).map(v => v.id))
   const checkVid = (id, where) => { if (!videoIds.has(id)) err(file, `${where} 的影片「${id}」不在 videos 裡`) }
+  for (const v of s.videos ?? []) {
+    if (!(v.duration > 0)) err(file, `影片「${v.lec}」缺少 duration（影片長度，秒）`)
+    else if (v.chapters.some(([t]) => t >= v.duration)) err(file, `影片「${v.lec}」有章節時間超過影片長度`)
+    if (/\d:\d/.test(v.lec)) err(file, `影片「${v.lec}」的 lec 只寫講座標籤，長度改填 duration`)
+  }
   for (const p of s.picks ?? []) checkVid(p[1], `picks「${p[4]}」`)
+  if (s.recap) {
+    const rv = s.recap.votes ?? []
+    if (rv.length && rv.length !== (s.votes ?? []).length) err(file, `recap.votes 要和 votes 一樣是 ${(s.votes ?? []).length} 題`)
+    rv.forEach((r, i) => {
+      const n = s.votes?.[i]?.o.length
+      if (r.pre.length !== n || r.post.length !== n) err(file, `recap.votes 第 ${i + 1} 題的人數要對應 ${n} 個選項`)
+    })
+    for (const c of s.recap.concepts ?? []) if (!conceptIds.has(c)) err(file, `recap.concepts 的概念卡「${c}」不存在`)
+  }
   for (const a of s.args ?? []) {
     checkVid(a.vid, `論證「${a.name}」`)
     a.prem.forEach((p, i) => {

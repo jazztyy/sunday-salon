@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.6 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.7 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -159,8 +159,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
 |---|---|---|---|
-| 場次頁 | `SessionView.vue` | `UButton`、`UDrawer` | 頂部列＋場次標頭＋分頁內容＋下一步＋頁尾＋側欄。分頁與網址 hash 同步 |
-| 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。影片章節按鈕在 640px 以下只顯示圖示（`i-lucide-list-video`，保留 `aria-label`），避免把導覽擠出畫面。**導覽層級**：第一列全站導覽**只用字色區分**（選中 `text-primary`、其他 `text-muted`，沒有底色也沒有底線）；第二列學習階段是這一頁的主導覽，**金色底線只給它用**，前面有場次標記「10/4 靈魂 ›」（`context`，640px 以上才顯示）。步驟數字不加框（`font-mono text-meta leading-none`），和文字垂直置中（trigger 用 `items-center`），目前階段的數字用 `text-primary`。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
+| 場次頁 | `SessionView.vue` | `UButton`、`UDrawer` | 頂部列＋場次標頭＋分頁內容＋下一步＋頁尾＋側欄。分頁與網址 hash 同步。**場次標頭只在「看之前」顯示**，其他分頁把第一屏留給內容，改放一個 `sr-only` 的 h1 |
+| 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。影片章節按鈕在 640px 以下只顯示圖示（`i-lucide-list-video`，保留 `aria-label`），避免把導覽擠出畫面。640px 以下站名降一級（`text-lead`）、間距收緊，**兩列在 360px 寬都不需要橫向捲動**：第二列分頁的 trigger 用 `px-1 gap-1`、文字 `text-ui`（640px 以上 `px-2.5 gap-1.5 text-small`）。**導覽層級**：第一列全站導覽**只用字色區分**（選中 `text-primary`、其他 `text-muted`，沒有底色也沒有底線）；第二列學習階段是這一頁的主導覽，**金色底線只給它用**，前面有場次標記「10/4 靈魂 ›」（`context`，640px 以上才顯示）。步驟數字不加框（`font-mono text-meta leading-none`），和文字垂直置中（trigger 用 `items-center`），目前階段的數字用 `text-primary`。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
 | 導覽 | 在 `<SalonHeader>` 裡 | `UButton`（`color="neutral" variant="link"`） | 三項：本週（`/`）・全部場次（`/archive`）・概念卡（`/concepts`），`text-ui`。目前所在的項目用 `text-primary`。2.0 的場次 chip 列已移除 |
 | 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | **只在場次頁顯示**（`/`、`/s/{slug}`）。五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
 | 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，引導到下一個分頁 |
@@ -181,7 +181,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 元件 | 寫法 | 用途與規則 |
 |---|---|---|
-| 場次標頭 | `SessionView.vue` 的 `<header>` | eyebrow（`font-mono text-meta text-primary`）＋h1（本場問題，用問句）＋meta（日期／講者／影片支數）＋tag 列（見 6.8「tag 標籤」） |
+| 場次標頭 | `SessionView.vue` 的 `<header>` | 只在「看之前」顯示。eyebrow（`font-mono text-meta text-primary`）＋h1（本場問題，用問句）＋meta（日期／講者／影片支數與總長「約 2 小時 10 分」）＋tag 列（見 6.8「tag 標籤」） |
 | 導言 | `text-lead text-toned` | 一段話說明這場在談什麼。只出現在「看之前」 |
 | 重點清單 | `<ul>` + 金色圓點 | 3–6 點，每點 1–2 句 |
 | 學習法註記 | `WhyNote.vue`（`<WhyNote>`） | 說明某個設計**為什麼**這樣做，一句話。自動加上「學習法」標籤（`bg-secondary-soft text-secondary`）。每個 section 最多一則 |
@@ -213,12 +213,13 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
 |---|---|---|---|
-| 播放器面板 | `video/Panel.vue`（`<VideoPanel>`） | `UButton`（收起影片） | 呼叫 `usePlayer().mount()` 建立播放器。只在 `embed` 為 true（YouTube API 載入成功）時顯示播放器。下方狀態列顯示「講座 N・目前章節」 |
+| 播放器面板 | `video/Panel.vue`（`<VideoPanel>`） | `UButton`（收起影片）、`UIcon` | 呼叫 `usePlayer().mount()` 建立播放器。只在 `embed` 為 true（YouTube API 載入成功）時顯示播放器。下方狀態列顯示「講座 N・目前章節」，再下面是字幕說明（`captionTip`，`i-lucide-captions` 圖示＋`text-meta text-muted`）：語言是看影片的第一個門檻，所以放在播放器正下方 |
 | 章節清單 | `video/ChapterList.vue`（`<VideoChapterList>`） | `UButton` | **一次只列一支影片的章節**，上方有「講座 N」切換按鈕（膠囊，選中為 solid），預設跟著播放器目前的影片。目前播放的章節用 `text-primary font-bold`。側欄和手機抽屜共用 |
-| 影片子分頁 | `tab/During.vue` | `UTabs`（`variant="pill"`、`color="neutral"`） | 「邊看邊想」的講座 5｜講座 6｜講座 7｜整合回顧。sticky 在頂部列下方（`top-[var(--tb)]`、`bg-default`），每段底部有 outline 的「下一段：… →」 |
+| 影片子分頁 | `tab/During.vue` | `UTabs`（`variant="pill"`、`color="neutral"`） | 「邊看邊想」的講座 5｜講座 6｜講座 7｜整合回顧。該段測驗全部作答後，標籤前面加 `i-lucide-circle-check`（`text-success`）。sticky 在頂部列下方（`top-[var(--tb)]`、`bg-default`），每段底部有 outline 的「下一段：… →」 |
 | 抽屜 | `SessionView.vue` 裡的 `UDrawer` | `UDrawer` | 手機版的章節清單。點遮罩或按 Esc 關閉，點章節後自動關閉 |
 | 時間戳連結 | `VideoLink.vue`（`<VideoLink vid t>`） | — | **所有指向影片的連結都要用 `<VideoLink>`**，不可以手寫 `<a href="https://www.youtube.com/…">`。有播放器時攔截點擊改成跳段，沒有時開新分頁 |
 | 段落連結 | `<VideoLink>` ＋ `utils/videoRef.ts` | — | 測驗解析、討論答案下方的 `refs`。每段一個連結，文字用 `refLabel()` 產生（`▸ 講座 5 · 17:17`），`font-mono text-meta`，多段時 `flex-wrap` 橫排。秒數格式一律用 `mmss()`，講座標籤用 `lecOf()`，不要各自手寫 |
+| 影片長度 | `utils/videoRef.ts` | — | **長度一律寫成「分鐘」**（`minutesLabel()` →「48 分鐘」、總長 `totalLabel()` →「約 2 小時 10 分」），不可以用 mm:ss，否則會被看成時間點。講座標籤和長度之間用「・」：「講座 5・48 分鐘」 |
 
 ### 6.7 學習互動
 
@@ -227,15 +228,16 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 論證卡片 | `argument/Card.vue`（`<ArgumentCard>`） | `UCollapsible`、`UBadge`、`UButton` | 未作答：前提可以點選 → 已作答：前提依判斷標成「質疑」（`text-error`）或「接受」（`text-success`），並顯示結論評語。使用者選的前提加上 `border-primary` 金框。標題列用 `UBadge` 顯示「已作答／未作答」 |
 | 前提列 | 在 `<ArgumentCard>` 裡 | — | 左側是 mono 編號 P1、P2……；結論列用 ∴，上方有粗線 |
 | 判斷徽章 | 在 `<ArgumentCard>` 裡 | `UBadge variant="outline"` | 「質疑」（`color="error"`）「接受」（`color="success"`）的框線小標籤，`rounded-tag` |
-| 影片分段 | `study/VideoSection.vue`（`<StudyVideoSection>`） | `UButton` | 「邊看邊想」每支影片一段，照順序排。標頭（講座標籤、標題、「從頭播放」）→ 帶著這個問題看 → 論證 → 看完這段，測一下 → 想一想。所有影片之後是「整合回顧」，放 `scope: all` 的題目 |
+| 影片分段 | `study/VideoSection.vue`（`<StudyVideoSection>`） | `UButton` | 「邊看邊想」每支影片一段，照順序排。標頭（講座標籤與長度、標題、「從頭播放」；1024px 以下改成主要按鈕「▶ 播放這一講」，因為手機的播放器平常是收起來的）→ 帶著這個問題看 → 論證 → 看完這段，測一下 → 想一想。所有影片之後是「整合回顧」，放 `scope: all` 的題目 |
 | 回想題 | `recall/Questions.vue`（`<RecallQuestions>`） | `UCollapsible` | 問題＋收合的「對照重點」 |
-| 測驗題 | `study/QuizItem.vue`（`<StudyQuizItem>`） | — | 單題。**本身不存狀態**，作答由父元件保管，透過 `pick` prop 傳入、`pick` 事件回報。題目上方標出處（講座標籤或「整合回顧」，`font-mono text-label text-muted`）。選項作答後鎖定：正解 `border-success bg-success-soft`、選錯 `border-error bg-error-soft`，下方顯示「答對了。／再想想。」、解析和段落連結。「邊看邊想」和「看完回想」共用 |
-| 自我測驗 | `recall/Quiz.vue`（`<RecallQuiz>`） | `UButton` | 用 `<StudyQuizItem>` 列出本場全部題目（含整合回顧），打亂順序，上方顯示分數。「打亂順序，重新作答」清空紀錄 |
-| 討論卡 | `study/DiscussCard.vue`（`<StudyDiscussCard>`） | `UBadge`、`UButton` | `bg-elevated rounded-card border-default`。題目（`text-body font-medium`）＋補充說明（`text-small text-muted`）。延伸題加「延伸」標籤（`bg-secondary-soft text-secondary`）。「我想好了，看 Kagan 怎麼說」展開 `bg-accented rounded-control` 區塊：`answer`（`text-small text-toned`）＋段落連結。展開狀態只在這次瀏覽有效，不存。「邊看邊想」和「週日討論」共用 |
+| 測驗題 | `study/QuizItem.vue`（`<StudyQuizItem>`） | — | 單題。**本身不存狀態**，作答由父元件保管，透過 `pick` prop 傳入、`pick` 事件回報。題目上方標出處（講座標籤或「整合回顧」，`font-mono text-label text-muted`）；`sourceAfterAnswer` 時作答後才顯示（出處本身就是提示）。選項作答後鎖定：正解 `border-success bg-success-soft`、選錯 `border-error bg-error-soft`，下方顯示「答對了。／再想想。」、解析和段落連結。「邊看邊想」和「看完回想」共用 |
+| 自我測驗 | `recall/Quiz.vue`（`<RecallQuiz>`） | `UButton` | 用 `<StudyQuizItem>` 列出本場全部題目（含整合回顧），**第一次打開就是打亂的順序**，出處作答後才顯示，上方顯示分數。「打亂順序，重新作答」清空紀錄 |
+| 討論卡 | `study/DiscussCard.vue`（`<StudyDiscussCard>`） | `UBadge`、`UButton` | `bg-elevated rounded-card border-default`。題目（`text-body font-medium`）＋補充說明（`text-small text-muted`）。延伸題加「延伸」標籤（`bg-secondary-soft text-secondary`）。按鈕列：揭曉按鈕＋「寫下我的想法」（`variant="ghost"`＋`i-lucide-pencil-line`，已有筆記時不顯示）。「我的想法」是 `UTextarea`（autoresize，label 註明「只存在這個瀏覽器」）。「我想好了，看 Kagan 怎麼說」展開 `bg-accented rounded-control` 區塊：「Kagan 怎麼說」小標＋`answer`（`text-small text-toned`）＋段落連結。**兩者都打開時並排**（768px 以上兩欄），方便對照。展開狀態只在這次瀏覽有效，不存；筆記存在瀏覽器。「邊看邊想」和「週日討論」共用 |
 | 名詞卡 | `recall/Terms.vue`（`<RecallTerms>`） | `UButton` | 卡片來自本場 `concepts` 的概念卡（詞條、英文、`summary`）。未翻開 → 翻開（`bg-primary-soft`）並顯示自評按鈕。標成「還不熟」時加 `border-error` 紅框。自評以概念卡 id 儲存 |
 | 立場題 | `sunday/Vote.vue`（`<SundayVote>`） | `UButton`（`rounded-full`） | 「討論前」「討論後」兩列 pill；前後不同時顯示改變提示 |
-| 討論議題 | 在 `<TabSunday>` 裡 | — | 全部討論題，依影片分組（組標題是講座標籤與影片標題），最後一組是「整合回顧」。每題一張 `<StudyDiscussCard>`。3.0 的 `<SundayDiscuss>` 已移除 |
+| 討論議題 | 在 `<TabSunday>` 裡 | `UButton` | 全部討論題，依影片分組（組標題是講座標籤與影片標題），最後一組是「整合回顧」。每題一張 `<StudyDiscussCard>`。有寫筆記時，標題右側出現次要按鈕「複製我的筆記」（Markdown），完成後用 toast 回饋。3.0 的 `<SundayDiscuss>` 已移除 |
 | 待補區塊 | 在 `<TabAfter>` 裡 | — | `border-dashed border-default`，用在「尚未舉行」這類還沒有內容的區塊 |
+| 活動回顧 | `tab/After.vue`（`<TabAfter>`） | `UButton` | 有 `recap` 時取代待補區塊。依序：討論錄音（主要按鈕＋`i-lucide-headphones`，下方時間戳列表，只顯示不連結）→ 立場變化（每題一張 `bg-elevated` 卡，各選項「討論前% → 討論後%」，`font-mono text-meta`，比例增加的用 `text-primary`）→ 現場冒出的問題 → 這場新增的概念卡（`<ConceptCard>` 兩欄）。沒有資料的區塊整個不顯示 |
 
 ### 6.8 瀏覽與概念卡
 
@@ -329,6 +331,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-09-29 | 3.7 | 場次標頭只在「看之前」顯示；手機頂部列在 360px 寬不需橫向捲動；影片長度一律寫「分鐘」（新增 `minutesLabel`、`totalLabel`）；字幕說明移到播放器下方；手機「播放這一講」按鈕；影片子分頁完成打勾；自我測驗預設打亂、出處作答後才顯示；討論卡加「我的想法」並與 Kagan 觀點並排；週日討論「複製我的筆記」；新增活動回顧區塊 |
 | 2026-09-29 | 3.6 | 新增 hover 規則表並全面套用；暗色 `--ui-border-accented` 調亮；揭曉按鈕改 subtle |
 | 2026-09-29 | 3.5 | 揭曉按鈕改成暮色藍淡底＋箭頭（原本 ghost 看起來不像可以點） |
 | 2026-09-29 | 3.4 | 可點選元素全域手指游標；Nuxt UI 語系改為繁體中文 |

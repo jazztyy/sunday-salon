@@ -9,7 +9,8 @@ const ref = z.tuple([z.string(), z.number().int().nonnegative()])
 
 const video = z.object({
   id: z.string(), // YouTube video id
-  lec: z.string(), // 例：'講座 5 · 48:02'
+  lec: z.string(), // 講座標籤，例：'講座 5'
+  duration: z.number().int().positive(), // 影片長度（秒），顯示「48 分鐘」與全場總時數
   short: z.string(),
   title: z.string(),
   guide: z.string(), // 帶著這個問題看
@@ -77,7 +78,18 @@ export default defineContentConfig({
           e: z.string(), // 解析
           refs: z.array(ref).min(1), // 原片段
         })),
-        after: z.string(),
+        after: z.string(), // 活動前「活動後」分頁的預告文字（還沒有 recap 時顯示）
+        // 活動結束後才填（SPEC.md 5.5）。立場統計來自現場的會議軟體投票
+        recap: z.object({
+          audio: z.object({ url: z.string().url(), label: z.string() }).optional(), // 錄音連結，例：Podcast 單集頁
+          chapters: z.array(chapter).default([]), // 錄音的時間戳 [秒數, 段落]
+          votes: z.array(z.object({ // 依 votes 的題目順序，每題各選項的人數
+            pre: z.array(z.number().int().nonnegative()),
+            post: z.array(z.number().int().nonnegative()),
+          })).default([]),
+          questions: z.array(z.string()).default([]), // 現場冒出的好問題、沒聊完的問題
+          concepts: z.array(z.string()).default([]), // 這場討論後新增的概念卡 id
+        }).optional(),
       }),
     }),
 

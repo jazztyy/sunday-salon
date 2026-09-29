@@ -17,10 +17,36 @@ const groups = computed<DiscussGroup[]>(() => {
   const all = props.session.discuss.map((item, index) => ({ item, index }))
   const byScope = (scope: string) => all.filter(({ item }) => item.scope === scope)
   return [
-    ...props.session.videos.map(v => ({ key: v.id, lec: v.lec.split(' · ')[0], title: v.short, items: byScope(v.id) })),
+    ...props.session.videos.map(v => ({ key: v.id, lec: v.lec, title: v.short, items: byScope(v.id) })),
     { key: 'all', title: '整合回顧', items: byScope('all') },
   ].filter(g => g.items.length)
 })
+
+// 「我的想法」匯出：只列有寫筆記的題目，依分組排成 Markdown，可以貼進 Heptabase 或任何筆記軟體
+const { getNote } = useDiscussNotes(props.session.slug)
+const notesMarkdown = computed(() => {
+  const sections = groups.value
+    .map((g) => {
+      const written = g.items.filter(({ item }) => getNote(item))
+      if (!written.length) return ''
+      const heading = g.lec ? `## ${g.lec}：${g.title}` : `## ${g.title}`
+      return [heading, ...written.map(({ item }) => `### ${item.q}\n\n${getNote(item).trim()}`)].join('\n\n')
+    })
+    .filter(Boolean)
+  if (!sections.length) return ''
+  return [`# ${props.session.chip}：我的討論筆記`, props.session.title, ...sections].join('\n\n') + '\n'
+})
+
+const { copy, isSupported } = useClipboard({ legacy: true })
+const toast = useToast()
+const copyNotes = async () => {
+  try {
+    await copy(notesMarkdown.value)
+    toast.add({ title: '已複製我的筆記', description: 'Markdown 格式，可以直接貼進筆記軟體', icon: 'i-lucide-check', color: 'success' })
+  } catch {
+    toast.add({ title: '複製失敗', description: '瀏覽器不允許存取剪貼簿', color: 'error' })
+  }
+}
 </script>
 
 <template>
@@ -33,8 +59,19 @@ const groups = computed<DiscussGroup[]>(() => {
   </section>
 
   <section class="flex flex-col gap-4">
-    <h2 class="font-serif text-h2 font-black leading-snug text-highlighted">討論議題</h2>
-    <p class="text-small text-muted">影片裡的討論題都整理在這裡，挑有感覺的帶來聊。每題都可以打開 Kagan 的觀點和影片段落。</p>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 class="font-serif text-h2 font-black leading-snug text-highlighted">討論議題</h2>
+      <UButton
+        v-if="notesMarkdown && isSupported"
+        color="neutral"
+        variant="outline"
+        icon="i-lucide-copy"
+        label="複製我的筆記"
+        class="rounded-control px-3 text-small"
+        @click="copyNotes"
+      />
+    </div>
+    <p class="text-small text-muted">影片裡的討論題都整理在這裡，挑有感覺的帶來聊。每題都可以寫下自己的想法、打開 Kagan 的觀點和影片段落；寫過的想法可以複製成 Markdown 帶走。</p>
     <div class="flex flex-col gap-6">
       <div v-for="g in groups" :key="`${session.slug}-${g.key}`" class="flex flex-col gap-3">
         <h3 class="flex flex-col font-serif text-title font-bold text-highlighted">

@@ -29,7 +29,7 @@ const stanceOpen = ref(false)
         :key="v.id"
         class="flex flex-col gap-0.5 rounded-card border border-default bg-elevated px-3.5 py-3"
       >
-        <span class="font-mono text-meta font-medium text-primary">{{ v.lec }}</span>
+        <span class="font-mono text-meta font-medium text-primary">{{ v.lec }}・{{ minutesLabel(v.duration) }}</span>
         <span class="font-serif text-lead font-semibold leading-relaxed">{{ v.guide }}</span>
       </li>
     </ol>
@@ -48,7 +48,6 @@ const stanceOpen = ref(false)
         <span>{{ label }}</span>
       </li>
     </ul>
-    <p class="text-small text-muted">{{ session.captionTip }}</p>
   </div>
 
   <UCollapsible

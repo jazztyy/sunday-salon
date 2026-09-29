@@ -11,8 +11,10 @@ export type RecallItem = [question: string, answer: string]
 export interface Video {
   /** YouTube video id */
   id: string
-  /** 例：'講座 5 · 48:02' */
+  /** 講座標籤，例：'講座 5' */
   lec: string
+  /** 影片長度（秒） */
+  duration: number
   /** 短標題，用在側欄與收合標題 */
   short: string
   title: string
@@ -116,7 +118,24 @@ export interface Session {
   votes: Vote[]
   discuss: DiscussItem[]
   quiz: QuizItem[]
+  /** 活動前「活動後」分頁的預告文字（還沒有 recap 時顯示） */
   after: string
+  /** 活動結束後才填 */
+  recap?: Recap
+}
+
+/** 活動回顧（SPEC.md 5.5） */
+export interface Recap {
+  /** 錄音連結 */
+  audio?: { url: string, label: string }
+  /** 錄音時間戳 */
+  chapters: Chapter[]
+  /** 依 votes 的題目順序，每題各選項的人數（現場投票） */
+  votes: { pre: number[], post: number[] }[]
+  /** 現場冒出的好問題、沒聊完的問題 */
+  questions: string[]
+  /** 這場討論後新增的概念卡 id */
+  concepts: string[]
 }
 
 /** 概念卡（content/concepts/{id}.md） */

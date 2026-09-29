@@ -3,9 +3,6 @@
 import type { Video } from '~/types/session'
 
 defineProps<{ videos: Video[] }>()
-
-/** '講座 5 · 48:02' → '講座 5' */
-const lecName = (v: Video) => v.lec.split(' · ')[0]
 </script>
 
 <template>
@@ -23,7 +20,7 @@ const lecName = (v: Video) => v.lec.split(' · ')[0]
           type="button"
           class="flex w-full items-center justify-between gap-3 rounded-card px-3.5 py-3 text-left font-bold transition-colors hover:bg-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          <span>{{ lecName(v) }}：{{ v.short }}</span>
+          <span>{{ v.lec }}：{{ v.short }}</span>
           <span class="font-mono text-title font-medium text-muted" aria-hidden="true">{{ open ? '−' : '+' }}</span>
         </button>
       </template>

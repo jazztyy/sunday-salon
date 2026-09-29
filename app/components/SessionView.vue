@@ -3,7 +3,7 @@
 // 分頁與網址 hash 同步（#before / #during / #recall / #sunday / #after），規格見 SPEC.md「資訊架構」。
 import type { Session, TabKey } from '~/types/session'
 
-defineProps<{ session: Session }>()
+const props = defineProps<{ session: Session }>()
 
 const TABS: { key: TabKey, label: string }[] = [
   { key: 'before', label: '看之前' },
@@ -39,6 +39,8 @@ const nextTab = computed(() => TABS[TABS.findIndex(t => t.key === tab.value) + 1
 
 const chaptersOpen = ref(false)
 
+const totalSeconds = computed(() => props.session.videos.reduce((sum, v) => sum + v.duration, 0))
+
 </script>
 
 <template>
@@ -52,13 +54,14 @@ const chaptersOpen = ref(false)
       :class="{ 'lg:grid-cols-[minmax(0,1fr)_420px]': embed }"
     >
       <main class="flex min-w-0 max-w-[760px] flex-col gap-10 pb-20">
-        <header class="flex flex-col gap-3">
+        <!-- 場次標頭只在「看之前」顯示：切到其他分頁代表已經知道在哪一場，把第一屏留給內容 -->
+        <header v-if="tab === 'before'" class="flex flex-col gap-3">
           <p class="font-mono text-meta font-medium uppercase tracking-[.12em] text-primary">{{ session.eyebrow }}</p>
           <h1 class="font-serif text-h1 font-black leading-tight text-highlighted">{{ session.title }}</h1>
           <p class="flex flex-wrap gap-x-5 gap-y-1 text-small text-muted">
             <span>日期 <b class="font-medium text-highlighted">{{ session.dateLabel }}</b></span>
             <span>講者 <b class="font-medium text-highlighted">{{ session.speaker }}</b></span>
-            <span>影片 <b class="font-medium text-highlighted">{{ session.videos.length }} 支</b></span>
+            <span>影片 <b class="font-medium text-highlighted">{{ session.videos.length }} 支・{{ totalLabel(totalSeconds) }}</b></span>
           </p>
           <ul v-if="session.tags.length" class="flex flex-wrap gap-1.5" aria-label="標籤">
             <li v-for="tag in session.tags" :key="tag">
@@ -71,6 +74,9 @@ const chaptersOpen = ref(false)
             </li>
           </ul>
         </header>
+
+        <!-- 其他分頁不顯示場次標頭，但頁面仍要有 h1（螢幕閱讀器與大綱用） -->
+        <h1 v-else class="sr-only">{{ session.title }}</h1>
 
         <TabBefore v-if="tab === 'before'" :session="session" />
         <TabDuring v-else-if="tab === 'during'" :session="session" />
