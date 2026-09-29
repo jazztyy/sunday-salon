@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="週日沙龍：每週線上讀書會的會前導讀、影片章節、論證地圖、討論題與自我測驗。">
+<meta property="og:title" content="週日沙龍">
+<meta property="og:description" content="這週：靈魂存在嗎？如果存在，它會永生嗎？（Yale PHIL 176 Death 第 5–7 講）">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>週日沙龍</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap">
+<style>
+:root{
+  --bg:#F2F3F6; --surface:#FFFFFF; --surface-2:#E9EBF1; --ink:#1A1D2B; --ink-2:#474C60; --ink-3:#767B8F; --line:#D6D9E3;
+  --accent:#95680F; --accent-soft:#F4E8CF; --dusk:#3D4378; --dusk-soft:#E3E5F3;
+  --good:#2C7549; --good-soft:#DCEEE3; --bad:#A03F38; --bad-soft:#F6DFDC;
+  --shadow:0 12px 40px rgba(26,29,43,.18);
+  --serif:"Noto Serif TC","Songti TC",serif; --sans:"Noto Sans TC","PingFang TC","Heiti TC",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1120; --surface:#161A2C; --surface-2:#1E2339; --ink:#E7E8EF; --ink-2:#B3B7C7; --ink-3:#868BA1; --line:#2B3149;
+    --accent:#E2B455; --accent-soft:#2F2815; --dusk:#AAB0E8; --dusk-soft:#232849;
+    --good:#6CC291; --good-soft:#16301F; --bad:#E88C82; --bad-soft:#3B1D1B; --shadow:0 12px 40px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1120; --surface:#161A2C; --surface-2:#1E2339; --ink:#E7E8EF; --ink-2:#B3B7C7; --ink-3:#868BA1; --line:#2B3149;
+  --accent:#E2B455; --accent-soft:#2F2815; --dusk:#AAB0E8; --dusk-soft:#232849;
+  --good:#6CC291; --good-soft:#16301F; --bad:#E88C82; --bad-soft:#3B1D1B; --shadow:0 12px 40px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.75;padding-inline:16px;padding-block:0 80px}
+a{color:var(--dusk)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p{margin:0}
+button{font-family:var(--sans)}
+
+/* top bar */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px 0}
+.topbar-in{max-width:1120px;margin-inline:auto;display:flex;flex-direction:column;gap:8px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand b{font-family:var(--serif);font-weight:900;font-size:18px;letter-spacing:.08em}
+.brand-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{font:500 13px var(--sans);border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:3px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chap-btn{display:none}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-inline:-4px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:0;background:none;color:var(--ink-3);font:500 14px var(--sans);padding:8px 10px 10px;cursor:pointer;border-bottom:2px solid transparent;display:flex;align-items:baseline;gap:6px}
+.tabs button .step{font:500 11px var(--mono)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+/* layout */
+.layout{max-width:1120px;margin-inline:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:40px;padding-top:28px}
+main{display:flex;flex-direction:column;gap:40px;min-width:0;max-width:760px}
+aside.side{display:none}
+@media (min-width:1000px){
+  .layout{max-width:1240px;grid-template-columns:minmax(0,1fr) 300px}
+  body.embed .layout{grid-template-columns:minmax(0,1fr) 420px}
+  aside.side{display:block;position:sticky;top:calc(var(--tb,116px) + 16px);align-self:start;max-height:calc(100vh - var(--tb,116px) - 32px);overflow-y:auto;scrollbar-width:thin}
+}
+@media (max-width:999px){
+  .chap-btn{display:inline-flex}
+  body.embed.playing aside.side{display:block;order:-1;position:sticky;top:var(--tb,100px);z-index:5;background:var(--bg);margin-inline:-16px;padding:8px 16px 0;border-bottom:1px solid var(--line)}
+  body.embed.playing aside.side .chap-list{display:none}
+  body.embed .hide-player{display:inline-flex}
+  .ratio{border-radius:4px}
+}
+
+/* hero */
+.hero{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.12em;color:var(--accent);text-transform:uppercase}
+.hero h1{font-family:var(--serif);font-weight:900;font-size:clamp(28px,5vw,40px);line-height:1.3;margin:0;text-wrap:balance}
+.meta{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:14px;color:var(--ink-3)}
+.meta b{color:var(--ink);font-weight:500}
+
+section{display:flex;flex-direction:column;gap:16px}
+h2{font-family:var(--serif);font-weight:900;font-size:24px;margin:0;line-height:1.35;text-wrap:balance}
+h3{font-size:17px;margin:0;line-height:1.5;text-wrap:balance}
+.muted{color:var(--ink-3);font-size:14px}
+.why{font-size:13px;color:var(--ink-3);display:flex;gap:6px;align-items:baseline}
+.why::before{content:"學習法";flex:none;font:500 11px var(--sans);color:var(--dusk);background:var(--dusk-soft);border-radius:3px;padding:0 6px}
+.lede{color:var(--ink-2);font-size:17px}
+
+.tldr{display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none}
+.tldr li{padding-left:18px;position:relative}
+.tldr li::before{content:"";position:absolute;left:2px;top:.72em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+.guideqs{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.guideqs li{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.guideqs .lec{font:500 12px var(--mono);color:var(--accent)}
+.guideqs .q{font-family:var(--serif);font-weight:600;font-size:17px;line-height:1.55}
+
+.callout{background:var(--dusk-soft);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;font-size:15px}
+.callout strong{color:var(--dusk)}
+.picks{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.picks li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline}
+.picks a{font:500 13px var(--mono)}
+
+details.fold{border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+details.fold>summary{cursor:pointer;list-style:none;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:700}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"+";font:500 18px var(--mono);color:var(--ink-3)}
+details.fold[open]>summary::after{content:"−"}
+details.fold>.body{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px}
+.stance{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:0;font-size:15px}
+.stance dt{color:var(--ink-3)} .stance dd{margin:0}
+
+.btn{display:inline-flex;align-items:center;gap:6px;font:500 14px var(--sans);color:var(--bg);background:var(--ink);border:0;border-radius:4px;padding:6px 12px;text-decoration:none;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.link{background:none;border:0;color:var(--dusk);padding:0;text-decoration:underline;font-size:13px}
+
+/* player */
+.player-box{position:sticky;top:0;z-index:2;background:var(--bg);padding-bottom:12px;display:none}
+body.embed .player-box{display:block}
+.ratio{position:relative;aspect-ratio:16/9;max-width:100%;background:#000;border-radius:6px;overflow:hidden}
+.ratio iframe,.ratio #player{position:absolute;inset:0;width:100%;height:100%;border:0}
+.player-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:8px;font-size:13px;color:var(--ink-2)}
+.player-bar #now{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hide-player{display:none}
+.chapters li.now{color:var(--ink);font-weight:700}
+.chapters li.now a{color:var(--accent)}
+
+/* chapters (sidebar + drawer) */
+.chap-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.chap-head b{font-family:var(--serif);font-size:16px}
+.vgroup{border-bottom:1px solid var(--line)}
+.vgroup>summary{cursor:pointer;list-style:none;padding:10px 0;display:flex;flex-direction:column;gap:0}
+.vgroup>summary::-webkit-details-marker{display:none}
+.vgroup .lec{font:500 11px var(--mono);color:var(--accent);letter-spacing:.06em}
+.vgroup .vt{font-size:14px;font-weight:700;line-height:1.5}
+.vgroup[open] .vt{color:var(--ink)}
+.chapters{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column}
+.chapters li{display:grid;grid-template-columns:3.4em 1fr;gap:8px;padding:3px 0;font-size:13px;line-height:1.6;color:var(--ink-2)}
+.chapters a{font:500 12px var(--mono);font-variant-numeric:tabular-nums;text-decoration:none;color:var(--dusk);padding-top:1px}
+.chapters a:hover{text-decoration:underline}
+.watch{font-size:12px;margin-bottom:10px;display:inline-block}
+
+.drawer-scrim{position:fixed;inset:0;background:rgba(10,12,20,.45);z-index:20}
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--bg);border-radius:12px 12px 0 0;box-shadow:var(--shadow);max-height:75vh;overflow-y:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+
+/* argument map */
+.args{display:flex;flex-direction:column;gap:12px}
+.arg>summary{justify-content:flex-start}
+.arg .state{margin-left:auto;flex:none}
+.arg .tag{display:block;font:500 12px var(--mono);color:var(--ink-3);font-weight:500}
+.arg .state{font:500 12px var(--sans);color:var(--ink-3);font-weight:500}
+.arg.done .state{color:var(--good)}
+.prem{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.prem li{display:grid;grid-template-columns:2.4em 1fr;gap:8px;align-items:start;padding:8px 10px;border-radius:4px;background:var(--surface-2);border:1px solid transparent}
+.prem li.pickable{cursor:pointer}
+.prem li.pickable:hover{border-color:var(--ink-3)}
+.prem li.picked{border-color:var(--accent)}
+.prem .n{font:500 13px var(--mono);color:var(--ink-3);padding-top:3px}
+.prem li.concl{background:transparent;border-top:2px solid var(--ink);border-radius:0;padding-top:10px}
+.prem li.concl .n{color:var(--ink)}
+.obj,.acc{display:none;margin-top:6px;font-size:14px;line-height:1.65}
+.obj{color:var(--bad)} .acc{color:var(--good)}
+.obj b,.acc b{display:inline-block;font-size:12px;font-weight:700;border:1px solid currentColor;border-radius:3px;padding:0 5px;margin-right:6px;line-height:1.5}
+.arg.reveal .prem li.weak{background:var(--bad-soft)}
+.arg.reveal .prem li.weak .n{color:var(--bad)}
+.arg.reveal .prem li.ok{background:var(--good-soft)}
+.arg.reveal .prem li.ok .n{color:var(--good)}
+.arg.reveal .obj,.arg.reveal .acc{display:block}
+.verdict{display:none;font-size:15px;color:var(--ink-2);border-left:3px solid var(--accent);padding-left:12px}
+.arg.reveal .verdict{display:block}
+.predict{font-size:14px;color:var(--ink-2)}
+.predict b{color:var(--accent)}
+.feedback{display:none;font-size:14px;font-weight:700}
+.arg.reveal .feedback{display:block}
+.arg-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+
+/* review timeline */
+.timeline{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.timeline li{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.timeline .when{font:500 12px var(--mono);color:var(--accent)}
+
+/* recall */
+.recall{display:flex;flex-direction:column;gap:14px;margin:0;padding:0;list-style:none}
+.recall li{display:flex;flex-direction:column;gap:6px}
+.recall .rq{font-weight:500}
+.recall summary::-webkit-details-marker{display:none}
+.recall .ra{font-size:14px;color:var(--ink-2);background:var(--surface-2);border-radius:4px;padding:10px 12px}
+
+/* quiz */
+.quiz{display:flex;flex-direction:column;gap:28px}
+.score{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--ink-3)}
+.score b{font:500 15px var(--mono);color:var(--ink)}
+.qz{display:flex;flex-direction:column;gap:10px}
+.qz h3{font-size:16px}
+.qz .from{font:500 11px var(--mono);color:var(--ink-3);display:block;font-weight:500}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opts button{text-align:left;font:15px/1.6 var(--sans);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:8px 12px;cursor:pointer}
+.opts button:hover:not(:disabled){border-color:var(--ink-3)}
+.opts button:disabled{cursor:default}
+.opts button.right{background:var(--good-soft);border-color:var(--good)}
+.opts button.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.explain{font-size:14px;color:var(--ink-2);line-height:1.7}
+.explain b.ok{color:var(--good)} .explain b.no{color:var(--bad)}
+
+/* cards */
+.card-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--ink-3)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column}
+.card.shaky{border-color:var(--bad)}
+.card-face{min-height:110px;text-align:left;background:none;border:0;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
+.card .term{font-family:var(--serif);font-weight:900;font-size:19px}
+.card .en{font:12px var(--mono);color:var(--ink-3)}
+.card .def{display:none;font-size:14px;line-height:1.65;color:var(--ink-2)}
+.card .hint{margin-top:auto;font-size:12px;color:var(--ink-3)}
+.card.open{background:var(--accent-soft);border-color:var(--accent)}
+.card.open .def{display:block}
+.card.open .hint{display:none}
+.rate{display:none;gap:6px;padding:0 14px 12px}
+.card.open .rate{display:flex}
+.rate button{flex:1;font:500 13px var(--sans);border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:4px;padding:4px 0;cursor:pointer}
+.rate button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);font-weight:700}
+
+/* sunday */
+.steps{counter-reset:s;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:1.8em 1fr;gap:8px;font-size:15px}
+.steps li::before{content:counter(s);font:500 13px var(--mono);color:var(--dusk);padding-top:2px}
+.votes{display:flex;flex-direction:column;gap:14px}
+.vote{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.vote-row{display:grid;grid-template-columns:4.5em 1fr;gap:8px;align-items:center;font-size:13px;color:var(--ink-3)}
+.vote-opts{display:flex;gap:6px;flex-wrap:wrap}
+.vote-opts button{font:14px var(--sans);border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;padding:3px 12px;cursor:pointer}
+.vote-opts button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.vote .shift{font-size:13px;color:var(--accent)}
+.dq{counter-reset:q;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:18px}
+.dq li{counter-increment:q;display:grid;grid-template-columns:2em 1fr;gap:10px}
+.dq li::before{content:counter(q);font-family:var(--serif);font-weight:900;font-size:22px;color:var(--accent);line-height:1.3}
+.dq .ext{display:inline-block;font:500 11px var(--sans);color:var(--dusk);background:var(--dusk-soft);border-radius:3px;padding:0 6px;margin-left:6px;vertical-align:2px}
+.dq .ctx{display:block;font-size:14px;color:var(--ink-3);margin-top:4px}
+
+.after{border:1px dashed var(--line);border-radius:6px;padding:22px;display:flex;flex-direction:column;gap:8px;color:var(--ink-2)}
+.next{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);padding-top:16px;flex-wrap:wrap}
+footer{font-size:13px;color:var(--ink-3);display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:20px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <b>週日沙龍</b>
+      <div class="brand-r">
+        <div id="sessions" style="display:flex;gap:6px" aria-label="場次"></div>
+        <button class="chip chap-btn" type="button" id="open-drawer">影片章節</button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs" aria-label="學習階段"></div>
+  </div>
+</div>
+
+<div class="layout">
+  <main id="app"></main>
+  <aside class="side" id="side" aria-label="影片與章節">
+    <div class="player-box">
+      <div class="ratio"><div id="player"></div></div>
+      <div class="player-bar"><span id="now"></span><button class="btn ghost hide-player" type="button" id="hide-player">收起影片</button></div>
+    </div>
+    <div class="chap-list" id="chap-list"></div>
+  </aside>
+</div>
+<div class="drawer-scrim" id="scrim" hidden></div>
+<div class="drawer" id="drawer" hidden role="dialog" aria-label="影片章節"></div>
+
+<script>
+const SESSIONS = [
+{
+  id: 'w1',
+  chip: '10/4 靈魂',
+  date: '2026 年 10 月 4 日（週日）',
+  eyebrow: 'Session 01 · Yale PHIL 176 Death',
+  title: '靈魂存在嗎？如果存在，它會永生嗎？',
+  lede: '這週看耶魯 Shelly Kagan 教授《死亡》課的第 5 到 7 講。前半段他逐一拆解「靈魂存在」的論證，後半段進入柏拉圖《斐多篇》，看蘇格拉底在臨死前如何論證靈魂不朽。',
+  speaker: 'Shelly Kagan（耶魯大學哲學系）',
+  captionTip: '影片是英文授課。播放器右下角按「設定（齒輪）」→「字幕」→「自動翻譯」→「中文（繁體）」可以看機器翻譯的中文字幕，專有名詞偶爾會翻錯，可以先翻一下「看完回想」裡的名詞卡。',
+  picks: [
+    ['講座 5', 'S-fwH_uBPD0', 0, '00:00–15:20', '自由意志論證（15 分鐘）'],
+    ['講座 5', 'S-fwH_uBPD0', 1037, '17:17–30:41', '瀕死體驗（13 分鐘）'],
+    ['講座 6', 'qkjIKIpvz6Y', 346, '05:46–18:27', '晨星與昏星（13 分鐘）'],
+    ['講座 7', 'ZHH8KDFysbM', 2030, '33:50–46:38', '回憶說（13 分鐘）'],
+  ],
+  tldr: [
+    'Kagan 檢查的多數靈魂論證都是「最佳解釋推論」：某個現象需要解釋，所以假設靈魂存在。他的問題永遠是：靈魂是不是<b>最好的</b>解釋，而不只是<b>一種</b>解釋。',
+    '自由意志論證需要三個前提同時成立，而每一個都有人提出合理的質疑。',
+    '瀕死體驗是真實的經驗。Kagan 認為，腦內啡、視覺皮質受刺激等生理解釋，已經足以和「靈魂離體」競爭。',
+    '笛卡兒說：我能想像心靈沒有身體，所以兩者不同。Kagan 用晨星與昏星（其實都是金星）當反例。',
+    '柏拉圖的《斐多篇》預設靈魂存在，真正要論證的是<b>靈魂不朽</b>。前三個論證 Kagan 都認為不成立。',
+  ],
+  stance: [
+    ['整體立場', '物理主義者：人就是一個能做特定事情的身體，沒有非物質的靈魂'],
+    ['自由意志', '相信人有自由意志，並且是相容論者'],
+    ['保留之處', '承認意識（例如咖啡的味道、看到紅色的感覺）目前物理主義還解釋不了'],
+    ['態度', '明說這是理性的人可以有不同意見的問題，邀請大家自己判斷'],
+  ],
+  videos: [
+    { id:'S-fwH_uBPD0', lec:'講座 5 · 48:02', short:'自由意志與瀕死體驗', title:'靈魂存在與否的論證（三）：自由意志與瀕死體驗',
+      guide:'如果我們有自由意志，是否就代表我們不只是物理的東西？',
+      chapters:[[0,'自由意志論證：三個前提'],[322,'前提一的質疑：自由意志可能是錯覺'],[441,'前提三的質疑：量子力學是機率性的'],[750,'前提二的質疑：相容論'],[920,'小結：每個前提都能被合理挑戰'],[976,'轉向超自然現象'],[1037,'瀕死體驗在描述什麼'],[1263,'「他們又沒真的死」與法國的比喻'],[1569,'兩個房間 vs. 一個房間'],[1841,'通靈、鬼魂與 Randi 的懸賞'],[2078,'小結：意識仍然是難題'],[2254,'笛卡兒的思想實驗：鏡子裡沒有自己']],
+      recall:[
+        ['自由意志論證的三個前提是什麼？Kagan 對每一個怎麼看？','P1 我們有自由意志（他接受）；P2 決定論與自由意志不相容（他是相容論者，拒絕）；P3 物理系統都受決定論支配（依量子力學的標準詮釋，不成立）。'],
+        ['「兩個房間」和「一個房間」分別怎麼解釋瀕死體驗？','兩個房間：靈魂暫時離開這一世，進入或望見下一個世界。一個房間：只有這一生，接近生命終點時身體出現不尋常的生理狀態，例如腦內啡帶來欣快感、視覺皮質受刺激看到光和隧道。'],
+        ['Kagan 為什麼說二元論只是一張「支票」？','二元論通常只說「假設有個非物質的東西」，並沒有真正說明它如何產生意識或自由意志。「還沒看出物理如何解釋」不等於「物理不可能解釋」。'],
+      ]},
+    { id:'qkjIKIpvz6Y', lec:'講座 6 · 35:42', short:'笛卡兒的反例與柏拉圖', title:'靈魂存在與否的論證（四）：柏拉圖（一）',
+      guide:'能想像兩個東西分開，是否就代表它們真的是兩個東西？',
+      chapters:[[0,'回顧：想像心靈沒有身體'],[88,'Shelly 與 Kagan：同一個東西無法分開想像'],[208,'左手與右手、笑容與身體'],[346,'反例：晨星與昏星'],[673,'到底哪裡出錯？三種診斷'],[1107,'回顧：靈魂存在的論證都不成立'],[1167,'進入《斐多篇》：問題變成靈魂不朽'],[1331,'蘇格拉底為何臨死還很愉快'],[1417,'柏拉圖的分工：感覺歸身體，思考歸靈魂'],[1548,'柏拉圖的形式論'],[1792,'哲學家為何要擺脫身體'],[1911,'數學：理解形式論的最好例子']],
+      recall:[
+        ['用晨星與昏星說明笛卡兒的論證可能哪裡出錯。','我們能輕易想像昏星存在而晨星不存在，但兩者都是金星。同樣結構的推論在天文學上會得出錯誤結論，所以「能分開想像」推不出「真的是兩個東西」。'],
+        ['Kagan 提到哪三種「哪裡出錯」的診斷？','一、你以為自己想像了，其實描述錯了想像的內容；二、想像不一定是邏輯可能性的可靠指引；三、同一性可能是偶然的。他說哲學家對哪個診斷才對沒有共識。'],
+        ['柏拉圖的「形式」是什麼？舉一個例子。','完美、永恆、非物質的存在，例如美本身、正義本身、完美的圓、數字 3。世上的東西只是不同程度地「分有」形式，但心靈可以思考形式本身。'],
+      ]},
+    { id:'ZHH8KDFysbM', lec:'講座 7 · 46:38', short:'《斐多篇》的三個論證', title:'柏拉圖（二）：靈魂永生與否的論證',
+      guide:'能思考永恆的東西，是否就代表我們自己也是永恆的？',
+      chapters:[[0,'形式論回顧：永恆、不變、非物質'],[305,'「練習死亡」與輪迴'],[447,'死亡場景與洞穴寓言的伏筆'],[544,'怎麼做才算尊重一位哲學家'],[742,'朋友的擔憂：橡皮筋拉太長會斷'],[858,'論證一：形式的本質'],[1224,'「物以類聚」站得住嗎'],[1483,'論證二：回收論證'],[1730,'反駁：心臟也是零件，卻不會永存'],[2030,'論證三：回憶說'],[2273,'完美的形式是在哪裡認識的'],[2634,'Kagan 的質疑：外推，或今生才第一次認識']],
+      recall:[
+        ['形式本質論證的關鍵前提是什麼？為什麼站不住？','「只有永恆、非物質的東西能掌握永恆、非物質的東西」，也就是物以類聚。但動物學家不必是貓，醫生研究屍體也不必是屍體，柏拉圖也沒有說明為什麼形式是例外。'],
+        ['回收論證缺了哪一塊？','有些零件被回收，推不出每個零件都被回收。心臟也是我的一部分，卻不是出生前就存在的基本零件。要成立，得先證明靈魂是那種基本零件。'],
+        ['回憶說如何推出「靈魂在出生前就存在」？Kagan 提出哪兩個質疑？','被提醒需要先前認識，而今生從未遇過完美的形式，所以一定是出生前就認識了。質疑：一、心靈也許能從「越來越直」外推出「完全的直」；二、為什麼不能是今生才第一次認識形式？'],
+      ]},
+  ],
+  args: [
+    { name:'自由意志論證', kind:'最佳解釋推論', vid:'S-fwH_uBPD0', t:0, ts:'講座 5 · 00:00',
+      prem:[
+        ['我們有自由意志。', null, 'Kagan 接受，他相信人有自由意志。不過也有哲學家認為自由意志只是錯覺：我們感覺自己「本來可以選別的」，但這種感覺無法直接觀察。'],
+        ['受決定論支配的東西不可能有自由意志。', '相容論認為兩者可以並存：就算倒帶重播每次結果都一樣，人仍然可以是自由的。Kagan 自己就是相容論者。'],
+        ['所有純物理系統都受決定論支配。', '依照量子力學的標準詮釋，基礎物理定律是機率性的。放射性原子「有 80% 機率衰變」，除此之外沒有更深的原因。（Kagan 也強調自己不是物理學家。這點在物理學界仍有爭議，例如多世界詮釋和玻姆詮釋都是決定論的。）'],
+      ],
+      concl:'我們不只是物理系統，必須有靈魂。',
+      verdict:'三個前提都要成立結論才會出來，而每一個都有人提出合理的質疑。這不等於論證失敗，但用它來證明靈魂存在，要做的功課很多。' },
+    { name:'瀕死體驗論證', kind:'最佳解釋推論', vid:'S-fwH_uBPD0', t:1037, ts:'講座 5 · 17:17',
+      prem:[
+        ['許多人在心跳停止後被救回，描述出高度相似的經驗：離開身體、從上方看自己、穿過隧道看到光、見到過世的親人。', null, 'Kagan 接受這些經驗真的發生過，也不認為「他們又沒真的死，所以證詞不算數」這個反駁成立：住過法國 20 年的人，就算最後回來了，還是能告訴你法國是什麼樣子。'],
+        ['對這些經驗最好的解釋是：靈魂暫時離開身體，進入了下一個世界（「兩個房間」解釋）。', '「一個房間」解釋同樣可行：生命是生物過程，接近終點時會出現不尋常的生理狀態。壓力下釋放的腦內啡可以解釋欣快感，視覺皮質受到異常刺激可以解釋光和隧道。'],
+      ],
+      concl:'靈魂存在，而且能在身體之外存在。',
+      verdict:'瀕死經驗本身是可以接受的證據，真正的爭點只在於哪個解釋比較好。Kagan 認為生理解釋雖然還沒完整，但雛形已經夠有說服力。' },
+    { name:'笛卡兒的可想像性論證', kind:'純哲學論證', vid:'qkjIKIpvz6Y', t:346, ts:'講座 5 · 37:34 ／ 講座 6 · 05:46',
+      prem:[
+        ['我可以想像心靈存在而身體不存在：早上醒來，鏡子裡沒有自己，摸不到頭，卻還在恐慌地思考。', '診斷一：你以為自己想像了那個情境，其實描述錯了自己想像的內容。（Kagan 認為用在身心問題上不太有說服力。）'],
+        ['如果能想像 A 存在而 B 不存在，A 和 B 就不是同一個東西。', '診斷二：想像不一定是「邏輯上可能」的可靠指引，就像有人覺得自己勉強能想像圓的方形。診斷三：同一性也許是偶然的，這個世界 A=B，別的可能世界不是。但這個概念本身也很費解。'],
+      ],
+      concl:'心靈不是身體，而是另外的東西：靈魂。',
+      verdict:'反例：我能輕易想像昏星存在而晨星不存在，但兩者其實都是金星。同樣結構的論證在天文學上明顯失敗，所以笛卡兒的版本也不能照單全收。難處在於，哲學家都同意晨星昏星的版本錯了，卻對「到底錯在哪裡」沒有共識。另外，這裡是 Kagan 簡化過的版本：笛卡兒在《沉思錄》第六沉思的原始論證，還牽涉到「清楚分明的認識」與上帝有能力把兩者分開。' },
+    { name:'論證一：形式的本質', kind:'《斐多篇》', vid:'ZHH8KDFysbM', t:858, ts:'講座 7 · 14:18',
+      prem:[
+        ['形式（美本身、正義本身、數字 3）是永恆且非物質的。', null, 'Kagan 暫且讓給柏拉圖。他說這堂課不打算爭論形式論本身，而且它不是荒謬的觀點，拿數學來想就很有說服力。'],
+        ['永恆、非物質的東西，只能被永恆、非物質的東西掌握。', '這就是「物以類聚、惺惺相惜」。但動物學家不必是貓，加拿大人可以研究墨西哥人，醫生研究屍體也不必是屍體。就算一般情況不成立、只在形式上成立，柏拉圖也沒給理由。'],
+      ],
+      concl:'掌握形式的靈魂本身是永恆、非物質的，所以不朽。',
+      verdict:'前提一暫且讓給柏拉圖，關鍵全在前提二，而它缺乏根據。Kagan 也提醒，柏拉圖接著又提出好幾個論證，可能他自己也知道這個論證不夠強。' },
+    { name:'論證二：回收論證', kind:'《斐多篇》', vid:'ZHH8KDFysbM', t:1483, ts:'講座 7 · 24:43',
+      prem:[
+        ['事物由先前就存在的零件組成，毀壞後零件會被回收再利用。就像汽車拆了，輪胎和方向盤還在。', null, 'Kagan 接受。構成身體的原子在我們出生前就存在，死後也會繼續存在，之後被拿去組成別的東西。'],
+        ['靈魂是組成我們的零件之一。', null, '《斐多篇》本來就預設靈魂存在，Kagan 在這裡也暫且接受，問題不在這一步。'],
+        ['（隱含）靈魂是那種早就存在、之後會被回收的基本零件。', '心臟也是我的一部分，卻不是出生前就存在，死後也很快會分解。「有些零件被回收」推不出「每個零件都被回收」，靈魂可能比較像心臟而不像原子。'],
+      ],
+      concl:'靈魂在我們死後會繼續存在。',
+      verdict:'要讓這個論證成立，得先證明靈魂是出生前就存在的基本零件。柏拉圖的下一個論證正是要補這個洞。' },
+    { name:'論證三：回憶說', kind:'《斐多篇》', vid:'ZHH8KDFysbM', t:2030, ts:'講座 7 · 33:50',
+      prem:[
+        ['被某個東西「提醒」，前提是先前就認識被提醒的對象。露絲的照片再模糊也能讓我想起她，但沒見過露絲的人看了不會想起任何人。', '也許不需要先前認識：我看過彎的、比較直的、更直的東西，心靈可以從這裡「外推」出完全的直。'],
+        ['不完美的東西會讓我們想到完美的形式：有點圓的盤子讓人想到完美的圓。', null, 'Kagan 接受這個現象：不完美的東西確實會讓我們想到完美的形式。爭點在於怎麼解釋它。'],
+        ['這輩子從來沒遇過完美的形式。', '就算需要直接認識形式，也不一定在這輩子遇不到。為什麼不能是今生才第一次認識？（Kagan 下一講會接著談）'],
+      ],
+      concl:'靈魂在出生之前就已經存在，並在那時認識了形式。',
+      verdict:'這個論證剛好回應回收論證的缺口：它試圖證明靈魂是出生前就存在的零件。但就算成立，也只證明了「出生前存在」，還沒證明「死後存在」。' },
+  ],
+  votes: [
+    { q:'自由意志和決定論可以並存嗎？', o:['可以（相容論）','不行（不相容論）','還不確定'] },
+    { q:'瀕死體驗最好的解釋是什麼？', o:['靈魂暫時離開身體','大腦的生理反應','目前兩者都無法排除'] },
+    { q:'看完這三講，你相信人有靈魂嗎？', o:['相信','不相信','不確定'] },
+  ],
+  discuss: [
+    ['你覺得自己有自由意志嗎？如果一切都由物理定律決定，你的「選擇」還算是選擇嗎？', '相容論有說服你嗎？它必須怎麼定義「自由」才說得通？', false],
+    ['量子力學的隨機性，真的能替自由意志留下空間嗎？「隨機發生」跟「自由選擇」是同一回事嗎？', 'Kagan 只用量子力學反駁前提三，沒有談這一層。', true],
+    ['如果科學最後能解釋瀕死體驗的每一個細節，這些經驗對當事人的意義會因此變少嗎？', '可以想想身邊聽過的瀕死或臨終故事。', false],
+    ['Kagan 說二元論只是「一張支票」，沒有真正提出解釋；但物理主義對意識也還只是一張支票。舉證責任應該落在哪一邊？', '講座 5 · 34:38 起的小結。', false],
+    ['晨星與昏星，跟心靈與身體，真的是完全平行的例子嗎？你能找出兩者的差別嗎？', 'Kagan 自己也說有哲學家認為兩者有細微差異。', false],
+    ['柏拉圖把感覺、慾望歸給身體，把思考歸給靈魂；現代的二元論者卻常認為「感覺」才是最難用物理解釋的。哪一種劃分比較合理？', '講座 6 · 23:37 起。', false],
+    ['「練習死亡」：擺脫身體的慾望、專注在思考。就算不相信靈魂，這種生活方式本身有價值嗎？', '可以對照斯多葛學派或佛教的修行觀念。', true],
+    ['數字 2 存在嗎？如果你認為數學真理不是由物質決定的，你是不是已經接受了某種非物質的東西？', '講座 6 · 31:51 的國家地理雜誌例子。', false],
+  ],
+  quiz: [
+    { q:'Kagan 本人會拒絕自由意志論證的哪些前提？', o:['只有前提一（我們有自由意志）','只有前提二（決定論與自由意志不相容）','前提二和前提三','三個前提都拒絕'], a:2,
+      e:'他明說自己相信人有自由意志，所以接受前提一；但他是相容論者（拒絕前提二）。他也說，如果量子力學的標準詮釋是對的，前提三就不成立，不過他強調自己不是物理學家。', t:['S-fwH_uBPD0',441] },
+    { q:'「相容論」主張的是什麼？', o:['自由意志和靈魂可以同時存在','即使決定論為真，人仍然可以有自由意志','量子力學和決定論可以相容','心靈與身體是同一個東西'], a:1,
+      e:'相容論認為自由意志與決定論可以並存。它的對立面是不相容論，也就是自由意志論證的前提二。', t:['S-fwH_uBPD0',750] },
+    { q:'有人說「瀕死者並沒有真的死，所以不能告訴我們死後是什麼樣子」。Kagan 怎麼看這個反駁？', o:['完全同意，因此瀕死體驗毫無證據力','不成立：住過法國 20 年再回來的人，仍然能描述法國','成立，但只適用於急救時間很短的案例','他沒有討論這個反駁'], a:1,
+      e:'他認為這是一個「壞的哲學」反駁。就算只站在邊境往裡看，也能說出一些有用的資訊。真正的問題是哪個解釋比較好。', t:['S-fwH_uBPD0',1263] },
+    { q:'晨星與昏星的例子，是用來說明什麼？', o:['金星是太陽系最亮的行星','想像力是判斷可能性最可靠的方式','能分開想像兩個東西，不代表它們真的是兩個東西','同一性一定是必然的'], a:2,
+      e:'我們能想像昏星存在而晨星不存在，但兩者其實都是金星。所以笛卡兒從「能想像心靈沒有身體」推到「心靈不是身體」，這一步也有問題。', t:['qkjIKIpvz6Y',346] },
+    { q:'在《斐多篇》裡，蘇格拉底認為哪一項是靈魂的工作？', o:['看見顏色','感到飢餓與慾望','思考，並掌握形式','感受疼痛'], a:2,
+      e:'柏拉圖把感覺、慾望、情緒都歸給身體，靈魂的本質是理性思考。這跟很多現代二元論者的劃分很不一樣。', t:['qkjIKIpvz6Y',1417] },
+    { q:'「動物學家不必是貓」這個例子，是在反駁哪一個論證？', o:['形式的本質論證','回收論證','回憶說','笛卡兒的可想像性論證'], a:0,
+      e:'形式的本質論證依賴「只有永恆非物質的東西能掌握永恆非物質的東西」，也就是物以類聚。這個例子說明一般情況下並不需要「同類才能認識同類」。', t:['ZHH8KDFysbM',1224] },
+    { q:'Kagan 為什麼認為回收論證不足以證明靈魂在死後存在？', o:['因為原子不會被回收','因為柏拉圖沒有預設靈魂存在','因為有些部分（例如心臟）不是早就存在、之後會被回收的基本零件','因為輪迴違反物理定律'], a:2,
+      e:'有些零件被回收，推不出每個零件都被回收。靈魂可能比較像心臟，而不像構成身體的原子。', t:['ZHH8KDFysbM',1730] },
+    { q:'回憶說裡「露絲的照片」想說明什麼？', o:['照片越像，越容易想起一個人','要被提醒，必須先前就認識那個對象','記憶會隨時間變得模糊','形式可以被拍攝下來'], a:1,
+      e:'模糊的照片也能讓我想起露絲，但沒見過露絲的人看了不會想起任何人。柏拉圖由此推論：我們能被不完美的東西提醒完美的形式，表示出生前就認識過形式。', t:['ZHH8KDFysbM',2030] },
+  ],
+  terms: [
+    ['最佳解釋推論','Inference to the best explanation','為了解釋某個現象而假設某個東西存在。本系列大部分的靈魂論證都是這種形式，重點在於「最好的」解釋，而不只是「一種」解釋。'],
+    ['二元論','Dualism','人除了身體之外，還有一個非物質的靈魂。Kagan 討論的是「互動式」二元論：靈魂能指揮身體，身體也能影響靈魂。'],
+    ['物理主義','Physicalism','人只是一個能做特定事情（思考、感覺、溝通）的身體。Kagan 的立場。'],
+    ['決定論','Determinism','給定同樣的起始狀態，必然產生同樣的結果。把錄影帶倒回去重播，每次都會一模一樣。'],
+    ['不相容論','Incompatibilism','自由意志和決定論不能並存。也是一般人的直覺，自由意志論證的前提二。'],
+    ['相容論','Compatibilism','即使決定論為真，人仍然可以有自由意志。Kagan 自承是相容論者。'],
+    ['可想像性論證','Conceivability argument','從「能想像 A 沒有 B」推到「A 與 B 不是同一個東西」。笛卡兒用它論證心靈不是身體。'],
+    ['偶然同一','Contingent identity','A 和 B 在這個世界是同一個東西，但在另一個可能世界中可以不是。這是對笛卡兒論證的一種診斷，但這個概念本身很費解。'],
+    ['形式／理型','Forms / Ideas','柏拉圖認為的完美、永恆、非物質的存在，例如美本身、正義本身、數字 3。世上找不到它們，但心靈能思考它們。'],
+    ['分有','Participation','世間的東西以不同程度「分有」形式。一個盤子有點圓，但不是圓本身。'],
+    ['《斐多篇》','Phaedo','柏拉圖的對話錄，記載蘇格拉底服毒芹汁前最後一天與朋友的討論，主題是靈魂是否不朽。'],
+    ['回憶說','Recollection','學習其實是回憶：我們能認出形式，是因為靈魂在出生前就直接認識過它們。'],
+  ],
+  after: '活動結束後，這裡會放上討論錄音（Podcast 連結）、章節時間戳和討論回顧，讓沒參加的人也能補上。',
+},
+];
+
+const TABS = [
+  ['before', '看之前'],
+  ['during', '邊看邊想'],
+  ['recall', '看完回想'],
+  ['sunday', '週日討論'],
+  ['after', '活動後'],
+];
+
+const yt = (id, t) => `https://www.youtube.com/watch?v=${id}${t ? `&t=${t}s` : ''}`;
+const mmss = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+const ext = (href, text, cls = '') => `<a class="${cls}" href="${href}" target="_blank" rel="noopener">${text}</a>`;
+/* 時間戳連結：有內嵌播放器時直接跳段，沒有時（例如在 claude.ai 上）照常開新分頁 */
+const ytLink = (id, t, text, cls = '') =>
+  `<a class="${cls}" href="${yt(id, t)}" target="_blank" rel="noopener" data-yt="${id}" data-t="${t || 0}">${text}</a>`;
+const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)) } catch { return null } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)) } catch {} },
+};
+
+let cur = null;
+let tab = 'before';
+
+/* ---------- chapters (sidebar + drawer) ---------- */
+const renderChapters = s => `
+  <div class="chap-head"><b>影片章節</b><span class="muted">點時間直接跳到該段</span></div>
+  ${s.videos.map((v, i) => `
+    <details class="vgroup" data-vgroup="${v.id}" ${i === 0 ? 'open' : ''}>
+      <summary><span class="lec">${v.lec}</span><span class="vt">${v.short}</span></summary>
+      ${ytLink(v.id, 0, '從頭播放', 'watch')}
+      <ol class="chapters">${v.chapters.map(([t, label]) =>
+        `<li data-vid="${v.id}" data-t="${t}">${ytLink(v.id, t, mmss(t))}<span>${label}</span></li>`).join('')}</ol>
+    </details>`).join('')}`;
+
+/* ---------- tab: before ---------- */
+const tabBefore = s => `
+  <section>
+    <p class="lede">${s.lede}</p>
+    <h2>五分鐘看懂全貌</h2>
+    <ul class="tldr">${s.tldr.map(t => `<li>${t}</li>`).join('')}</ul>
+    <p class="why">先看全貌再看細節：大腦有了框架，才接得住後面的內容。</p>
+  </section>
+  <section>
+    <h2>帶著這三個問題看</h2>
+    <ol class="guideqs">${s.videos.map(v =>
+      `<li><span class="lec">${v.lec}</span><span class="q">${v.guide}</span></li>`).join('')}</ol>
+    <p class="why">先有問題再找答案（SQ3R 的 Question 步驟），好奇心會讓記憶更牢。</p>
+  </section>
+  <div class="callout">
+    <p><strong>時間不夠？先看這四段（約 55 分鐘）</strong></p>
+    <ul class="picks">${s.picks.map(([lec, id, t, range, label]) =>
+      `<li>${ytLink(id, t, `${lec} ${range}`)}<span>${label}</span></li>`).join('')}</ul>
+    <p class="muted">${s.captionTip}</p>
+  </div>
+  <details class="fold">
+    <summary>Kagan 自己站在哪一邊</summary>
+    <div class="body"><dl class="stance">${s.stance.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></div>
+  </details>`;
+
+/* ---------- tab: during (argument map) ---------- */
+const argCard = (a, i, picks) => {
+  const pick = picks[i];
+  const done = pick !== undefined;
+  return `
+  <details class="fold arg ${done ? 'reveal done' : ''}" id="arg-${i}">
+    <summary><span><span class="tag">${a.kind} · ${a.ts}</span>${a.name}</span><span class="state">${done ? '已作答' : '未作答'}</span></summary>
+    <div class="body">
+      <p class="predict">${done ? '' : '<b>先猜猜看：</b>你覺得哪一個前提最站不住？點一下選它。'}</p>
+      <ol class="prem">
+        ${a.prem.map(([text, obj, ok], j) => `
+          <li class="${obj ? 'weak' : 'ok'} ${done ? '' : 'pickable'} ${pick === j ? 'picked' : ''}" data-arg="${i}" data-p="${j}">
+            <span class="n">P${j + 1}</span>
+            <div>${text}${obj ? `<div class="obj"><b>質疑</b>${obj}</div>` : ''}${ok ? `<div class="acc"><b>接受</b>${ok}</div>` : ''}</div></li>`).join('')}
+        <li class="concl"><span class="n">∴</span><div><b>${a.concl}</b></div></li>
+      </ol>
+      <p class="feedback">${done ? feedbackText(a, pick) : ''}</p>
+      <p class="verdict">${a.verdict}</p>
+      <div class="arg-foot">
+        ${ytLink(a.vid, a.t, '看這段影片 ▸')}
+        ${done ? `<button class="btn link" type="button" data-redo="${i}">重新猜</button>` : `<button class="btn link" type="button" data-skip="${i}">直接看答案</button>`}
+      </div>
+    </div>
+  </details>`;
+};
+
+const feedbackText = (a, pick) => {
+  if (pick === -1) return '';
+  const hit = !!a.prem[pick][1];
+  return hit
+    ? `<span style="color:var(--good)">你選了 P${pick + 1}，Kagan 也質疑這一步。</span>`
+    : `<span style="color:var(--accent)">你選了 P${pick + 1}，但 Kagan 接受這一步。看看他質疑的是哪裡。</span>`;
+};
+
+const tabDuring = s => {
+  const picks = store.get(`salon-arg-${s.id}`) || {};
+  return `
+  <section>
+    <h2>論證地圖</h2>
+    <p class="muted">看到某個論證時打開它的卡片。每張卡片把論證拆成前提和結論：先自己判斷哪一步最可疑，再看 Kagan 的判斷。紅色是他質疑的，綠色是他接受的。</p>
+    <p class="why">先猜再看答案（預測試）：就算猜錯，也比直接讀答案記得更牢。</p>
+    <p class="muted">《斐多篇》三個論證的編號和名稱依照 Kagan 上課的重建方式，不是原文的順序。原文先出現的是回收論證（原文用的是醒與睡、生與死這類「對立者互相轉化」的例子，汽車零件是 Kagan 的改寫），接著是回憶說；「形式的本質」比較接近原文後段的「親緣論證」。</p>
+    <div class="args">${s.args.map((a, i) => argCard(a, i, picks)).join('')}</div>
+  </section>`;
+};
+
+/* ---------- tab: recall ---------- */
+const tabRecall = s => `
+  <section>
+    <h2>複習節奏</h2>
+    <ol class="timeline">
+      <li><span class="when">看完當天</span>白紙回想＋做一次測驗</li>
+      <li><span class="when">隔天</span>只翻標成「還不熟」的名詞卡</li>
+      <li><span class="when">週日活動前</span>再做一次測驗（題目會打亂）</li>
+      <li><span class="when">活動後一週</span>回來看回顧，再回想一次</li>
+    </ol>
+    <p class="why">間隔複習：同樣的時間分散在幾天，比一次看完記得久得多。</p>
+  </section>
+  <section>
+    <h2>白紙回想</h2>
+    <p class="muted">每支影片看完後，先關掉影片，自己在紙上或腦中回答這三題，寫完再打開對照。卡住的地方就是還沒真正理解的地方。</p>
+    ${s.videos.map((v, i) => `
+      <details class="fold">
+        <summary>${v.lec.split(' · ')[0]}：${v.short}</summary>
+        <div class="body">
+          <ol class="recall">${v.recall.map(([q, a]) => `
+            <li><span class="rq">${q}</span>
+              <details><summary class="btn link" style="list-style:none">對照重點</summary><p class="ra">${a}</p></details></li>`).join('')}
+          </ol>
+        </div>
+      </details>`).join('')}
+    <p class="why">主動回想比重看一次有效：從記憶裡「拉出來」的動作本身就在加強記憶。</p>
+  </section>
+  <section id="quiz">
+    <h2>自我測驗</h2>
+    <div class="score"><span>答對 <b id="score">0 / ${s.quiz.length}</b></span><button class="btn ghost" type="button" id="quiz-reset">打亂順序，重新作答</button></div>
+    <div class="quiz" id="quiz-list"></div>
+    <p class="why">題目打亂、三支影片混在一起考（交錯練習），比照順序作答更能分辨概念。</p>
+  </section>
+  <section>
+    <h2>名詞卡</h2>
+    <div class="card-tools"><span id="card-count"></span><button class="btn ghost" type="button" id="card-filter" aria-pressed="false">只看還不熟的</button></div>
+    <div class="cards" id="cards"></div>
+  </section>`;
+
+/* ---------- tab: sunday ---------- */
+const tabSunday = s => {
+  const v = store.get(`salon-vote-${s.id}`) || {};
+  return `
+  <section>
+    <h2>週日怎麼進行</h2>
+    <ol class="steps">
+      <li>每個人先<b>自己</b>選下面三題的立場，不要先討論。</li>
+      <li>主持人看大家的分布。意見很分散時（大約三到七成選同一邊），就找立場不同的人，互相說服兩三分鐘。</li>
+      <li>大家再選一次，聊聊誰改變了立場、是被哪個理由說動的。</li>
+      <li>剩下的時間，從下面的討論題挑有感覺的聊。</li>
+    </ol>
+    <p class="why">同儕教學（Mazur）：先獨立作答、再和意見不同的人互相說服，比聽講更能看清自己的盲點。</p>
+  </section>
+  <section>
+    <h2>立場題</h2>
+    <p class="muted">你的選擇只存在自己的瀏覽器，別人看不到。活動前選「討論前」，活動後再選「討論後」。</p>
+    <div class="votes">${s.votes.map((q, i) => {
+      const r = v[i] || {};
+      const row = (phase, label) => `
+        <div class="vote-row"><span>${label}</span><div class="vote-opts">${q.o.map((o, j) =>
+          `<button type="button" data-vote="${i}" data-phase="${phase}" data-o="${j}" aria-pressed="${r[phase] === j}">${o}</button>`).join('')}</div></div>`;
+      const shift = r.pre !== undefined && r.post !== undefined && r.pre !== r.post
+        ? `<p class="shift">你從「${q.o[r.pre]}」改成了「${q.o[r.post]}」。是哪個理由說動你的？</p>` : '';
+      return `<div class="vote"><h3>${q.q}</h3>${row('pre', '討論前')}${row('post', '討論後')}${shift}</div>`;
+    }).join('')}</div>
+  </section>
+  <section>
+    <h2>討論題</h2>
+    <p class="muted">不用每題都想好答案，挑一兩題有感覺的帶來就好。標「延伸」的題目超出影片內容。</p>
+    <ol class="dq">${s.discuss.map(([q, ctx, e]) =>
+      `<li><div>${q}${e ? '<span class="ext">延伸</span>' : ''}<span class="ctx">${ctx}</span></div></li>`).join('')}</ol>
+  </section>`;
+};
+
+/* ---------- tab: after ---------- */
+const tabAfter = s => `
+  <section>
+    <h2>活動後</h2>
+    <div class="after"><b>尚未舉行</b><p>${s.after}</p></div>
+  </section>`;
+
+const TAB_RENDER = { before: tabBefore, during: tabDuring, recall: tabRecall, sunday: tabSunday, after: tabAfter };
+
+const renderMain = s => {
+  const idx = TABS.findIndex(([k]) => k === tab);
+  const next = TABS[idx + 1];
+  document.getElementById('app').innerHTML = `
+    <header class="hero">
+      <div class="eyebrow">${s.eyebrow}</div>
+      <h1>${s.title}</h1>
+      <div class="meta"><span>日期 <b>${s.date}</b></span><span>講者 <b>${s.speaker}</b></span><span>影片 <b>3 支，共約 2 小時 10 分</b></span></div>
+    </header>
+    ${TAB_RENDER[tab](s)}
+    ${next ? `<div class="next"><span class="muted">下一步</span><button class="btn" type="button" data-goto="${next[0]}">${next[1]} →</button></div>` : ''}
+    <footer>
+      <p>課程內容來自耶魯大學公開課 PHIL 176《Death》（Shelly Kagan），影片連結指向 YouTube 上的轉載版本。</p>
+      <p>頁面上的摘要、論證整理與題目由主辦方依影片內容整理，觀點以影片原文為準。</p>
+    </footer>`;
+  bindMain(s);
+};
+
+/* ---------- interactions ---------- */
+const bindArgs = s => {
+  const key = `salon-arg-${s.id}`;
+  const save = (i, val) => {
+    const picks = store.get(key) || {};
+    if (val === undefined) delete picks[i]; else picks[i] = val;
+    store.set(key, picks);
+    const el = document.getElementById(`arg-${i}`);
+    el.outerHTML = argCard(s.args[i], i, picks);
+    const fresh = document.getElementById(`arg-${i}`);
+    fresh.open = true;
+    bindArgs(s);
+  };
+  document.querySelectorAll('.prem li.pickable').forEach(li => li.onclick = () => save(+li.dataset.arg, +li.dataset.p));
+  document.querySelectorAll('[data-skip]').forEach(b => b.onclick = () => save(+b.dataset.skip, -1));
+  document.querySelectorAll('[data-redo]').forEach(b => b.onclick = () => save(+b.dataset.redo, undefined));
+};
+
+const bindQuiz = s => {
+  const key = `salon-quiz-${s.id}`;
+  const saved = store.get(key);
+  const state = saved && Array.isArray(saved.order) ? saved : { order: s.quiz.map((_, i) => i), ans: {} };
+  const list = document.getElementById('quiz-list');
+  const scoreEl = document.getElementById('score');
+  const vidName = id => s.videos.find(v => v.id === id).lec.split(' · ')[0];
+  const updateScore = () => {
+    const right = Object.entries(state.ans).filter(([i, a]) => s.quiz[i].a === a).length;
+    scoreEl.textContent = `${right} / ${s.quiz.length}`;
+  };
+  const show = (box, i, pick) => {
+    const q = s.quiz[i];
+    box.querySelectorAll('.opts button').forEach((b, j) => {
+      b.disabled = true;
+      if (j === q.a) b.classList.add('right');
+      else if (j === pick) b.classList.add('wrong');
+    });
+    const ex = box.querySelector('.explain');
+    ex.innerHTML = `<b class="${pick === q.a ? 'ok' : 'no'}">${pick === q.a ? '答對了。' : '再想想。'}</b>${q.e} ${ytLink(q.t[0], q.t[1], '看原片段 ▸')}`;
+    ex.hidden = false;
+  };
+  list.innerHTML = state.order.map((i, n) => {
+    const q = s.quiz[i];
+    return `<div class="qz" data-q="${i}">
+      <h3><span class="from">${vidName(q.t[0])}</span>${n + 1}. ${q.q}</h3>
+      <div class="opts">${q.o.map((o, j) => `<button type="button" data-o="${j}">${o}</button>`).join('')}</div>
+      <p class="explain" hidden></p></div>`;
+  }).join('');
+  list.querySelectorAll('.qz').forEach(box => {
+    const i = +box.dataset.q;
+    if (state.ans[i] !== undefined) show(box, i, state.ans[i]);
+    box.querySelectorAll('.opts button').forEach(b => b.onclick = () => {
+      state.ans[i] = +b.dataset.o;
+      store.set(key, state);
+      show(box, i, state.ans[i]);
+      updateScore();
+    });
+  });
+  document.getElementById('quiz-reset').onclick = () => {
+    store.set(key, { order: shuffle(s.quiz.map((_, i) => i)), ans: {} });
+    bindQuiz(s);
+  };
+  updateScore();
+};
+
+const bindCards = s => {
+  const key = `salon-cards-${s.id}`;
+  const rates = store.get(key) || {};
+  let onlyShaky = false;
+  const draw = () => {
+    const shakyCount = Object.values(rates).filter(r => r === 'shaky').length;
+    document.getElementById('card-count').textContent =
+      `${s.terms.length} 張・還不熟 ${shakyCount} 張・記得 ${Object.values(rates).filter(r => r === 'known').length} 張`;
+    const items = s.terms.map((t, i) => [t, i]).filter(([, i]) => !onlyShaky || rates[i] === 'shaky');
+    const box = document.getElementById('cards');
+    box.innerHTML = items.length ? items.map(([[t, en, d], i]) => `
+      <div class="card ${rates[i] === 'shaky' ? 'shaky' : ''}" data-c="${i}">
+        <button class="card-face" type="button" aria-expanded="false">
+          <span class="term">${t}</span><span class="en">${en}</span>
+          <span class="def">${d}</span><span class="hint">先想想意思，再點開</span>
+        </button>
+        <div class="rate">
+          <button type="button" data-r="shaky" aria-pressed="${rates[i] === 'shaky'}">還不熟</button>
+          <button type="button" data-r="known" aria-pressed="${rates[i] === 'known'}">記得</button>
+        </div>
+      </div>`).join('') : '<p class="muted">沒有標成「還不熟」的卡片。</p>';
+    box.querySelectorAll('.card').forEach(c => {
+      const i = +c.dataset.c;
+      c.querySelector('.card-face').onclick = e => {
+        const open = c.classList.toggle('open');
+        e.currentTarget.setAttribute('aria-expanded', open);
+      };
+      c.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+        rates[i] = b.dataset.r;
+        store.set(key, rates);
+        draw();
+      });
+    });
+  };
+  const f = document.getElementById('card-filter');
+  f.onclick = () => {
+    onlyShaky = !onlyShaky;
+    f.setAttribute('aria-pressed', onlyShaky);
+    f.textContent = onlyShaky ? '顯示全部' : '只看還不熟的';
+    draw();
+  };
+  draw();
+};
+
+const bindVotes = s => {
+  const key = `salon-vote-${s.id}`;
+  document.querySelectorAll('[data-vote]').forEach(b => b.onclick = () => {
+    const v = store.get(key) || {};
+    const i = b.dataset.vote;
+    v[i] = { ...(v[i] || {}), [b.dataset.phase]: +b.dataset.o };
+    store.set(key, v);
+    renderMain(s);
+  });
+};
+
+const bindMain = s => {
+  document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => setTab(b.dataset.goto));
+  if (tab === 'during') bindArgs(s);
+  if (tab === 'recall') { bindQuiz(s); bindCards(s); }
+  if (tab === 'sunday') bindVotes(s);
+};
+
+/* ---------- shell ---------- */
+const renderTabs = () => {
+  const el = document.getElementById('tabs');
+  el.innerHTML = TABS.map(([k, label], n) =>
+    `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === tab}"><span class="step">${n + 1}</span>${label}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+};
+
+const setTab = k => {
+  tab = TABS.some(([t]) => t === k) ? k : 'before';
+  store.set('salon-tab', tab);
+  try { history.replaceState(null, '', `#${tab}`); } catch {}
+  renderTabs();
+  renderMain(cur);
+  window.scrollTo({ top: 0 });
+};
+
+const openDrawer = on => {
+  document.getElementById('drawer').hidden = !on;
+  document.getElementById('scrim').hidden = !on;
+};
+
+const renderSession = id => {
+  cur = SESSIONS.find(x => x.id === id) || SESSIONS[SESSIONS.length - 1];
+  store.set('salon-session', cur.id);
+  document.getElementById('sessions').innerHTML = SESSIONS.map(s =>
+    `<button class="chip" type="button" data-s="${s.id}" aria-pressed="${s.id === cur.id}">${s.chip}</button>`).join('');
+  document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => renderSession(b.dataset.s));
+  document.getElementById('chap-list').innerHTML = renderChapters(cur);
+  document.getElementById('drawer').innerHTML = renderChapters(cur) +
+    '<div style="padding-top:12px"><button class="btn ghost" type="button" id="close-drawer">關閉</button></div>';
+  document.getElementById('close-drawer').onclick = () => openDrawer(false);
+  renderTabs();
+  renderMain(cur);
+};
+
+document.getElementById('open-drawer').onclick = () => openDrawer(true);
+document.getElementById('scrim').onclick = () => openDrawer(false);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') openDrawer(false); });
+
+/* ---------- embedded player (YouTube IFrame API) ---------- */
+const player = { yt: null, ready: false, vid: null, pending: null };
+
+const syncTopbar = () =>
+  document.documentElement.style.setProperty('--tb', `${document.querySelector('.topbar').offsetHeight}px`);
+
+const play = (id, t = 0) => {
+  document.body.classList.add('playing');
+  const group = document.querySelector(`#chap-list [data-vgroup="${id}"]`);
+  if (group) group.open = true;
+  if (!player.ready) { player.pending = [id, t]; return; }
+  if (player.vid !== id) {
+    player.yt.loadVideoById({ videoId: id, startSeconds: t });
+    player.vid = id;
+  } else {
+    player.yt.seekTo(t, true);
+    player.yt.playVideo();
+  }
+};
+
+/** 依播放時間標出目前章節，並顯示在播放器下方 */
+const markNow = () => {
+  if (!player.ready || !cur) return;
+  const v = cur.videos.find(x => x.id === player.vid);
+  if (!v) return;
+  const sec = player.yt.getCurrentTime?.() || 0;
+  const idx = v.chapters.reduce((hit, [t], i) => (sec >= t ? i : hit), 0);
+  document.getElementById('now').textContent = `${v.lec.split(' · ')[0]}・${v.chapters[idx][1]}`;
+  document.querySelectorAll('.chapters li').forEach(li =>
+    li.classList.toggle('now', li.dataset.vid === v.id && +li.dataset.t === v.chapters[idx][0]));
+};
+
+window.onYouTubeIframeAPIReady = () => {
+  document.body.classList.add('embed');
+  syncTopbar();
+  const first = cur.videos[0].id;
+  player.yt = new YT.Player('player', {
+    videoId: first,
+    playerVars: { rel: 0, playsinline: 1, hl: 'zh-TW', cc_lang_pref: 'zh-Hant' },
+    events: {
+      onReady: () => {
+        player.ready = true;
+        player.vid = first;
+        if (player.pending) { play(...player.pending); player.pending = null; }
+      },
+    },
+  });
+  setInterval(markNow, 1000);
+};
+
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[data-yt]');
+  if (!a || !document.body.classList.contains('embed')) return;
+  e.preventDefault();
+  openDrawer(false);
+  play(a.dataset.yt, +a.dataset.t);
+});
+
+document.getElementById('hide-player').onclick = () => {
+  if (player.ready) player.yt.pauseVideo();
+  document.body.classList.remove('playing');
+};
+
+window.addEventListener('resize', syncTopbar);
+
+const loadYouTubeApi = () => {
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  tag.onerror = () => {}; // 被擋（例如在 claude.ai 上）時維持一般連結
+  document.head.appendChild(tag);
+};
+
+const hashTab = location.hash.slice(1);
+tab = TABS.some(([t]) => t === hashTab) ? hashTab : (store.get('salon-tab') || 'before');
+renderSession(store.get('salon-session') || SESSIONS[SESSIONS.length - 1].id);
+syncTopbar();
+loadYouTubeApi();
+</script>
+</body>
+</html>
