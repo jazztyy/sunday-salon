@@ -14,10 +14,10 @@ defineProps<{ session: Session }>()
     <div class="flex flex-col gap-3">
       <ArgumentCard
         v-for="(arg, i) in session.args"
-        :key="`${session.id}-${i}`"
+        :key="`${session.slug}-${i}`"
         :arg="arg"
         :index="i"
-        :session-id="session.id"
+        :session-id="session.slug"
       />
     </div>
   </section>

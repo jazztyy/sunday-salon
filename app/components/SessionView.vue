@@ -2,7 +2,6 @@
 // 單一場次的頁面骨架：頂部列、分頁內容、側欄（播放器＋章節）、手機章節抽屜。
 // 分頁與網址 hash 同步（#before / #during / #recall / #sunday / #after），規格見 SPEC.md「資訊架構」。
 import type { Session, TabKey } from '~/types/session'
-import { sessions } from '~/data/sessions'
 
 defineProps<{ session: Session }>()
 
@@ -26,9 +25,7 @@ const tab = ref<TabKey>('before')
 // 初次載入時 Nuxt 路由會拿掉 hash，改讀 <head> 腳本事先記下的值（見 nuxt.config.ts）。
 // 只用一次：之後在站內切換場次時，改讀當下的網址。
 onMounted(() => {
-  const w = window as Window & { __salonInitialHash?: string }
-  const fromHash = (w.__salonInitialHash ?? window.location.hash).slice(1)
-  w.__salonInitialHash = undefined
+  const fromHash = takeInitialLocation().hash.slice(1)
   tab.value = isTab(fromHash) ? fromHash : lastTab.value
 })
 
@@ -46,7 +43,7 @@ const chaptersOpen = ref(false)
 
 <template>
   <div class="min-h-dvh pb-20">
-    <SalonHeader v-model:tab="tab" :tabs="TABS" :session="session" :sessions="sessions" @open-chapters="chaptersOpen = true" />
+    <SalonHeader v-model:tab="tab" :tabs="TABS" @open-chapters="chaptersOpen = true" />
 
     <div
       class="mx-auto grid max-w-[1240px] grid-cols-1 gap-10 px-4 pt-7 lg:grid-cols-[minmax(0,1fr)_300px]"
@@ -57,10 +54,20 @@ const chaptersOpen = ref(false)
           <p class="font-mono text-meta font-medium uppercase tracking-[.12em] text-primary">{{ session.eyebrow }}</p>
           <h1 class="font-serif text-h1 font-black leading-tight text-highlighted">{{ session.title }}</h1>
           <p class="flex flex-wrap gap-x-5 gap-y-1 text-small text-muted">
-            <span>日期 <b class="font-medium text-highlighted">{{ session.date }}</b></span>
+            <span>日期 <b class="font-medium text-highlighted">{{ session.dateLabel }}</b></span>
             <span>講者 <b class="font-medium text-highlighted">{{ session.speaker }}</b></span>
             <span>影片 <b class="font-medium text-highlighted">{{ session.videos.length }} 支</b></span>
           </p>
+          <ul v-if="session.tags.length" class="flex flex-wrap gap-1.5" aria-label="標籤">
+            <li v-for="tag in session.tags" :key="tag">
+              <NuxtLink
+                :to="`/archive?tag=${encodeURIComponent(tag)}`"
+                class="rounded-tag focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              >
+                <UBadge :label="tag" color="neutral" variant="subtle" class="rounded-tag text-meta hover:bg-accented" />
+              </NuxtLink>
+            </li>
+          </ul>
         </header>
 
         <TabBefore v-if="tab === 'before'" :session="session" />

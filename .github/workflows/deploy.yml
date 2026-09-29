@@ -35,7 +35,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npx nuxt generate
+      - run: npm run generate  # 先跑內容檢查（scripts/check-content.mjs）再建置
         env:
           NUXT_APP_BASE_URL: /sunday-salon/
 

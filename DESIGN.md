@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 2.0 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts` 與 `app/components/`
+> 版本 3.0 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -9,12 +9,13 @@
 
 ## 1. 設計原則
 
-1. **一次只做一件事。** 頁面照學習階段分成五個分頁（看之前 → 邊看邊想 → 看完回想 → 週日討論 → 活動後），不把所有內容堆在同一頁往下滾。長內容一律收合。
+1. **一次只做一件事。** 場次頁照學習階段分成五個分頁（看之前 → 邊看邊想 → 看完回想 → 週日討論 → 活動後），不把所有內容堆在同一頁往下滾。長內容一律收合。
 2. **影片永遠在手邊。** 章節和播放器固定在側欄（手機版固定在頂部），不管讀到哪裡，一點時間戳就跳到影片對應的段落。
 3. **狀態用形式表達，不只靠文字。** 質疑是紅色、接受是綠色、目前位置是金色，一眼就能看出來。
 4. **視覺語彙取自題材。** 主色是「金星金」：第一場的晨星與昏星其實都是金星。輔色是「暮色藍」。不用 emoji，不用漸層，也不用裝飾性插圖。
 5. **暗色是預設。** 夜空底色配金星金，最貼近題材，也適合晚上看影片。淺色主題保留，可以用頂部列的切換按鈕切換。兩個主題都要能用，不是只顧暗色。
 6. **每個互動都有退路。** 猜題可以「直接看答案」，播放器可以「收起影片」，沒有播放器時時間戳就退回一般連結。
+7. **概念是連結的單位。** 場次之間不直接比，而是透過共用的概念卡相連。讀者從任何一張卡都能走到談過它的場次。
 
 ---
 
@@ -144,7 +145,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | < 1024px | 單欄。章節清單收進「影片章節」抽屜（`UDrawer`）；開始播放後，播放器固定在頂部列下方，可以收起 |
 
 - 斷點只用 Tailwind 預設的 `lg`（1024px）。v1 是 1000px，2.0 改成 1024px。
-- 版面寬度（760／300／420／1240px）是唯一允許的任意值，只寫在 `SessionView.vue`。
+- 版面寬度（760／300／420／1240px）是唯一允許的任意值，只寫在 `SessionView.vue` 和各頁面（`archive.vue`、`concepts/index.vue`、`c/[id].vue`）的最外層容器。沒有側欄的頁面是單欄，最寬 760px。
 - 頂部列固定在頂部，高度由 `<SalonHeader>` 量測後寫進 CSS 變數 `--tb`，其他 sticky 元素都以 `top-[var(--tb)]` 為基準。
 - 頁面**絕對不能出現橫向捲軸**。在 390px 寬度測試。
 
@@ -159,9 +160,9 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
 |---|---|---|---|
 | 場次頁 | `SessionView.vue` | `UButton`、`UDrawer` | 頂部列＋場次標頭＋分頁內容＋下一步＋頁尾＋側欄。分頁與網址 hash 同步 |
-| 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋場次 chip＋分頁＋主題切換＋（手機）影片章節按鈕。sticky，底色 `bg-default`，量測自身高度寫進 `--tb` |
-| 場次 chip | 在 `<SalonHeader>` 裡 | `UButton`（`rounded-full`） | 切換場次，連到 `/s/{id}`。目前這場用 `bg-inverted text-inverted`。標籤格式：`10/4 靈魂`（日期＋兩個字的主題） |
-| 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | 五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
+| 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
+| 導覽 | 在 `<SalonHeader>` 裡 | `UButton`（`color="neutral" variant="link"`） | 三項：本週（`/`）・全部場次（`/archive`）・概念卡（`/concepts`），`text-ui`。目前所在的項目用 `text-primary`。2.0 的場次 chip 列已移除 |
+| 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | **只在場次頁顯示**（`/`、`/s/{slug}`）。五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
 | 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，引導到下一個分頁 |
 
 ### 6.2 分頁
@@ -180,7 +181,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 元件 | 寫法 | 用途與規則 |
 |---|---|---|
-| 場次標頭 | `SessionView.vue` 的 `<header>` | eyebrow（`font-mono text-meta text-primary`）＋h1（本場問題，用問句）＋meta（日期／講者／影片支數） |
+| 場次標頭 | `SessionView.vue` 的 `<header>` | eyebrow（`font-mono text-meta text-primary`）＋h1（本場問題，用問句）＋meta（日期／講者／影片支數）＋tag 列（見 6.8「tag 標籤」） |
 | 導言 | `text-lead text-toned` | 一段話說明這場在談什麼。只出現在「看之前」 |
 | 重點清單 | `<ul>` + 金色圓點 | 3–6 點，每點 1–2 句 |
 | 學習法註記 | `WhyNote.vue`（`<WhyNote>`） | 說明某個設計**為什麼**這樣做，一句話。自動加上「學習法」標籤（`bg-secondary-soft text-secondary`）。每個 section 最多一則 |
@@ -225,10 +226,25 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 判斷徽章 | 在 `<ArgumentCard>` 裡 | `UBadge variant="outline"` | 「質疑」（`color="error"`）「接受」（`color="success"`）的框線小標籤，`rounded-tag` |
 | 回想題 | `recall/Questions.vue`（`<RecallQuestions>`） | `UCollapsible` | 問題＋收合的「對照重點」 |
 | 測驗題 | `recall/Quiz.vue`（`<RecallQuiz>`） | `UButton` | 選項作答後鎖定：正解 `bg-success-soft text-success`、選錯 `bg-error-soft text-error`，下方顯示解析和 `<VideoLink>` 原片段 |
-| 名詞卡 | `recall/Terms.vue`（`<RecallTerms>`） | `UButton` | 未翻開 → 翻開（`bg-primary-soft`）並顯示自評按鈕。標成「還不熟」時加 `border-error` 紅框 |
+| 名詞卡 | `recall/Terms.vue`（`<RecallTerms>`） | `UButton` | 卡片來自本場 `concepts` 的概念卡（詞條、英文、`summary`）。未翻開 → 翻開（`bg-primary-soft`）並顯示自評按鈕。標成「還不熟」時加 `border-error` 紅框。自評以概念卡 id 儲存 |
 | 立場題 | `sunday/Vote.vue`（`<SundayVote>`） | `UButton`（`rounded-full`） | 「討論前」「討論後」兩列 pill；前後不同時顯示改變提示 |
 | 討論題 | `sunday/Discuss.vue`（`<SundayDiscuss>`） | `UBadge` | `font-serif text-primary` 編號。超出影片內容的題目加「延伸」標籤（`bg-secondary-soft text-secondary`） |
 | 待補區塊 | 在 `<TabAfter>` 裡 | — | `border-dashed border-default`，用在「尚未舉行」這類還沒有內容的區塊 |
+
+### 6.8 瀏覽與概念卡
+
+| 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
+|---|---|---|---|
+| tag 標籤 | 場次標頭、場次卡、概念卡頁裡 | `UBadge color="neutral" variant="outline"` | `rounded-tag text-label`，連到 `/archive?tag={tag}`。**tag 不用 primary 或語意色**，它是分類，不是重點或判斷 |
+| 場次卡 | `pages/archive.vue` 裡 | — | `bg-elevated rounded-card border-default`，整張可以點，連到 `/s/{slug}`。內容：日期（`font-mono text-meta text-muted`，用 `dateLabel`）、標題（`font-serif`）、tag 列。hover 時 `border-accented` |
+| 月份標題 | `pages/archive.vue` 裡 | — | 「依月份」檢視的分組標題，`h2` |
+| 檢視切換 | `pages/archive.vue` 裡 | `UTabs` | 「依月份」「依主題」兩個選項 |
+| tag 篩選 pill | `pages/archive.vue` 裡 | `UButton`（`rounded-full`） | 依面向（領域／思想家／系列）分組，每組前面有面向名稱（`text-meta text-muted`）。未選取 `color="neutral" variant="outline"`；選取後 `bg-inverted text-inverted`，並設 `aria-pressed`。可以多選，另有「清除篩選」文字按鈕 |
+| 概念卡 | `concept/Card.vue`（`<ConceptCard>`） | — | 卡片牆和「相關概念」共用。`bg-elevated rounded-card border-default`，整張可以點，連到 `/c/{id}`。內容：詞條（`font-serif text-title`）、英文（`font-mono text-meta text-muted`）、`summary`（`text-small text-toned`） |
+| 概念卡牆 | `pages/concepts/index.vue` | — | 依「領域」分組，每組一個 `h2`，下方用 `grid` 排 `<ConceptCard>`，手機一欄 |
+| 概念卡頁 | `pages/c/[id].vue` | — | 由上到下：標頭（詞條 `h1`、英文、別名、tag 列）→ 定義（`summary`，`text-lead text-toned`）→ 內文（Markdown，`[[連結]]` 顯示成一般連結 `text-secondary`）→「相關概念」（`<ConceptCard>` grid）→「出現在這些場次」（場次卡清單）。沒有內容的區塊整個不顯示 |
+| 延續討論 | `RelatedSessions.vue`（`<RelatedSessions>`） | `UBadge` | 「看之前」「活動後」分頁的底部。`h2` 標題「延續討論」，下方最多 5 列，每列：場次標題（連結）、日期、理由（`text-small text-toned`）、來源徽章。沒有相關場次時整個區塊不顯示 |
+| 來源徽章 | 在 `<RelatedSessions>` 裡 | `UBadge variant="outline"` | 兩種，`rounded-tag text-label`：「主辦人推薦」（`color="primary"`，人工連結，理由是 `reason`）、「共同概念」（`color="neutral"`，自動計算，理由是「都談到：靈魂、二元論」）。不用 `success`／`error` |
 
 ---
 
@@ -238,6 +254,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 - **Nuxt UI 優先。** 按鈕、分頁、抽屜、收合、徽章、主題切換都用 Nuxt UI 元件。Nuxt UI 沒有的才自己寫。
 - **調整 Nuxt UI 元件用 `ui` prop**（例如 `:ui="{ base: 'rounded-full' }"`），不要用全域 CSS 覆寫它的 class。要全站改，改 `app.config.ts`。
 - **所有影片連結都用 `<VideoLink>`。**
+- **內容查詢一律透過 `useContent.ts`**，不要在元件或頁面裡直接呼叫 `queryCollection`。
+- **站內連結用 `<NuxtLink>` 或 `UButton` 的 `to`**，不要手寫 `<a href="/…">`，網址前綴 `/sunday-salon/` 才會正確。
 - **元件寫法**：`<script setup lang="ts">`，函式一律用箭頭函式（`const onClick = () => {}`），不用 `function` 宣告。
 - **狀態**：會存進瀏覽器的狀態一律用 `useSalonStorage()`；播放器狀態一律用 `usePlayer()`。不要直接碰 `localStorage` 或 YouTube API。
 
@@ -253,6 +271,18 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 - **不用 emoji**，也不用「值得注意的是」這類套話。句子短、直接。
 - **學習法註記**的格式：`技巧名稱（可選）：一句話說明為什麼有效`。
 
+### 8.1 概念卡
+
+- **一張卡只講一個概念。** 需要講兩件事時拆成兩張卡，再用 `[[連結]]` 或 `related` 連起來。
+- **`title` 用大家會拿去搜尋的詞**，也就是最常見的中文譯名。書名加《》。
+- **其他寫法放進 `aliases`**：其他譯名、不加書名號的寫法、常見簡稱。不要為同義詞另開一張卡。
+- **`summary` 是一句中立、通用的定義**，會出現在每一場的名詞卡和卡片牆上。不寫某一場的脈絡，也不寫某位講者的看法。
+  - 可以：「人除了身體之外，還有一個非物質的靈魂。」
+  - 不可以：「Kagan 認為二元論的論證都不成立。」
+- **講者的看法寫在內文或場次內容裡**，照樣標出是誰說的（「Kagan 討論的是……」）。
+- 內文句子短，每段一個重點。提到其他已有卡片的概念時用 `[[名稱]]` 連過去，每個概念在同一張卡裡只連第一次。
+- **延續討論的 `reason`** 用一句話說明為什麼值得一起看，不要只寫「相關」。
+
 ---
 
 ## 9. 無障礙與品質檢查清單
@@ -266,6 +296,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 - [ ] 狀態除了顏色之外，也有文字或形狀可以辨識（例如「質疑」「接受」徽章）
 - [ ] 有 `prefers-reduced-motion` 的使用者不會看到動畫（`main.css` 已全域關閉）
 - [ ] 自訂的切換按鈕有 `aria-pressed` 或 `aria-expanded` 反映目前狀態（Nuxt UI 元件自帶）
+- [ ] 從外部直接打開 `/s/{slug}#recall`、`/archive?tag=…` 時，分頁和篩選都正確（見 SPEC.md 3.1）
 
 ---
 
@@ -275,3 +306,4 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 |---|---|---|
 | 2026-09-29 | 1.0 | 初版。字級收斂成 10 級 token（18px→19px、22px→24px），圓角收斂成 5 級，移除所有 inline style 與寫死的顏色 |
 | 2026-09-29 | 2.0 | 改用 Nuxt 4 + Nuxt UI 4 + Tailwind CSS 4。token 改成 Tailwind `@theme` 與 Nuxt UI `--ui-*` 變數，文件改列 utility class。暗色改為預設。斷點 1000px → 1024px。元件目錄改成對應 Vue 元件檔案與 Nuxt UI 元件。新增「實作規則」。網站名稱從「週日沙龍」改為「悅讀聊天室」 |
+| 2026-09-29 | 3.0 | 新增設計原則「概念是連結的單位」。頂部列改成三個導覽（本週／全部場次／概念卡），移除場次 chip，分頁只在場次頁顯示。場次標頭加 tag 列。新增 6.8「瀏覽與概念卡」：tag 標籤、場次卡、tag 篩選 pill、`<ConceptCard>`、概念卡頁區塊、`<RelatedSessions>` 與兩種來源徽章。名詞卡改用概念卡。新增 8.1「概念卡」文案規範。實作規則加上內容查詢與站內連結 |

@@ -73,4 +73,6 @@ const stanceOpen = ref(false)
       </div>
     </template>
   </UCollapsible>
+
+  <RelatedSessions :session="session" />
 </template>

@@ -1,4 +1,6 @@
-// 場次資料結構。規則見 SPEC.md「資料結構」。
+// 場次與概念卡的資料結構。
+// 內容檔案的驗證在 content.config.ts（zod schema）與 scripts/check-content.mjs；這裡是元件使用的型別，
+// 兩邊要保持一致。規則見 SPEC.md「資料結構」。
 
 /** [秒數, 章節名稱] */
 export type Chapter = [seconds: number, label: string]
@@ -62,23 +64,29 @@ export interface QuizItem {
   t: [videoId: string, seconds: number]
 }
 
-/** [詞條, 英文, 定義] */
-export type Term = [term: string, english: string, definition: string]
-
 /** [講座標籤, videoId, 秒數, '起–迄', 說明] */
 export type Pick = [lec: string, videoId: string, seconds: number, range: string, label: string]
 
 export interface Session {
-  /** 唯一值，用在 localStorage key 與網址，發佈後不可以改 */
-  id: string
-  /** 場次 chip 標籤：日期 + 兩個字的主題 */
-  chip: string
+  /** 唯一值，用在網址（/s/{slug}）與 localStorage key，發佈後不可以改 */
+  slug: string
+  /** 活動日期 ISO（2026-10-04），用來依月份分組 */
   date: string
+  /** 顯示用的日期：'2026 年 10 月 4 日（週日）' */
+  dateLabel: string
+  /** 場次標籤：日期 + 兩個字的主題 */
+  chip: string
   eyebrow: string
   /** h1，用問句 */
   title: string
   lede: string
   speaker: string
+  /** 必須在 content/taxonomy.yml 裡 */
+  tags: string[]
+  /** 這場用到的概念卡 id：決定名詞卡內容，也用來計算相關場次 */
+  concepts: string[]
+  /** 人工連結：其他場次 + 為什麼值得一起看 */
+  related: { slug: string, reason: string }[]
   captionTip: string
   picks: Pick[]
   /** 3–6 點，可以含 <b> */
@@ -91,8 +99,28 @@ export interface Session {
   votes: Vote[]
   discuss: DiscussItem[]
   quiz: QuizItem[]
-  terms: Term[]
   after: string
+}
+
+/** 概念卡（content/concepts/{id}.md） */
+export interface Concept {
+  /** 檔名，也是網址 /c/{id} */
+  id: string
+  title: string
+  en: string
+  aliases: string[]
+  /** 一句話定義：名詞卡正面、卡片牆 */
+  summary: string
+  tags: string[]
+  /** 相關概念卡 id */
+  related: string[]
+}
+
+/** 詞彙表的一個面向，例如「領域」 */
+export interface TagFacet {
+  key: string
+  label: string
+  tags: string[]
 }
 
 export type TabKey = 'before' | 'during' | 'recall' | 'sunday' | 'after'

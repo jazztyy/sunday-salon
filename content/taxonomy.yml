@@ -1,0 +1,23 @@
+# tag 詞彙表：場次和概念卡的 tags 只能從這裡選。
+# 新增 tag 的流程：Claude 提出 → Kai 確認 → 加到這裡（見 SPEC.md「每週更新流程」）
+facets:
+  - key: domain
+    label: 領域
+    tags:
+      - 心靈哲學
+      - 形上學
+      - 知識論
+      - 倫理學
+      - 宗教哲學
+      - 科學哲學
+  - key: thinker
+    label: 思想家
+    tags:
+      - 蘇格拉底
+      - 柏拉圖
+      - 笛卡兒
+      - Shelly Kagan
+  - key: series
+    label: 系列
+    tags:
+      - Yale PHIL 176 Death

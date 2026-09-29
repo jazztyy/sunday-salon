@@ -12,7 +12,7 @@ const props = defineProps<{ session: Session }>()
 
 const defaultOrder = () => props.session.quiz.map((_, i) => i)
 
-const stored = useSalonStorage<QuizState>(`salon-quiz-${props.session.id}`, { order: defaultOrder(), ans: {} })
+const stored = useSalonStorage<QuizState>(`salon-quiz-${props.session.slug}`, { order: defaultOrder(), ans: {} })
 
 /** 相容舊資料：order 不是陣列、或題數對不上時，退回預設順序 */
 const state = computed<QuizState>(() => {

@@ -9,6 +9,6 @@ defineProps<{ session: Session }>()
 <template>
   <RecallTimeline />
   <RecallQuestions :videos="session.videos" />
-  <RecallQuiz :key="`quiz-${session.id}`" :session="session" />
-  <RecallTerms :key="`terms-${session.id}`" :session="session" />
+  <RecallQuiz :key="`quiz-${session.slug}`" :session="session" />
+  <RecallTerms :key="`terms-${session.slug}`" :session="session" />
 </template>

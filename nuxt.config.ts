@@ -1,10 +1,10 @@
-import { sessions } from './app/data/sessions'
+import { buildNameMap, readConcepts, replaceWikilinks } from './lib/wikilinks'
 
 // 靜態輸出（nuxt generate）部署到 GitHub Pages。
 // 專案網址前綴由環境變數 NUXT_APP_BASE_URL 決定（部署時為 /sunday-salon/），本機開發時為 /。
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-01',
-  modules: ['@nuxt/ui', '@vueuse/nuxt'],
+  modules: ['@nuxt/ui', '@nuxt/content', '@vueuse/nuxt'],
   css: ['~/assets/css/main.css'],
   devtools: { enabled: false },
 
@@ -19,12 +19,12 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: 'zh-Hant' },
       title: '悅讀聊天室',
       meta: [
-        { name: 'description', content: '悅讀聊天室：每週線上讀書會的會前導讀、影片章節、論證地圖、討論題與自我測驗。' },
+        { name: 'description', content: '悅讀聊天室：每週線上讀書會的會前導讀、影片章節、論證地圖、概念卡與討論題。' },
       ],
       // Nuxt 路由初始化時會把網址換成預先產生頁面的路徑（hash 會被拿掉），
-      // 所以在任何程式執行前先記下使用者開啟的分頁 hash，SessionView 掛載時讀取。
+      // 所以在任何程式執行前先記下原始的 hash 與 query，由 takeInitialLocation()（composables/useContent.ts）讀取。
       script: [
-        { innerHTML: 'window.__salonInitialHash=location.hash', tagPosition: 'head' },
+        { innerHTML: 'window.__salonInitialHash=location.hash;window.__salonInitialSearch=location.search', tagPosition: 'head' },
       ],
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -37,9 +37,17 @@ export default defineNuxtConfig({
     },
   },
 
+  hooks: {
+    // 概念卡內文的 [[概念名稱]] 在解析前轉成 /c/{id} 連結（規則見 lib/wikilinks.ts）
+    'content:file:beforeParse'(ctx) {
+      if (ctx.collection.name !== 'concepts') return
+      ctx.file.body = replaceWikilinks(ctx.file.body, buildNameMap(readConcepts(process.cwd())))
+    },
+  },
+
   nitro: {
     preset: 'github_pages',
-    // 明確列出每一場的網址，不依賴爬連結
-    prerender: { crawlLinks: true, routes: ['/', ...sessions.map(s => `/s/${s.id}`)] },
+    // 場次與概念卡頁面由 /archive、/concepts 的連結爬出來
+    prerender: { crawlLinks: true, routes: ['/', '/archive', '/concepts'] },
   },
 })

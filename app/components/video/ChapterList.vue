@@ -15,7 +15,7 @@ const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${St
 const initialOpen = () => Object.fromEntries(props.session.videos.map((v, i) => [v.id, i === 0]))
 const open = ref<Record<string, boolean>>(initialOpen())
 
-watch(() => props.session.id, () => { open.value = initialOpen() })
+watch(() => props.session.slug, () => { open.value = initialOpen() })
 
 watch(vid, (id) => {
   if (id && id in open.value) open.value[id] = true

@@ -24,7 +24,7 @@ const mountPlayer = () => {
 onMounted(mountPlayer)
 onBeforeUnmount(unmount)
 
-watch(() => props.session.id, () => {
+watch(() => props.session.slug, () => {
   unmount()
   mountPlayer()
 })

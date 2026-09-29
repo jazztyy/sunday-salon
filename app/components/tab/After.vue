@@ -13,4 +13,6 @@ defineProps<{ session: Session }>()
       <p>{{ session.after }}</p>
     </div>
   </section>
+
+  <RelatedSessions :session="session" />
 </template>

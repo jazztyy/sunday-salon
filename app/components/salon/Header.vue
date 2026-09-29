@@ -1,17 +1,26 @@
 <script setup lang="ts">
-// 頂部列：站名＋場次 chip＋手機「影片章節」按鈕＋深淺色切換，第二列是五個學習階段分頁。
+// 頂部列：站名＋網站導覽（本週／全部場次／概念卡）＋手機「影片章節」按鈕＋深淺色切換。
+// 場次頁會傳入 tabs，第二列顯示五個學習階段分頁；其他頁面只有第一列。
 // 規格見 DESIGN.md「導覽」。頂部列高度寫入 CSS 變數 --tb，SessionView 的 sticky 位移依賴它。
-import type { Session, TabKey } from '~/types/session'
+import type { TabKey } from '~/types/session'
 
 defineProps<{
-  tabs: { key: TabKey, label: string }[]
-  session: Session
-  sessions: Session[]
+  tabs?: { key: TabKey, label: string }[]
 }>()
 
 const emit = defineEmits<{ 'open-chapters': [] }>()
 
-const tab = defineModel<TabKey>('tab', { required: true })
+const tab = defineModel<TabKey>('tab')
+
+const route = useRoute()
+
+const NAV = [
+  { label: '本週', to: '/', match: (p: string) => p === '/' || p.startsWith('/s/') },
+  { label: '全部場次', to: '/archive', match: (p: string) => p.startsWith('/archive') },
+  { label: '概念卡', to: '/concepts', match: (p: string) => p.startsWith('/concepts') || p.startsWith('/c/') },
+]
+
+const navItems = computed(() => NAV.map(item => ({ ...item, active: item.match(route.path) })))
 
 const root = useTemplateRef<HTMLElement>('root')
 
@@ -31,26 +40,36 @@ const onTabChange = (value: string | number) => {
 
 <template>
   <div ref="root" class="sticky top-0 z-20 border-b border-default bg-default">
-    <div class="mx-auto flex max-w-[1240px] flex-col gap-2 px-4 pt-2.5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <span class="font-serif text-title font-black tracking-[.08em] text-highlighted">悅讀聊天室</span>
+    <div class="mx-auto flex max-w-[1240px] flex-col gap-2 px-4 pt-2.5" :class="{ 'pb-2.5': !tabs }">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-4">
+          <NuxtLink
+            to="/"
+            class="shrink-0 rounded-control font-serif text-title font-black tracking-[.08em] text-highlighted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+          >
+            悅讀聊天室
+          </NuxtLink>
 
-        <div class="flex flex-wrap items-center gap-2">
-          <nav class="flex flex-wrap gap-1.5" aria-label="場次">
-            <UButton
-              v-for="s in sessions"
-              :key="s.id"
-              :to="`/s/${s.id}`"
-              :label="s.chip"
-              color="neutral"
-              :variant="s.id === session.id ? 'solid' : 'outline'"
-              size="xs"
-              :aria-current="s.id === session.id ? 'page' : undefined"
-              class="rounded-full px-3"
-              :ui="{ label: 'text-ui font-medium' }"
-            />
+          <nav
+            aria-label="網站"
+            class="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <NuxtLink
+              v-for="item in navItems"
+              :key="item.to"
+              :to="item.to"
+              :aria-current="item.active ? 'page' : undefined"
+              class="shrink-0 whitespace-nowrap border-b-2 px-1.5 py-1 text-ui font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+              :class="item.active ? 'border-primary text-highlighted' : 'border-transparent text-muted hover:text-highlighted'"
+            >
+              {{ item.label }}
+            </NuxtLink>
           </nav>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2">
           <UButton
+            v-if="tabs"
             label="影片章節"
             color="neutral"
             variant="outline"
@@ -64,6 +83,7 @@ const onTabChange = (value: string | number) => {
       </div>
 
       <UTabs
+        v-if="tabs"
         :model-value="tab"
         :items="tabs"
         value-key="key"
