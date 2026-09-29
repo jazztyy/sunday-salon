@@ -83,10 +83,7 @@ export default defineContentConfig({
         recap: z.object({
           audio: z.object({ url: z.string().url(), label: z.string() }).optional(), // 錄音連結，例：Podcast 單集頁
           chapters: z.array(chapter).default([]), // 錄音的時間戳 [秒數, 段落]
-          votes: z.array(z.object({ // 依 votes 的題目順序，每題各選項的人數
-            pre: z.array(z.number().int().nonnegative()),
-            post: z.array(z.number().int().nonnegative()),
-          })).default([]),
+          votes: z.array(z.array(z.number().int().nonnegative())).default([]), // 依 votes 的題目順序，每題各選項的人數
           questions: z.array(z.string()).default([]), // 現場冒出的好問題、沒聊完的問題
           concepts: z.array(z.string()).default([]), // 這場討論後新增的概念卡 id
         }).optional(),

@@ -52,7 +52,7 @@ const copyNotes = async () => {
 <template>
   <section class="flex flex-col gap-4">
     <h2 class="font-serif text-h2 font-black leading-snug text-highlighted">立場題</h2>
-    <p class="text-small text-muted">你的選擇只存在自己的瀏覽器，別人看不到。活動前選「討論前」，活動後再選「討論後」。</p>
+    <p class="text-small text-muted">活動前選好你的立場，討論時可以拿來對照。你的選擇只存在自己的瀏覽器，別人看不到。</p>
     <div class="flex flex-col gap-3.5">
       <SundayVote v-for="(v, i) in session.votes" :key="`${session.slug}-${i}`" :vote="v" :index="i" :session-id="session.slug" />
     </div>

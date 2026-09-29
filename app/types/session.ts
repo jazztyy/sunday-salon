@@ -124,18 +124,21 @@ export interface Session {
   recap?: Recap
 }
 
-/** 活動回顧（SPEC.md 5.5） */
+/**
+ * 活動回顧（SPEC.md 5.5）。每個欄位都可能沒填：Nuxt Content 不會替巢狀物件補 schema 的預設值，
+ * 讀取時要自己補（見 tab/After.vue）
+ */
 export interface Recap {
   /** 錄音連結 */
   audio?: { url: string, label: string }
   /** 錄音時間戳 */
-  chapters: Chapter[]
+  chapters?: Chapter[]
   /** 依 votes 的題目順序，每題各選項的人數（現場投票） */
-  votes: { pre: number[], post: number[] }[]
+  votes?: number[][]
   /** 現場冒出的好問題、沒聊完的問題 */
-  questions: string[]
+  questions?: string[]
   /** 這場討論後新增的概念卡 id */
-  concepts: string[]
+  concepts?: string[]
 }
 
 /** 概念卡（content/concepts/{id}.md） */

@@ -1,11 +1,16 @@
 <script setup lang="ts">
-// 「活動後」分頁：活動結束後填了 recap 才顯示回顧（錄音、立場變化、現場問題、新增概念卡），
+// 「活動後」分頁：活動結束後填了 recap 才顯示回顧（錄音、大家的立場、現場問題、新增概念卡），
 // 還沒填時顯示預告文字。規格見 SPEC.md 5.5。
 import type { Session } from '~/types/session'
 
 const props = defineProps<{ session: Session }>()
 
-const recap = computed(() => props.session.recap)
+// Nuxt Content 不會替巢狀物件補 schema 的預設值：recap 只填了一部分時，其他欄位是 undefined，這裡統一補成空的
+const recap = computed(() => {
+  const r = props.session.recap
+  if (!r) return null
+  return { audio: r.audio, chapters: r.chapters ?? [], votes: r.votes ?? [], questions: r.questions ?? [], concepts: r.concepts ?? [] }
+})
 
 const { data: allConcepts } = await useAllConcepts()
 const newConcepts = computed(() =>
@@ -19,10 +24,10 @@ const percent = (list: number[], i: number) => {
 }
 
 const voteRows = computed(() =>
-  (recap.value?.votes ?? []).map((r, i) => ({
+  (recap.value?.votes ?? []).map((counts, i) => ({
     q: props.session.votes[i]?.q ?? '',
-    options: (props.session.votes[i]?.o ?? []).map((label, j) => ({ label, pre: percent(r.pre, j), post: percent(r.post, j) })),
-    count: r.post.reduce((a, b) => a + b, 0),
+    options: (props.session.votes[i]?.o ?? []).map((label, j) => ({ label, percent: percent(counts, j) })),
+    count: counts.reduce((a, b) => a + b, 0),
   })),
 )
 
@@ -58,16 +63,14 @@ const h3Class = 'font-serif text-title font-bold text-highlighted'
       </div>
 
       <div v-if="voteRows.length" class="flex flex-col gap-3">
-        <h3 :class="h3Class">立場變化</h3>
-        <p class="text-small text-muted">現場投票的結果，數字是各選項的比例：討論前 → 討論後。</p>
+        <h3 :class="h3Class">大家的立場</h3>
+        <p class="text-small text-muted">立場題的投票結果，數字是各選項的比例。</p>
         <div v-for="(v, i) in voteRows" :key="i" class="flex flex-col gap-2 rounded-card border border-default bg-elevated p-3.5">
           <p class="font-medium text-highlighted">{{ v.q }}<span class="ms-2 text-meta font-normal text-muted">{{ v.count }} 人</span></p>
           <ul class="flex flex-col gap-1">
             <li v-for="o in v.options" :key="o.label" class="flex items-baseline justify-between gap-3 text-small">
               <span class="text-toned">{{ o.label }}</span>
-              <span class="flex-none font-mono text-meta tabular-nums text-muted">
-                {{ o.pre }}% → <b class="font-medium" :class="o.post > o.pre ? 'text-primary' : 'text-highlighted'">{{ o.post }}%</b>
-              </span>
+              <b class="flex-none font-mono text-meta font-medium tabular-nums text-highlighted">{{ o.percent }}%</b>
             </li>
           </ul>
         </div>

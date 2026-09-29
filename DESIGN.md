@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.7 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.8 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -234,10 +234,10 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 自我測驗 | `recall/Quiz.vue`（`<RecallQuiz>`） | `UButton` | 用 `<StudyQuizItem>` 列出本場全部題目（含整合回顧），**第一次打開就是打亂的順序**，出處作答後才顯示，上方顯示分數。「打亂順序，重新作答」清空紀錄 |
 | 討論卡 | `study/DiscussCard.vue`（`<StudyDiscussCard>`） | `UBadge`、`UButton` | `bg-elevated rounded-card border-default`。題目（`text-body font-medium`）＋補充說明（`text-small text-muted`）。延伸題加「延伸」標籤（`bg-secondary-soft text-secondary`）。按鈕列：揭曉按鈕＋「寫下我的想法」（`variant="ghost"`＋`i-lucide-pencil-line`，已有筆記時不顯示）。「我的想法」是 `UTextarea`（autoresize，label 註明「只存在這個瀏覽器」）。「我想好了，看 Kagan 怎麼說」展開 `bg-accented rounded-control` 區塊：「Kagan 怎麼說」小標＋`answer`（`text-small text-toned`）＋段落連結。**兩者都打開時並排**（768px 以上兩欄），方便對照。展開狀態只在這次瀏覽有效，不存；筆記存在瀏覽器。「邊看邊想」和「週日討論」共用 |
 | 名詞卡 | `recall/Terms.vue`（`<RecallTerms>`） | `UButton` | 卡片來自本場 `concepts` 的概念卡（詞條、英文、`summary`）。未翻開 → 翻開（`bg-primary-soft`）並顯示自評按鈕。標成「還不熟」時加 `border-error` 紅框。自評以概念卡 id 儲存 |
-| 立場題 | `sunday/Vote.vue`（`<SundayVote>`） | `UButton`（`rounded-full`） | 「討論前」「討論後」兩列 pill；前後不同時顯示改變提示 |
+| 立場題 | `sunday/Vote.vue`（`<SundayVote>`） | `UButton`（`rounded-full`） | 題目下方一列 pill，選中的用 solid。只有一輪 |
 | 討論議題 | 在 `<TabSunday>` 裡 | `UButton` | 全部討論題，依影片分組（組標題是講座標籤與影片標題），最後一組是「整合回顧」。每題一張 `<StudyDiscussCard>`。有寫筆記時，標題右側出現次要按鈕「複製我的筆記」（Markdown），完成後用 toast 回饋。3.0 的 `<SundayDiscuss>` 已移除 |
 | 待補區塊 | 在 `<TabAfter>` 裡 | — | `border-dashed border-default`，用在「尚未舉行」這類還沒有內容的區塊 |
-| 活動回顧 | `tab/After.vue`（`<TabAfter>`） | `UButton` | 有 `recap` 時取代待補區塊。依序：討論錄音（主要按鈕＋`i-lucide-headphones`，下方時間戳列表，只顯示不連結）→ 立場變化（每題一張 `bg-elevated` 卡，各選項「討論前% → 討論後%」，`font-mono text-meta`，比例增加的用 `text-primary`）→ 現場冒出的問題 → 這場新增的概念卡（`<ConceptCard>` 兩欄）。沒有資料的區塊整個不顯示 |
+| 活動回顧 | `tab/After.vue`（`<TabAfter>`） | `UButton` | 有 `recap` 時取代待補區塊。依序：討論錄音（主要按鈕＋`i-lucide-headphones`，下方時間戳列表，只顯示不連結）→ 大家的立場（每題一張 `bg-elevated` 卡，題目後面是總人數，各選項右側是比例，`font-mono text-meta`）→ 現場冒出的問題 → 這場新增的概念卡（`<ConceptCard>` 兩欄）。沒有資料的區塊整個不顯示 |
 
 ### 6.8 瀏覽與概念卡
 
@@ -331,6 +331,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-09-29 | 3.8 | 立場題只有一輪：拿掉「討論前／討論後」兩列與改變提示；活動回顧的「立場變化」改成「大家的立場」 |
 | 2026-09-29 | 3.7 | 場次標頭只在「看之前」顯示；手機頂部列在 360px 寬不需橫向捲動；影片長度一律寫「分鐘」（新增 `minutesLabel`、`totalLabel`）；字幕說明移到播放器下方；手機「播放這一講」按鈕；影片子分頁完成打勾；自我測驗預設打亂、出處作答後才顯示；討論卡加「我的想法」並與 Kagan 觀點並排；週日討論「複製我的筆記」；新增活動回顧區塊 |
 | 2026-09-29 | 3.6 | 新增 hover 規則表並全面套用；暗色 `--ui-border-accented` 調亮；揭曉按鈕改 subtle |
 | 2026-09-29 | 3.5 | 揭曉按鈕改成暮色藍淡底＋箭頭（原本 ghost 看起來不像可以點） |

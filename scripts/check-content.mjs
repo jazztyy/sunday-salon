@@ -62,7 +62,7 @@ for (const { file, data: s } of sessions) {
     if (rv.length && rv.length !== (s.votes ?? []).length) err(file, `recap.votes 要和 votes 一樣是 ${(s.votes ?? []).length} 題`)
     rv.forEach((r, i) => {
       const n = s.votes?.[i]?.o.length
-      if (r.pre.length !== n || r.post.length !== n) err(file, `recap.votes 第 ${i + 1} 題的人數要對應 ${n} 個選項`)
+      if (r.length !== n) err(file, `recap.votes 第 ${i + 1} 題的人數要對應 ${n} 個選項`)
     })
     for (const c of s.recap.concepts ?? []) if (!conceptIds.has(c)) err(file, `recap.concepts 的概念卡「${c}」不存在`)
   }
