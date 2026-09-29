@@ -1,8 +1,9 @@
-# 週日沙龍 設計系統
+# 悅讀聊天室 設計系統
 
-> 版本 1.0 ・ 2026-09-29 ・ 對應 `index.html` 的 `:root` token 與 CSS
+> 版本 2.0 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts` 與 `app/components/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
+> 功能與資料結構請看 [SPEC.md](SPEC.md)。
 
 ---
 
@@ -12,86 +13,100 @@
 2. **影片永遠在手邊。** 章節和播放器固定在側欄（手機版固定在頂部），不管讀到哪裡，一點時間戳就跳到影片對應的段落。
 3. **狀態用形式表達，不只靠文字。** 質疑是紅色、接受是綠色、目前位置是金色，一眼就能看出來。
 4. **視覺語彙取自題材。** 主色是「金星金」：第一場的晨星與昏星其實都是金星。輔色是「暮色藍」。不用 emoji，不用漸層，也不用裝飾性插圖。
-5. **每個互動都有退路。** 猜題可以「直接看答案」，播放器可以「收起影片」，沒有播放器時時間戳就退回一般連結。
+5. **暗色是預設。** 夜空底色配金星金，最貼近題材，也適合晚上看影片。淺色主題保留，可以用頂部列的切換按鈕切換。兩個主題都要能用，不是只顧暗色。
+6. **每個互動都有退路。** 猜題可以「直接看答案」，播放器可以「收起影片」，沒有播放器時時間戳就退回一般連結。
 
 ---
 
 ## 2. 顏色
 
-所有顏色**只能用 token**，不能在 CSS 或 JS 裡寫 hex、rgb 或 inline style。淺色和深色主題共用同一組 token 名稱，深色值定義在 `@media (prefers-color-scheme: dark)` 和 `:root[data-theme="dark"]` 兩個地方，**兩處要同步修改**。
+### 2.0 規則
+
+- 元件裡**只能用下面列出的 utility class**（例如 `text-muted`、`bg-elevated`、`text-primary`、`bg-primary-soft`）。不能寫 hex、rgb、`style="color: …"`，也不能用 Tailwind 的原生色票（`text-amber-500`、`bg-slate-800`）。
+- 同一個 utility 在暗色和淺色下自動換值，元件裡**不要寫 `dark:` 變體**來換顏色。
+- 色值只在兩個地方改：
+  - `app/assets/css/main.css`：`.dark { … }` 是暗色（預設），`:root { … }` 是淺色。**兩處要同步修改。**
+  - `app/app.config.ts` 的 `ui.colors`：決定 Nuxt UI 的 `primary`／`secondary`／`success`／`error`／`neutral` 用哪一組色票。
+- `main.css` 的 `@theme` 另外定義了三組 50–950 色票：`venus`（金星金）、`dusk`（暮色藍）、`mist`（霧灰）。這三組是給 Nuxt UI 元件內部產生色階用的（例如 `UButton` 的 hover），**元件裡不要直接寫 `text-venus-300` 之類的 class**，一律用語意 utility。
 
 ### 2.1 基礎色
 
-| Token | 淺色 | 深色 | 用途 |
-|---|---|---|---|
-| `--bg` | `#F2F3F6` | `#0E1120` | 頁面底色、topbar、sticky 區塊的底色 |
-| `--surface` | `#FFFFFF` | `#161A2C` | 卡片、收合區塊、選項按鈕 |
-| `--surface-2` | `#E9EBF1` | `#1E2339` | 卡片內的次層底色（前提列、回想答案） |
-| `--ink` | `#1A1D2B` | `#E7E8EF` | 主要文字、主要按鈕底色、選中的 chip |
-| `--ink-2` | `#474C60` | `#B3B7C7` | 次要文字（lede、解析、定義） |
-| `--ink-3` | `#767B8F` | `#868BA1` | 輔助文字（muted、標籤、未選中的分頁） |
-| `--line` | `#D6D9E3` | `#2B3149` | 邊框、分隔線 |
+| 角色 | Utility | 暗色（預設） | 淺色 | 用途 |
+|---|---|---|---|---|
+| 頁面底色 | `bg-default` | `#0E1120` | `#F2F3F6` | 頁面、頂部列、sticky 區塊的底色 |
+| 卡片 | `bg-elevated`（或 `bg-muted`） | `#161A2C` | `#FFFFFF` | 卡片、收合區塊、選項按鈕 |
+| 卡片內次層 | `bg-accented` | `#1E2339` | `#E9EBF1` | 前提列、回想答案 |
+| 反相 | `bg-inverted` / `text-inverted` | `#E7E8EF` / `#0E1120` | `#1A1D2B` / `#F2F3F6` | 主要按鈕、選中的 chip |
+| 主要文字 | `text-highlighted`（或 `text-default`） | `#E7E8EF` | `#1A1D2B` | 標題、正文、強調的數值 |
+| 次要文字 | `text-toned` | `#B3B7C7` | `#474C60` | 導言、解析、定義 |
+| 輔助文字 | `text-muted` | `#868BA1` | `#767B8F` | 說明、標籤、未選中的分頁 |
+| 更淡的文字 | `text-dimmed` | `#5F6480` | `#9A9EB0` | 停用狀態。**不要用在需要閱讀的文字** |
+| 邊框 | `border-default` | `#2B3149` | `#D6D9E3` | 邊框、分隔線 |
+| 淡邊框 | `border-muted` | `#1E2339` | `#E9EBF1` | 卡片內的分隔 |
+| 強調邊框 | `border-accented` | `#3A4160` | `#B3B7C7` | hover 時的框線 |
 
 ### 2.2 品牌色
 
-| Token | 淺色 | 深色 | 用途 | 不可以用在 |
-|---|---|---|---|---|
-| `--accent`（金星金） | `#95680F` | `#E2B455` | **位置與重點**：目前分頁底線、目前章節、講座標籤、eyebrow、討論題編號、使用者選取的前提 | 大面積底色、正文 |
-| `--accent-soft` | `#F4E8CF` | `#2F2815` | 翻開的名詞卡底色 | 其他地方 |
-| `--dusk`（暮色藍） | `#3D4378` | `#AAB0E8` | **連結與方法**：所有連結、時間戳、「學習法」標籤、callout 標題、「延伸」標籤 | 表示對或錯 |
-| `--dusk-soft` | `#E3E5F3` | `#232849` | callout 底色、學習法和延伸標籤的底色 | — |
+| 角色 | Utility | 暗色（預設） | 淺色 | 用途 | 不可以用在 |
+|---|---|---|---|---|---|
+| 金星金（primary） | `text-primary` / `border-primary` | `#E2B455` | `#95680F` | **位置與重點**：目前分頁底線、目前章節、講座標籤、eyebrow、討論題編號、使用者選取的前提、focus 外框 | 大面積底色、正文 |
+| 金星金淡底 | `bg-primary-soft` | `#2F2815` | `#F4E8CF` | 翻開的名詞卡底色 | 其他地方 |
+| 暮色藍（secondary） | `text-secondary` | `#AAB0E8` | `#3D4378` | **連結與方法**：所有連結、時間戳、「學習法」標籤、callout 標題、「延伸」標籤 | 表示對或錯 |
+| 暮色藍淡底 | `bg-secondary-soft` | `#232849` | `#E3E5F3` | callout 底色、學習法和延伸標籤的底色 | — |
 
 ### 2.3 語意色（只用來表示「判斷結果」）
 
-| Token | 淺色 | 深色 | 用途 |
-|---|---|---|---|
-| `--good` / `--good-soft` | `#2C7549` / `#DCEEE3` | `#6CC291` / `#16301F` | Kagan **接受**的前提、答對、猜中、已作答 |
-| `--bad` / `--bad-soft` | `#A03F38` / `#F6DFDC` | `#E88C82` / `#3B1D1B` | Kagan **質疑**的前提、答錯、標成「還不熟」的名詞卡 |
+| 角色 | Utility | 暗色（預設） | 淺色 | 用途 |
+|---|---|---|---|---|
+| 接受／答對 | `text-success` / `bg-success-soft` | `#6CC291` / `#16301F` | `#2C7549` / `#DCEEE3` | Kagan **接受**的前提、答對、猜中、已作答 |
+| 質疑／答錯 | `text-error` / `bg-error-soft` | `#E88C82` / `#3B1D1B` | `#A03F38` / `#F6DFDC` | Kagan **質疑**的前提、答錯、標成「還不熟」的名詞卡 |
 
-> 規則：語意色不能拿來裝飾或強調。要強調，用 `--accent`。
+> 規則：語意色不能拿來裝飾或強調。要強調，用 primary（金星金）。Nuxt UI 元件的 `color` prop 也一樣：`color="success"`／`color="error"` 只用在判斷結果。
 
 ### 2.4 其他
 
-| Token | 值 | 用途 |
-|---|---|---|
-| `--video` | `#000`（兩個主題相同） | 播放器載入前的底色 |
-| `--scrim` | `rgba(10,12,20,.45)` | 手機章節抽屜後方的遮罩 |
-| `--shadow` | 淺 `0 12px 40px rgba(26,29,43,.18)`／深 `…rgba(0,0,0,.5)` | 只用在浮起的圖層（抽屜）。卡片不加陰影 |
+| 角色 | Utility | 值 | 用途 |
+|---|---|---|---|
+| 遮罩 | `bg-scrim` | 暗 `rgba(0,0,0,.6)`／淺 `rgba(10,12,20,.45)` | 自訂遮罩。`UDrawer` 自帶遮罩，一般不用另外加 |
+| 陰影 | Nuxt UI 預設 | — | 只有浮起的圖層（`UDrawer`）有陰影。卡片不加陰影 |
+
+`bg-*-soft` 和 `bg-scrim` 是本專案自訂的 utility，定義在 `main.css` 最下方的 `@utility`，值來自 `--salon-*` 變數。
 
 ---
 
 ## 3. 字體
 
-| 角色 | Token | 字體 | 用在 |
+| 角色 | Utility | 字體 | 用在 |
 |---|---|---|---|
-| 標題 | `--serif` | Noto Serif TC 600／900 | h1、h2、站名、名詞卡詞條、引導問題、討論題編號、章節側欄標題 |
-| 內文與介面 | `--sans` | Noto Sans TC 400／500／700 | 其他所有文字 |
-| 資料 | `--mono` | IBM Plex Mono 400／500 | 時間戳、講座標籤（`講座 5 · 17:17`）、前提編號（P1）、eyebrow、分頁步驟數字、分數 |
+| 標題 | `font-serif` | Noto Serif TC 600／900 | h1、h2、站名、名詞卡詞條、引導問題、討論題編號、章節側欄標題 |
+| 內文與介面 | `font-sans`（預設） | Noto Sans TC 400／500／700 | 其他所有文字 |
+| 資料 | `font-mono` | IBM Plex Mono 400／500 | 時間戳、講座標籤（`講座 5 · 17:17`）、前提編號（P1）、eyebrow、分頁步驟數字、分數 |
 
-- 字型從 Google Fonts 載入，每個 token 都有系統字型當備援。
-- 數字會上下對齊的地方（章節時間、分數）加 `font-variant-numeric: tabular-nums`。
-- 英文 eyebrow 用全大寫，加 `letter-spacing: .12em`。
+- 字型從 Google Fonts 載入（`nuxt.config.ts` 的 `app.head.link`），不使用 `@nuxt/fonts`（`ui.fonts: false`），因為中文字型要靠 Google Fonts 的 unicode-range 分片才不會太大。
+- 每個字體都有系統字型當備援，定義在 `main.css` 的 `--font-*`。
+- 數字會上下對齊的地方（章節時間、分數）加 `tabular-nums`。
+- 英文 eyebrow 用 `uppercase tracking-[.12em]`。
 
 ---
 
 ## 4. 字級
 
-**只能用下面這 10 級**。需要新的字級時，先在這份文件討論，確定後再加 token。
+**只能用下面這 10 級**。需要新的字級時，先在這份文件討論，確定後再加到 `main.css` 的 `@theme`。不要用 Tailwind 內建的 `text-sm`、`text-lg` 等字級。
 
-| Token | 大小 | 用途 |
+| Utility | 大小 | 用途 |
 |---|---|---|
-| `--fs-label` | 11px | 小標籤：學習法、延伸、分頁步驟數字、測驗題的來源講座 |
-| `--fs-meta` | 12px | mono 資訊：eyebrow、講座標籤、章節時間、名詞卡英文、卡片狀態 |
-| `--fs-ui` | 13px | 次要介面：chip、章節名稱、學習法說明、文字連結按鈕、播放器狀態列 |
-| `--fs-small` | 14px | 說明文字：muted、測驗解析、質疑／接受說明、名詞定義、主要按鈕、分頁 |
-| `--fs-body-sm` | 15px | 卡片內正文：callout、結論評語、測驗選項、Kagan 立場表 |
-| `--fs-body` | 16px | 內文（body 預設） |
-| `--fs-lead` | 17px | 導言（lede）、h3、引導問題 |
-| `--fs-title` | 19px | 站名、名詞卡詞條、收合區塊的 +／− 符號 |
-| `--fs-h2` | 24px | 段落標題 h2、討論題編號 |
-| `--fs-h1` | clamp(28px, 5vw, 40px) | 場次標題 h1，每頁只有一個 |
+| `text-label` | 11px | 小標籤：學習法、延伸、分頁步驟數字、測驗題的來源講座 |
+| `text-meta` | 12px | mono 資訊：eyebrow、講座標籤、章節時間、名詞卡英文、卡片狀態 |
+| `text-ui` | 13px | 次要介面：chip、章節名稱、學習法說明、文字連結按鈕、播放器狀態列、頁尾 |
+| `text-small` | 14px | 說明文字：muted、測驗解析、質疑／接受說明、名詞定義、主要按鈕、分頁 |
+| `text-body-sm` | 15px | 卡片內正文：callout、結論評語、測驗選項、Kagan 立場表 |
+| `text-body` | 16px | 內文（body 預設） |
+| `text-lead` | 17px | 導言（lede）、h3、引導問題 |
+| `text-title` | 19px | 站名、名詞卡詞條、收合區塊的 +／− 符號 |
+| `text-h2` | 24px | 段落標題 h2、討論題編號 |
+| `text-h1` | clamp(28px, 5vw, 40px) | 場次標題 h1，每頁只有一個 |
 
-行高：內文 1.75、標題 1.3–1.5、說明文字 1.65–1.7。標題一律加 `text-wrap: balance`。
+行高：內文 1.75（body 預設）、標題 `leading-tight`～`leading-snug`、說明文字 `leading-relaxed`。h1–h3 在 `main.css` 已加上 `text-wrap: balance`。
 
 ---
 
@@ -99,104 +114,136 @@
 
 ### 5.1 圓角
 
-| Token | 值 | 用在 |
+| Utility | 值 | 用在 |
 |---|---|---|
-| `--r-tag` | 3px | 小標籤（學習法、延伸、質疑／接受徽章） |
-| `--r-control` | 4px | 按鈕、測驗選項、前提列、回想答案 |
-| `--r-card` | 6px | 卡片、收合區塊、callout、播放器 |
-| `--r-sheet` | 12px | 手機抽屜的上緣 |
-| `--r-pill` | 999px | chip（場次、章節按鈕）、立場選項 |
+| `rounded-tag` | 3px | 小標籤（學習法、延伸、質疑／接受徽章） |
+| `rounded-control` | 4px | 按鈕、測驗選項、前提列、回想答案 |
+| `rounded-card` | 6px | 卡片、收合區塊、callout、播放器 |
+| `rounded-sheet` | 12px | 手機抽屜的上緣 |
+| `rounded-full` | 999px | chip（場次、章節按鈕）、立場選項 |
+
+Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-control`）控制。
 
 ### 5.2 間距
 
-| Token | 值 | 用在 |
-|---|---|---|
-| `--gutter` | 16px | 頁面左右留白，**任何寬度都不能小於 16px** |
-| `--gap-page` | 40px | 大段落之間（hero、section、footer） |
-| `--gap-section` | 16px | section 內部元素之間 |
+用 Tailwind 內建的間距 scale（`gap-4`、`px-4`、`p-3`……），不要寫 `gap-[18px]` 這種任意值。
 
-元件內部的間距照「元件目錄」寫的數值。排版一律用 flex 或 grid 搭配 `gap`，不要用 margin 堆疊。
+| 用途 | Utility | 值 |
+|---|---|---|
+| 頁面左右留白 | `px-4` | 16px，**任何寬度都不能小於 16px** |
+| 大段落之間（標頭、section、頁尾） | `gap-10` | 40px |
+| section 內部元素之間 | `gap-4` | 16px |
+
+元件內部的間距照「元件目錄」的現有元件對齊。排版一律用 flex 或 grid 搭配 `gap`，不要用 margin 堆疊。
 
 ### 5.3 版面
 
 | 寬度 | 版面 |
 |---|---|
-| ≥ 1000px | 兩欄：主內容（最寬 760px）＋側欄。有播放器時側欄 420px，沒有時 300px。整體最寬 1240px |
-| < 1000px | 單欄。章節清單收進「影片章節」抽屜；開始播放後，播放器固定在 topbar 下方，可以收起 |
+| ≥ 1024px（`lg:`） | 兩欄：主內容（最寬 760px）＋側欄。有播放器時側欄 420px，沒有時 300px。整體最寬 1240px |
+| < 1024px | 單欄。章節清單收進「影片章節」抽屜（`UDrawer`）；開始播放後，播放器固定在頂部列下方，可以收起 |
 
-- topbar 固定在頂部，高度由 JS 量測後寫進 `--tb`，其他 sticky 元素都以 `--tb` 為基準。
+- 斷點只用 Tailwind 預設的 `lg`（1024px）。v1 是 1000px，2.0 改成 1024px。
+- 版面寬度（760／300／420／1240px）是唯一允許的任意值，只寫在 `SessionView.vue`。
+- 頂部列固定在頂部，高度由 `<SalonHeader>` 量測後寫進 CSS 變數 `--tb`，其他 sticky 元素都以 `top-[var(--tb)]` 為基準。
 - 頁面**絕對不能出現橫向捲軸**。在 390px 寬度測試。
 
 ---
 
 ## 6. 元件目錄
 
-每個元件列出：class、用途、狀態。新增內容時照這裡的元件組合，不要另外發明樣式。
+元件都在 `app/components/`，Nuxt 會自動 import，子資料夾的名稱會變成前綴（`video/Panel.vue` → `<VideoPanel>`）。新增內容時照這裡的元件組合，不要另外發明樣式。
 
-### 導覽
+### 6.1 頁面骨架
 
-| 元件 | Class | 用途與規則 |
+| 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
+|---|---|---|---|
+| 場次頁 | `SessionView.vue` | `UButton`、`UDrawer` | 頂部列＋場次標頭＋分頁內容＋下一步＋頁尾＋側欄。分頁與網址 hash 同步 |
+| 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋場次 chip＋分頁＋主題切換＋（手機）影片章節按鈕。sticky，底色 `bg-default`，量測自身高度寫進 `--tb` |
+| 場次 chip | 在 `<SalonHeader>` 裡 | `UButton`（`rounded-full`） | 切換場次，連到 `/s/{id}`。目前這場用 `bg-inverted text-inverted`。標籤格式：`10/4 靈魂`（日期＋兩個字的主題） |
+| 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | 五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
+| 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，引導到下一個分頁 |
+
+### 6.2 分頁
+
+| 分頁 | 檔案 | 元件 |
 |---|---|---|
-| 頂部列 | `.topbar` | 站名＋場次 chip＋分頁。sticky，底色 `--bg` |
-| 場次 chip | `.chip` | 切換場次。選中時 `aria-pressed="true"`，變成 `--ink` 底色。標籤格式：`10/4 靈魂`（日期＋兩個字的主題） |
-| 分頁 | `.tabs button` | 五個學習階段，前面有 mono 步驟數字。選中的分頁有 `--accent` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
-| 下一步 | `.next` | 每個分頁的底部，引導到下一個分頁 |
+| 1 看之前 | `tab/Before.vue` | `<TabBefore>` |
+| 2 邊看邊想 | `tab/During.vue` | `<TabDuring>` |
+| 3 看完回想 | `tab/Recall.vue` | `<TabRecall>` |
+| 4 週日討論 | `tab/Sunday.vue` | `<TabSunday>` |
+| 5 活動後 | `tab/After.vue` | `<TabAfter>` |
 
-### 文字區塊
+每個分頁元件都收 `session: Session` 一個 prop。
 
-| 元件 | Class | 用途與規則 |
+### 6.3 文字區塊
+
+| 元件 | 寫法 | 用途與規則 |
 |---|---|---|
-| 場次標頭 | `.hero` | eyebrow（英文系列名稱）＋h1（本場問題，用問句）＋meta（日期／講者／影片總長） |
-| 導言 | `.lede` | 一段話說明這場在談什麼。只出現在「看之前」 |
-| 重點清單 | `.tldr` | 3–6 點，每點 1–2 句。金色圓點 |
-| 學習法註記 | `.why` | 說明某個設計**為什麼**這樣做，一句話。自動加上「學習法」標籤。每個 section 最多一則 |
-| 次要說明 | `.muted` | 操作說明、補充資訊 |
-| 重點提示框 | `.callout` | 暮色藍底色。每個分頁最多一個，用在「時間不夠看哪幾段」這類捷徑資訊 |
+| 場次標頭 | `SessionView.vue` 的 `<header>` | eyebrow（`font-mono text-meta text-primary`）＋h1（本場問題，用問句）＋meta（日期／講者／影片支數） |
+| 導言 | `text-lead text-toned` | 一段話說明這場在談什麼。只出現在「看之前」 |
+| 重點清單 | `<ul>` + 金色圓點 | 3–6 點，每點 1–2 句 |
+| 學習法註記 | `WhyNote.vue`（`<WhyNote>`） | 說明某個設計**為什麼**這樣做，一句話。自動加上「學習法」標籤（`bg-secondary-soft text-secondary`）。每個 section 最多一則 |
+| 次要說明 | `text-small text-muted` | 操作說明、補充資訊 |
+| 重點提示框 | `bg-secondary-soft rounded-card` | 每個分頁最多一個，用在「時間不夠看哪幾段」這類捷徑資訊 |
 
-### 容器
+### 6.4 容器
 
-| 元件 | Class | 用途與規則 |
+| 元件 | Nuxt UI | 用途與規則 |
 |---|---|---|
-| 收合區塊 | `details.fold` | 長內容一律收合。summary 右側自動顯示 ＋／−。內容放在 `.body` 裡 |
-| 引導問題卡 | `.guideqs li` | 每支影片一題，serif 字體，上方標講座 |
-| 複習節奏 | `.timeline` | 4 格，自動換行 |
+| 收合區塊 | `UCollapsible` | 長內容一律收合。觸發列右側顯示 ＋／−，`bg-elevated rounded-card border-default` |
+| 引導問題卡 | — | 每支影片一題，`font-serif`，上方標講座 |
+| 複習節奏 | `recall/Timeline.vue`（`<RecallTimeline>`） | 4 格，`grid` 自動換行 |
 
-### 按鈕
+### 6.5 按鈕
 
-| 元件 | Class | 用途 |
+一律用 `UButton`，不要自己寫 `<button class="…">` 做按鈕外觀。
+
+| 種類 | `UButton` 寫法 | 用途 |
 |---|---|---|
-| 主要按鈕 | `.btn` | `--ink` 底色。每個畫面最多一個主要動作（例如「下一步」） |
-| 次要按鈕 | `.btn.ghost` | 有邊框、沒有底色。重設、篩選、收起影片 |
-| 文字按鈕 | `.btn.link` | 看起來像連結。「直接看答案」「重新猜」「對照重點」 |
+| 主要按鈕 | `color="neutral"`（solid，預設） | 反相底色。每個畫面最多一個主要動作（例如「下一步」） |
+| 次要按鈕 | `color="neutral" variant="outline"` | 有邊框、沒有底色。重設、篩選、收起影片 |
+| 文字按鈕 | `color="secondary" variant="link"` | 看起來像連結。「直接看答案」「重新猜」「對照重點」 |
 
 按鈕文字用動詞開頭，直接說出按下去會發生什麼事，例如「打亂順序，重新作答」。
 
-### 影片
+### 6.6 影片
 
-| 元件 | Class | 用途與規則 |
-|---|---|---|
-| 播放器 | `.player-box` | 只在 `body.embed`（YouTube API 載入成功）時顯示。下方狀態列顯示「講座 N・目前章節」 |
-| 章節清單 | `.vgroup` + `.chapters` | 每支影片一組，可以收合。目前播放的章節加上 `.now`（金色、粗體） |
-| 抽屜 | `.drawer` + `.drawer-scrim` | 手機版的章節清單。點遮罩或按 Esc 關閉 |
-| 時間戳連結 | `ytLink()` 產生 | **所有指向影片的連結都要用 `ytLink()` 產生**，不可以手寫 `<a href="youtube...">` |
+| 元件 | 檔案 | 內含 Nuxt UI | 用途與規則 |
+|---|---|---|---|
+| 播放器面板 | `video/Panel.vue`（`<VideoPanel>`） | `UButton`（收起影片） | 呼叫 `usePlayer().mount()` 建立播放器。只在 `embed` 為 true（YouTube API 載入成功）時顯示播放器。下方狀態列顯示「講座 N・目前章節」 |
+| 章節清單 | `video/ChapterList.vue`（`<VideoChapterList>`） | `UCollapsible` | 每支影片一組，可以收合。目前播放的章節用 `text-primary font-bold`。側欄和手機抽屜共用 |
+| 抽屜 | `SessionView.vue` 裡的 `UDrawer` | `UDrawer` | 手機版的章節清單。點遮罩或按 Esc 關閉，點章節後自動關閉 |
+| 時間戳連結 | `VideoLink.vue`（`<VideoLink vid t>`） | — | **所有指向影片的連結都要用 `<VideoLink>`**，不可以手寫 `<a href="https://www.youtube.com/…">`。有播放器時攔截點擊改成跳段，沒有時開新分頁 |
 
-### 學習互動
+### 6.7 學習互動
 
-| 元件 | Class | 狀態 |
-|---|---|---|
-| 論證卡片 | `details.fold.arg` | 未作答：前提可以點選（`.pickable`）→ 已作答（`.reveal.done`）：前提依判斷顯示紅（`.weak`）或綠（`.ok`），並顯示結論評語 `.verdict`。使用者選的前提加上 `.picked`（金框） |
-| 前提列 | `.prem li` | 左側是 mono 編號 P1、P2……；結論列（`.concl`）用 ∴，上方有粗線 |
-| 判斷徽章 | `.obj b`／`.acc b` | 「質疑」「接受」的框線小標籤 |
-| 回想題 | `.recall` | 問題＋收合的「對照重點」 |
-| 測驗題 | `.qz` | 選項按鈕作答後鎖定：正解 `.right`（綠）、選錯 `.wrong`（紅），下方顯示解析和原片段連結 |
-| 名詞卡 | `.card` | 未翻開 → 翻開（`.open`，金底）並顯示自評按鈕。標成「還不熟」時加上 `.shaky`（紅框） |
-| 立場題 | `.vote` | 「討論前」「討論後」兩列 pill；前後不同時顯示 `.shift` 提示 |
-| 討論題 | `.dq` | serif 金色編號。超出影片內容的題目加 `.ext`「延伸」標籤 |
-| 待補區塊 | `.after` | 虛線框，用在「尚未舉行」這類還沒有內容的區塊 |
+| 元件 | 檔案 | 內含 Nuxt UI | 狀態 |
+|---|---|---|---|
+| 論證卡片 | `argument/Card.vue`（`<ArgumentCard>`） | `UCollapsible`、`UBadge`、`UButton` | 未作答：前提可以點選 → 已作答：前提依判斷標成「質疑」（`text-error`）或「接受」（`text-success`），並顯示結論評語。使用者選的前提加上 `border-primary` 金框。標題列用 `UBadge` 顯示「已作答／未作答」 |
+| 前提列 | 在 `<ArgumentCard>` 裡 | — | 左側是 mono 編號 P1、P2……；結論列用 ∴，上方有粗線 |
+| 判斷徽章 | 在 `<ArgumentCard>` 裡 | `UBadge variant="outline"` | 「質疑」（`color="error"`）「接受」（`color="success"`）的框線小標籤，`rounded-tag` |
+| 回想題 | `recall/Questions.vue`（`<RecallQuestions>`） | `UCollapsible` | 問題＋收合的「對照重點」 |
+| 測驗題 | `recall/Quiz.vue`（`<RecallQuiz>`） | `UButton` | 選項作答後鎖定：正解 `bg-success-soft text-success`、選錯 `bg-error-soft text-error`，下方顯示解析和 `<VideoLink>` 原片段 |
+| 名詞卡 | `recall/Terms.vue`（`<RecallTerms>`） | `UButton` | 未翻開 → 翻開（`bg-primary-soft`）並顯示自評按鈕。標成「還不熟」時加 `border-error` 紅框 |
+| 立場題 | `sunday/Vote.vue`（`<SundayVote>`） | `UButton`（`rounded-full`） | 「討論前」「討論後」兩列 pill；前後不同時顯示改變提示 |
+| 討論題 | `sunday/Discuss.vue`（`<SundayDiscuss>`） | `UBadge` | `font-serif text-primary` 編號。超出影片內容的題目加「延伸」標籤（`bg-secondary-soft text-secondary`） |
+| 待補區塊 | 在 `<TabAfter>` 裡 | — | `border-dashed border-default`，用在「尚未舉行」這類還沒有內容的區塊 |
 
 ---
 
-## 7. 文案規範
+## 7. 實作規則
+
+- **只用 Tailwind utility。** 元件裡不寫 `<style>`，不寫 inline `style`，不寫 hex 色碼，不寫 px 字級。全域樣式只放在 `main.css`。
+- **Nuxt UI 優先。** 按鈕、分頁、抽屜、收合、徽章、主題切換都用 Nuxt UI 元件。Nuxt UI 沒有的才自己寫。
+- **調整 Nuxt UI 元件用 `ui` prop**（例如 `:ui="{ base: 'rounded-full' }"`），不要用全域 CSS 覆寫它的 class。要全站改，改 `app.config.ts`。
+- **所有影片連結都用 `<VideoLink>`。**
+- **元件寫法**：`<script setup lang="ts">`，函式一律用箭頭函式（`const onClick = () => {}`），不用 `function` 宣告。
+- **狀態**：會存進瀏覽器的狀態一律用 `useSalonStorage()`；播放器狀態一律用 `usePlayer()`。不要直接碰 `localStorage` 或 YouTube API。
+
+---
+
+## 8. 文案規範
 
 - **語言**：繁體中文。專有名詞第一次出現時，名詞卡要附英文原文。
 - **講座標示**：`講座 5 · 17:17`，中間用半形間隔號 `·`，時間格式固定 `mm:ss`。
@@ -208,17 +255,17 @@
 
 ---
 
-## 8. 無障礙與品質檢查清單
+## 9. 無障礙與品質檢查清單
 
 改完畫面後逐項確認：
 
-- [ ] 只用了 token，沒有新的 hex 值、px 字級或 inline style
-- [ ] 淺色、深色兩個主題都看過
+- [ ] 只用了語意 utility，沒有 hex、px 字級、inline style、`<style>` 或原生色票
+- [ ] **暗色（預設）和淺色兩個主題都看過**，用頂部列的切換按鈕切換
 - [ ] 390px 寬度沒有橫向捲軸，文字沒有被截斷
-- [ ] 所有可以操作的元素都能用鍵盤操作，而且有看得見的 focus 樣式（`--accent` 外框）
+- [ ] 所有可以操作的元素都能用鍵盤操作，而且有看得見的 focus 樣式（primary 外框）
 - [ ] 狀態除了顏色之外，也有文字或形狀可以辨識（例如「質疑」「接受」徽章）
-- [ ] 有 `prefers-reduced-motion` 的使用者不會看到動畫
-- [ ] 按鈕有 `aria-pressed` 或 `aria-expanded` 反映目前狀態
+- [ ] 有 `prefers-reduced-motion` 的使用者不會看到動畫（`main.css` 已全域關閉）
+- [ ] 自訂的切換按鈕有 `aria-pressed` 或 `aria-expanded` 反映目前狀態（Nuxt UI 元件自帶）
 
 ---
 
@@ -227,3 +274,4 @@
 | 日期 | 版本 | 變更 |
 |---|---|---|
 | 2026-09-29 | 1.0 | 初版。字級收斂成 10 級 token（18px→19px、22px→24px），圓角收斂成 5 級，移除所有 inline style 與寫死的顏色 |
+| 2026-09-29 | 2.0 | 改用 Nuxt 4 + Nuxt UI 4 + Tailwind CSS 4。token 改成 Tailwind `@theme` 與 Nuxt UI `--ui-*` 變數，文件改列 utility class。暗色改為預設。斷點 1000px → 1024px。元件目錄改成對應 Vue 元件檔案與 Nuxt UI 元件。新增「實作規則」。網站名稱從「週日沙龍」改為「悅讀聊天室」 |

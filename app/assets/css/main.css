@@ -1,0 +1,174 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/*
+ * 週日沙龍 design tokens
+ * 規範見 DESIGN.md。元件只能使用這裡定義的 token 產生的 utility，
+ * 不要在元件裡寫 hex、px 字級或 inline style。
+ */
+
+@theme static {
+  /* 字體 */
+  --font-sans: "Noto Sans TC", "PingFang TC", "Heiti TC", system-ui, sans-serif;
+  --font-serif: "Noto Serif TC", "Songti TC", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* 字級：text-label / text-meta / text-ui / text-small / text-body-sm / text-body / text-lead / text-title / text-h2 / text-h1 */
+  --text-label: 11px;
+  --text-meta: 12px;
+  --text-ui: 13px;
+  --text-small: 14px;
+  --text-body-sm: 15px;
+  --text-body: 16px;
+  --text-lead: 17px;
+  --text-title: 19px;
+  --text-h2: 24px;
+  --text-h1: clamp(28px, 5vw, 40px);
+
+  /* 圓角：rounded-tag / rounded-control / rounded-card / rounded-sheet（膠囊用 rounded-full） */
+  --radius-tag: 3px;
+  --radius-control: 4px;
+  --radius-card: 6px;
+  --radius-sheet: 12px;
+
+  /* 金星金（primary） */
+  --color-venus-50: #FBF6EA;
+  --color-venus-100: #F4E8CF;
+  --color-venus-200: #EDD49F;
+  --color-venus-300: #E2B455;
+  --color-venus-400: #D39A2E;
+  --color-venus-500: #BA8318;
+  --color-venus-600: #A8760F;
+  --color-venus-700: #95680F;
+  --color-venus-800: #6E4D0E;
+  --color-venus-900: #4A340C;
+  --color-venus-950: #2F2815;
+
+  /* 暮色藍（secondary） */
+  --color-dusk-50: #EEF0FA;
+  --color-dusk-100: #E3E5F3;
+  --color-dusk-200: #C9CDEC;
+  --color-dusk-300: #AAB0E8;
+  --color-dusk-400: #8990D6;
+  --color-dusk-500: #6970BE;
+  --color-dusk-600: #525899;
+  --color-dusk-700: #3D4378;
+  --color-dusk-800: #2E3360;
+  --color-dusk-900: #232849;
+  --color-dusk-950: #161A30;
+
+  /* 霧灰（neutral，略帶藍色調） */
+  --color-mist-50: #F2F3F6;
+  --color-mist-100: #E9EBF1;
+  --color-mist-200: #D6D9E3;
+  --color-mist-300: #B3B7C7;
+  --color-mist-400: #868BA1;
+  --color-mist-500: #767B8F;
+  --color-mist-600: #5B6074;
+  --color-mist-700: #474C60;
+  --color-mist-800: #2B3149;
+  --color-mist-900: #161A2C;
+  --color-mist-950: #0E1120;
+}
+
+/* 淺色主題：Nuxt UI 語意變數直接對應原本的 token 值 */
+:root {
+  --ui-radius: 0.25rem;
+
+  --ui-primary: #95680F;
+  --ui-secondary: #3D4378;
+  --ui-success: #2C7549;
+  --ui-error: #A03F38;
+
+  --ui-bg: #F2F3F6;          /* --bg */
+  --ui-bg-muted: #FFFFFF;    /* --surface */
+  --ui-bg-elevated: #FFFFFF; /* --surface */
+  --ui-bg-accented: #E9EBF1; /* --surface-2 */
+  --ui-bg-inverted: #1A1D2B;
+
+  --ui-text-highlighted: #1A1D2B; /* --ink */
+  --ui-text: #1A1D2B;
+  --ui-text-toned: #474C60;       /* --ink-2 */
+  --ui-text-muted: #767B8F;       /* --ink-3 */
+  --ui-text-dimmed: #9A9EB0;
+  --ui-text-inverted: #F2F3F6;
+
+  --ui-border: #D6D9E3;           /* --line */
+  --ui-border-muted: #E9EBF1;
+  --ui-border-accented: #B3B7C7;
+  --ui-border-inverted: #1A1D2B;
+
+  /* 只在本專案使用的額外語意色 */
+  --salon-primary-soft: #F4E8CF;
+  --salon-secondary-soft: #E3E5F3;
+  --salon-success-soft: #DCEEE3;
+  --salon-error-soft: #F6DFDC;
+  --salon-scrim: rgba(10, 12, 20, .45);
+}
+
+/* 暗色主題（預設） */
+.dark {
+  --ui-primary: #E2B455;
+  --ui-secondary: #AAB0E8;
+  --ui-success: #6CC291;
+  --ui-error: #E88C82;
+
+  --ui-bg: #0E1120;
+  --ui-bg-muted: #161A2C;
+  --ui-bg-elevated: #161A2C;
+  --ui-bg-accented: #1E2339;
+  --ui-bg-inverted: #E7E8EF;
+
+  --ui-text-highlighted: #E7E8EF;
+  --ui-text: #E7E8EF;
+  --ui-text-toned: #B3B7C7;
+  --ui-text-muted: #868BA1;
+  --ui-text-dimmed: #5F6480;
+  --ui-text-inverted: #0E1120;
+
+  --ui-border: #2B3149;
+  --ui-border-muted: #1E2339;
+  --ui-border-accented: #3A4160;
+  --ui-border-inverted: #E7E8EF;
+
+  --salon-primary-soft: #2F2815;
+  --salon-secondary-soft: #232849;
+  --salon-success-soft: #16301F;
+  --salon-error-soft: #3B1D1B;
+  --salon-scrim: rgba(0, 0, 0, .6);
+}
+
+/* 額外語意色的 utility：bg-primary-soft / bg-secondary-soft / bg-success-soft / bg-error-soft / bg-scrim */
+@utility bg-primary-soft { background-color: var(--salon-primary-soft); }
+@utility bg-secondary-soft { background-color: var(--salon-secondary-soft); }
+@utility bg-success-soft { background-color: var(--salon-success-soft); }
+@utility bg-error-soft { background-color: var(--salon-error-soft); }
+@utility bg-scrim { background-color: var(--salon-scrim); }
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  line-height: 1.75;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+/* 全站統一的鍵盤 focus 樣式（DESIGN.md「無障礙」） */
+:where(a, button, summary, [role="tab"], [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
