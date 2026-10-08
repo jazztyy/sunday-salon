@@ -247,7 +247,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 場次卡 | `pages/archive.vue` 裡 | — | `bg-elevated rounded-card border-default`，整張可以點，連到 `/s/{slug}`。內容：日期（`font-mono text-meta text-muted`，用 `dateLabel`）、標題（`font-serif`）、tag 列。hover 時 `border-accented` |
 | 月份標題 | `pages/archive.vue` 裡 | — | 「依月份」檢視的分組標題，`h2` |
 | 檢視切換 | `pages/archive.vue` 裡 | `UTabs` | 「依月份」「依主題」兩個選項 |
-| tag 篩選 pill | `pages/archive.vue` 裡 | `UButton`（`rounded-full`） | 依面向（領域／思想家／系列）分組，每組前面有面向名稱（`text-meta text-muted`）。未選取 `color="neutral" variant="outline"`；選取後 `bg-inverted text-inverted`，並設 `aria-pressed`。可以多選，另有「清除篩選」文字按鈕 |
+| tag 篩選 pill | `pages/archive.vue` 裡 | `UButton`（`rounded-full`） | 依面向（領域／人物／系列）分組，每組前面有面向名稱（`text-meta text-muted`）。未選取 `color="neutral" variant="outline"`；選取後 `bg-inverted text-inverted`，並設 `aria-pressed`。可以多選，另有「清除篩選」文字按鈕 |
 | 概念卡 | `concept/Card.vue`（`<ConceptCard>`） | — | 卡片牆和「相關概念」共用。`bg-elevated rounded-card border-default`，整張可以點，連到 `/c/{id}`。內容：詞條（`font-serif text-title`）、英文（`font-mono text-meta text-muted`）、`summary`（`text-small text-toned`） |
 | 概念卡牆 | `pages/concepts/index.vue` | — | 依「領域」分組，每組一個 `h2`，下方用 `grid` 排 `<ConceptCard>`，手機一欄 |
 | 概念卡頁 | `pages/c/[id].vue` | — | 由上到下：標頭（詞條 `h1`、英文、別名、tag 列）→ 定義（`summary`，`text-lead text-toned`）→ 內文（Markdown，`[[連結]]` 顯示成一般連結 `text-secondary`）→「相關概念」（`<ConceptCard>` grid）→「出現在這些場次」（場次卡清單）。沒有內容的區塊整個不顯示 |

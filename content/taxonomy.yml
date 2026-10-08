@@ -10,8 +10,8 @@ facets:
       - 倫理學
       - 宗教哲學
       - 科學哲學
-  - key: thinker
-    label: 思想家
+  - key: person
+    label: 人物
     tags:
       - 蘇格拉底
       - 柏拉圖
