@@ -18,6 +18,17 @@ export const useAllSessions = () =>
     return items.map(i => toSession(i as unknown as Record<string, unknown>))
   }, { default: () => [] as Session[] })
 
+/** 台灣時間的今天，ISO 日期（YYYY-MM-DD），和場次的 date 同格式可以直接比大小 */
+export const taipeiToday = (): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date())
+
+/**
+ * 本週場次：日期在今天或之後、最近的那一場（週一到週日都顯示這週日的討論）。
+ * 全部都過了就顯示最後一場。sessions 要依日期新到舊排序（useAllSessions 的順序）。
+ */
+export const pickCurrentSession = (sessions: Session[], today: string): Session | null =>
+  sessions.filter(s => s.date >= today).at(-1) ?? sessions[0] ?? null
+
 /** 單一場次；slug 省略時取最新一場 */
 export const useSession = (slug?: string) =>
   useAsyncData(`session:${slug ?? 'latest'}`, async () => {
@@ -44,7 +55,7 @@ export const useAllConcepts = () =>
 
 export type ConceptWithRaw = Concept & { raw: Awaited<ReturnType<ReturnType<typeof queryCollection<'concepts'>>['first']>> }
 
-/** 詞彙表的面向（領域、思想家、系列） */
+/** 詞彙表的面向（領域、人物、系列） */
 export const useTaxonomy = () =>
   useAsyncData('taxonomy', async () => {
     const item = await queryCollection('taxonomy').first()
