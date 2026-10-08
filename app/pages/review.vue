@@ -129,6 +129,14 @@ const modeCounts = computed(() => ({
 
 const modeOptions = computed(() => MODES.map(m => ({ value: m.key, label: m.label, count: modeCounts.value[m.key] })))
 
+/** 手機收起設定時的一行摘要：「今天該複習的・全部討論過的・10 題」；只選一種題型時加上題型 */
+const settingsHint = computed(() => [
+  MODES.find(m => m.key === mode.value)?.label,
+  scopeMode.value === 'custom' ? `自己選 ${customSlugs.value.length} 場` : scopeMode.value === 'recent' ? `最近 ${RECENT_COUNT} 場` : '全部討論過的',
+  kinds.value.length === 1 ? KIND_OPTIONS.find(k => k.value === kinds.value[0])?.label : undefined,
+  size.value ? `${size.value} 題` : '題數不限',
+].filter(Boolean).join('・'))
+
 /** 依目前設定可以出的題目 */
 const pool = computed(() => byMode(base.value, mode.value))
 
@@ -267,7 +275,8 @@ const sourceOf = (q: ReviewQuestion) =>
         </p>
       </header>
 
-      <FilterLayout aside-label="複習設定" main-class="gap-4">
+      <!-- 手機：設定收在「複習設定」裡（按鈕下面一行是目前設定的摘要），題數和「開始複習」一直看得到 -->
+      <FilterLayout aside-label="複習設定" toggle-label="複習設定" :toggle-hint="storageReady ? settingsHint : ''" main-class="gap-4">
         <template #aside>
           <!-- 掛載前：題數還沒套上作答紀錄和存的範圍，先放骨架（同樣的組數和 chip 數），不顯示錯的數字 -->
           <div v-if="!storageReady" class="flex flex-col gap-5" aria-busy="true">
@@ -279,10 +288,6 @@ const sourceOf = (q: ReviewQuestion) =>
               </div>
             </div>
             <USkeleton class="h-5 w-36" aria-hidden="true" />
-            <div class="flex flex-col gap-2 border-t border-default pt-3" aria-hidden="true">
-              <USkeleton class="my-1 h-3.5 w-20" />
-              <USkeleton class="h-8 w-full rounded-control" />
-            </div>
           </div>
           <Transition name="fade">
             <div v-if="storageReady" class="flex flex-col gap-5">
@@ -292,19 +297,27 @@ const sourceOf = (q: ReviewQuestion) =>
               <FilterChips v-model="size" label="題數" :options="SIZE_OPTIONS" />
 
               <USwitch v-model="recallFirst" label="先回想再看選項" :ui="{ label: 'text-ui text-muted' }" />
+            </div>
+          </Transition>
+        </template>
 
-              <div class="flex flex-col gap-2 border-t border-default pt-3">
-                <span class="text-ui text-muted" aria-live="polite">可以出 {{ pool.length }} 題</span>
-                <UButton
-                  :label="running && !finished ? '重新抽題' : '開始複習'"
-                  icon="i-lucide-play"
-                  color="primary"
-                  variant="outline"
-                  class="justify-center rounded-control px-3 text-ui font-medium"
-                  :disabled="!pool.length"
-                  @click="start()"
-                />
-              </div>
+        <template #bottom>
+          <div v-if="!storageReady" class="flex flex-col gap-2 border-t border-default pt-3" aria-hidden="true">
+            <USkeleton class="my-1 h-3.5 w-20" />
+            <USkeleton class="h-8 w-full rounded-control" />
+          </div>
+          <Transition name="fade">
+            <div v-if="storageReady" class="flex flex-col gap-2 border-t border-default pt-3">
+              <span class="text-ui text-muted" aria-live="polite">可以出 {{ pool.length }} 題</span>
+              <UButton
+                :label="running && !finished ? '重新抽題' : '開始複習'"
+                icon="i-lucide-play"
+                color="primary"
+                variant="outline"
+                class="justify-center rounded-control px-3 text-ui font-medium"
+                :disabled="!pool.length"
+                @click="start()"
+              />
             </div>
           </Transition>
         </template>
@@ -313,7 +326,7 @@ const sourceOf = (q: ReviewQuestion) =>
         <Transition name="rise" mode="out-in" @after-enter="onStageEntered">
           <!-- 還沒開始 -->
           <div v-if="!running" key="intro" class="flex flex-col gap-3 rounded-card border border-dashed border-default p-6 text-small leading-relaxed text-muted">
-            <p>按左邊的「開始複習」。預設只出今天該複習的題目：沒做過的，和到了複習日期的。題目跨場次、跨題型混在一起隨機抽。</p>
+            <p>按「開始複習」。預設只出今天該複習的題目：沒做過的，和到了複習日期的。題目跨場次、跨題型混在一起隨機抽。</p>
             <p>每題答完會依你的表現排下次複習的日期：有把握答對，間隔拉長（1、2、4、7、15、30 天）；猜對的間隔不變；答錯就明天再來。作答紀錄和筆記只存在這個瀏覽器。</p>
             <WhyNote>間隔重複：快要忘記時再提取一次，記得最牢；已經熟的題目就不必每次都做。</WhyNote>
           </div>

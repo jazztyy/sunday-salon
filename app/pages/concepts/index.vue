@@ -136,10 +136,14 @@ watch(() => route.query.tag, (v) => {
         </p>
       </header>
 
-      <FilterLayout>
-        <template #aside>
+      <!-- 手機：搜尋和「已選」一直在上面，場次和 tag 收在「篩選（N）」裡 -->
+      <FilterLayout :active-count="summary.length">
+        <template #top>
           <FilterSearch v-model="query" placeholder="搜尋詞條、英文、別名或定義…" label="搜尋概念卡" />
           <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clear" />
+        </template>
+
+        <template #aside>
           <!-- 場次放在 tag 上面：只占一行，tag 越來越多時不會被擠到最下面 -->
           <FilterSelect v-model="session" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="sessionChips" />
           <FilterChips

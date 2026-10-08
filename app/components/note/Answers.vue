@@ -110,9 +110,13 @@ const optionClass = (r: QuizRecord, j: number) => {
 </script>
 
 <template>
-  <FilterLayout aside-label="篩選作答紀錄">
-    <template #aside>
+  <!-- 手機：「已選」一直在上面，結果和場次收在「篩選（N）」裡 -->
+  <FilterLayout aside-label="篩選作答紀錄" :active-count="summary.length">
+    <template #top>
       <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
+    </template>
+
+    <template #aside>
       <FilterChips v-model="result" label="結果" :options="resultOptions" />
       <FilterSelect v-if="placeOptions.length" v-model="place" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="placeOptions" />
       <FilterStatus :count="visible.length" unit="題" />

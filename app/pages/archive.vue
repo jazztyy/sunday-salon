@@ -169,10 +169,14 @@ useUrlFilters([
         <p class="text-body text-muted">搜尋或依年份、月份、主題篩選過去的討論。</p>
       </header>
 
-      <FilterLayout>
-        <template #aside>
+      <!-- 手機：搜尋和「已選」一直在上面，年份、月份、tag 收在「篩選（N）」裡 -->
+      <FilterLayout :active-count="summary.length">
+        <template #top>
           <FilterSearch v-model="query" placeholder="搜尋標題、講座、章節…" label="搜尋場次" />
           <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clear" />
+        </template>
+
+        <template #aside>
           <FilterChips v-model="year" label="年份" all-label="全部" :options="yearOptions" />
           <FilterChips v-model="month" label="月份" all-label="全部" :options="monthOptions" />
           <FilterChips

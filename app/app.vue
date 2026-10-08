@@ -7,6 +7,12 @@ import { zh_tw } from '@nuxt/ui/locale'
 // 在 capture 階段攔截，比 NuxtLink 自己的點擊處理先執行。直接打開 /c/{id} 網址仍然是完整頁面。
 const { id: conceptId, open } = useConceptModal()
 const prefetchConcept = useConceptPrefetch()
+
+// 彈窗第一次打開才載入，之後一直留著、只開關（UModal 自己處理顯示）。
+// 不能用 v-if="conceptId" 每次關閉就移除：在彈窗裡點場次連結時，換頁過場和移除彈窗同時發生，
+// Vue 會在 insertBefore 出錯，整頁變空白。
+const modalLoaded = ref(false)
+watch(conceptId, (v) => { if (v) modalLoaded.value = true })
 const { baseURL } = useRuntimeConfig().app
 
 /** 點的連結所在的 [data-concept-seq] 容器裡，所有概念卡 id（DOM 順序、去掉重複）：彈窗「上一則／下一則」的順序。容器的值有寫就照它 */
@@ -61,7 +67,7 @@ onMounted(() => {
   <UApp :locale="zh_tw">
     <NuxtPage />
     <!-- 打開時才載入（彈窗、概念卡內文、筆記編輯器都不放進每一頁的首次載入） -->
-    <LazyConceptModal v-if="conceptId" />
+    <LazyConceptModal v-if="modalLoaded" />
     <ConfirmDialog />
   </UApp>
 </template>

@@ -201,10 +201,13 @@ const download = (format: NoteExportFormat) => {
         骨架直接拿掉（不淡出），真的內容淡入；站內換頁時已經讀好，不會出現骨架
       -->
       <FilterLayout v-if="!storageReady" aria-busy="true">
-        <template #aside>
+        <template #top>
           <span class="sr-only">載入中…</span>
           <USkeleton class="h-8 w-full rounded-control" aria-hidden="true" />
           <USkeleton class="h-8 w-full rounded-control" aria-hidden="true" />
+        </template>
+
+        <template #aside>
           <div class="flex flex-col gap-1.5" aria-hidden="true">
             <USkeleton class="my-1 h-3.5 w-10" />
             <div class="flex flex-wrap gap-1.5">
@@ -238,9 +241,12 @@ const download = (format: NoteExportFormat) => {
           <NoteAnswers :sessions="sessions" />
         </div>
 
-        <!-- 篩選欄：桌機固定在左邊，往下捲也看得到（同 /archive） -->
-        <FilterLayout v-else-if="storageReady" key="notes">
-          <template #aside>
+        <!--
+          篩選欄：桌機固定在左邊，往下捲也看得到（同 /archive）。
+          手機：新增筆記、搜尋、「已選」一直在上面，種類、場次和匯出收在「篩選（N）」裡
+        -->
+        <FilterLayout v-else-if="storageReady" key="notes" :active-count="summary.length">
+          <template #top>
             <UButton
               icon="i-lucide-plus"
               label="新增筆記"
@@ -252,6 +258,9 @@ const download = (format: NoteExportFormat) => {
 
             <FilterSearch v-model="query" placeholder="搜尋筆記、題目或標題…" label="搜尋筆記" />
             <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
+          </template>
+
+          <template #aside>
             <FilterChips v-model="kind" label="種類" :options="kindOptions" />
             <FilterSelect v-if="placeOptions.length" v-model="place" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="placeOptions" />
             <FilterStatus :count="visible.length" unit="則" />

@@ -247,7 +247,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 場次卡 | `pages/archive.vue` 裡 | — | `bg-elevated rounded-card border-default`，整張可以點，連到 `/s/{slug}`。內容：日期（`font-mono text-meta text-muted`，用 `dateLabel`）、標題（`font-serif`）、tag 列。hover 時 `border-accented` |
 | 月份標題 | `pages/archive.vue` 裡 | — | 「依月份」檢視的分組標題，`h2` |
 | 檢視切換 | `pages/archive.vue` 裡 | `UTabs` | 「依月份」「依主題」兩個選項 |
-| 篩選版面 | `filter/Layout.vue`（`<FilterLayout>`） | — | 列表頁共用的兩欄版面：左邊 232px 的篩選欄（`lg` 以上 sticky 在頂部列下方，太高時自己捲動；手機放在上方），右邊內容。`/archive`、`/concepts`、`/review`、`/notes` 共用 |
+| 篩選版面 | `filter/Layout.vue`（`<FilterLayout>`） | — | 列表頁共用的兩欄版面：左邊 232px 的篩選欄（`lg` 以上 sticky 在頂部列下方，太高時自己捲動；手機放在上方），右邊內容。`/archive`、`/concepts`、`/review`、`/notes` 共用。三個 slot：`#top` 一直顯示（搜尋框、已選摘要、新增筆記）、`#aside` 是篩選選項、`#bottom` 一直顯示（複習的「開始複習」）。**手機（< lg）**：`#aside` 預設收起（`max-lg:hidden`），上方一顆 `lg:hidden` 的 outline 按鈕「篩選（N）」（`toggleLabel`、`activeCount`；左邊滑桿圖示、右邊 chevron、`aria-expanded`／`aria-controls`），可以加一行摘要（`toggleHint`，例如複習設定）；展開時 `animate-reveal`，面板底部有「收起篩選」。slot 只渲染一次、用 CSS 切換（不會 hydration 不一致），不記住展開狀態 |
 | 筆記卡 | `note/Card.vue`（`<NoteCard>`） | `UBadge`、`UButton` | `/notes` 的卡片，外觀同場次卡。種類的名稱和徽章顏色讀 `utils/noteKinds.ts` 的 `NOTE_KINDS`，不要在元件裡另外寫 |
 | 筆記視窗 | `note/Sheet.vue`（`<NoteSheet>`）、`note/SheetProp.vue`（`<NoteSheetProp>`） | `UModal` | 仿 Heptabase 卡片的文件式視窗：上方徽章＋灰字提示＋關閉，serif 大標，一排屬性（圖示＋名稱），分隔線下面是內容。筆記和作答紀錄共用 |
 | 筆記小卡 | `NoteField.vue`（`<NoteField>`） | `<LazyMarkdownEditor>` | `rounded-control border-default bg-default` 小卡：名稱＋灰字說明，可以加收起的 ✕。討論卡的「我的想法」、作答紀錄的筆記用；概念卡的側欄筆記版面不同，不用它 |
@@ -292,7 +292,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
   - `rise`：淡出 → 淡入上浮 6px。場次分頁、`/notes` 的檢視切換、複習的三個畫面、揭曉（解析、Kagan 怎麼說、我的想法、論證判斷、先回想→選項）、複習範圍的清單與月份展開。
   - `slide-next`／`slide-prev`：往左滑出、從右邊進來（後退相反）。邊看邊想的影片子分頁、複習換題、概念卡上一則／下一則。概念卡彈窗換卡時舊卡疊在上面淡出（不用 out-in），彈窗高度直接變成新卡的。
   - `fade`：單純淡入淡出。已選篩選 chip、寫筆記按鈕↔編輯器、骨架換成內容。
-  - `animate-reveal`：CSS animation，淡入上浮 4px。用 class 藏起來的項目重新出現（「顯示全部」的 chip 與概念卡、名詞卡翻面），可加斷點前綴；也用在首頁換場次時新內容淡入。
+  - `animate-reveal`：CSS animation，淡入上浮 4px。用 class 藏起來的項目重新出現（「顯示全部」的 chip 與概念卡、名詞卡翻面），可加斷點前綴；也用在首頁換場次時新內容淡入、手機篩選欄展開。
 - **掛載時不播**：頁面載入時依網址或上次停留位置跳到某個分頁、子分頁，直接換掉，不播過場。
 - **小心 out-in**：短時間內連續切換好幾次（例如 hydration 時首頁「建置那一場 → 骨架 → 新的那一場」）會讓 out-in 卡在中間、什麼都不顯示。這種地方只做進場的 `animate-reveal`，不用 `<Transition mode="out-in">`。
 - **焦點不能掉**：按鈕跟著舊內容一起消失時（下一步、下一段、下一題、看選項、收起我的想法），新內容出現後用 `focusIfLost()`（`utils/focus.ts`）把焦點交給合理的位置（目前分頁、題目卡、第一個選項、原本的開關按鈕）；使用者已經點了別處就不動。整塊換掉的區塊用 `tabindex="-1"`＋`focus-visible:outline-none`。
