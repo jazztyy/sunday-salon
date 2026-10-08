@@ -64,7 +64,8 @@ const cardClass = (id: string) => {
       />
     </div>
 
-    <div v-if="items.length" class="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5">
+    <!-- data-concept-seq：從這裡打開概念卡時，彈窗的上一則／下一則照名詞卡的順序 -->
+    <div v-if="items.length" :data-concept-seq="items.map(c => c.id).join(',')" class="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5">
       <div
         v-for="c in items"
         :key="c.id"

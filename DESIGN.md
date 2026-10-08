@@ -256,6 +256,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 篩選搜尋框 | `filter/Search.vue`（`<FilterSearch>`） | `UInput` | 搜尋圖示＋有字時出現清除鈕 |
 | 場次下拉選單 | `filter/Select.vue`（`<FilterSelect>`） | `USelectMenu` | 單選的場次篩選（概念卡、筆記、作答紀錄）：一行的下拉選單，沒選時顯示「全部場次」，可以打字搜尋（主題或日期），選項是固定寬度的日期欄＋主題；選了之後右邊有 ✕ 清除。場次一年多 52 個，攤開成 chip 太長 |
 | 複習範圍 | `filter/ScopePicker.vue`（`<FilterScopePicker>`） | `<FilterChips>` | 三個單選 pill（全部討論過的／最近 4 場／自己選，附題數）；「自己選」時下面出現依月份分組的勾選清單：月份標題是可收合的按鈕（`aria-expanded`，`text-meta text-muted`），右邊是 `variant="link"` 的全選；每一行 `role="checkbox"`，左邊是勾選框，日期欄同 `<FilterChips list>`，選中 `bg-inverted text-inverted`，hover `bg-accented`，`rounded-control`。還沒討論的場次沒勾時淡一點 |
+| 概念卡牆的一組 | `concept/Row.vue`（`<ConceptRow>`） | `UButton` | 標題（領域＋「N 張」）＋卡片網格（手機一欄、`sm` 兩欄、`xl` 三欄，`gap-3`）。預設兩排，下面 `variant="link"` 的「顯示全部（N 張）／收起」（chevron、`aria-expanded`、`aria-controls`），只在有卡被收起時出現；有篩選時全部展開。收起用 CSS 隱藏，卡片仍在 DOM 裡（上一則／下一則要用） |
+| 上一則／下一則 | `concept/Pager.vue`（`<ConceptPager>`） | `UIcon` | 一列：左「‹ 上一則・詞條」、中間 `font-mono text-meta text-dimmed` 的「3 / 12」、右「下一則・詞條 ›」；「上一則」「下一則」用 `text-dimmed`，詞條太長就截斷，hover `bg-accented`。彈窗裡固定在底部（`sticky bottom-0`、半透明 `bg-default` 加模糊），`/c/{id}` 頁面放在卡片下方 |
 | 已選摘要 | `filter/Summary.vue`（`<FilterSummary>`） | `UButton` | 篩選欄搜尋框下面：「已選」＋右邊的「清除篩選」文字按鈕，下面一排已選條件（`color="primary" variant="subtle"`、`rounded-full`、後面 `i-lucide-x`，點了取消）。沒有任何條件時整個不顯示 |
 | 結果數 | `filter/Status.vue`（`<FilterStatus>`） | — | 「共 N 場」只給螢幕閱讀器（`sr-only`、`aria-live="polite"`），畫面上不顯示 |
 | 概念卡 | `concept/Card.vue`（`<ConceptCard>`） | — | 卡片牆和「相關概念」共用。`bg-elevated rounded-card border-default`，整張可以點，連到 `/c/{id}`。內容：詞條（`font-serif text-title`）、英文（`font-mono text-meta text-muted`）、`summary`（`text-small text-toned`） |
@@ -350,7 +352,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
-| 2026-10-08 | 3.13 | 單選的場次篩選改成可搜尋的下拉選單（`<FilterSelect>`）；複習範圍改成預設＋自己選（`<FilterScopePicker>`）。篩選欄新增 `<FilterSummary>`（已選＋清除篩選），`<FilterChips>` 加上 `limit` 收起；側欄底部的「共 N 場」改成只給螢幕閱讀器的 `<FilterStatus>` |
+| 2026-10-08 | 3.13 | 概念卡牆改成兩排網格＋「顯示全部」（`<ConceptRow>`），新增上一則／下一則（`<ConceptPager>`）。單選的場次篩選改成可搜尋的下拉選單（`<FilterSelect>`）；複習範圍改成預設＋自己選（`<FilterScopePicker>`）。篩選欄新增 `<FilterSummary>`（已選＋清除篩選），`<FilterChips>` 加上 `limit` 收起；側欄底部的「共 N 場」改成只給螢幕閱讀器的 `<FilterStatus>` |
 | 2026-10-08 | 3.12 | 抽出共用元件，畫面不變：篩選欄 `<FilterLayout>`、`<FilterChips>`、`<FilterSearch>`、`<FilterFooter>`（`/archive`、`/concepts`、`/review`、`/notes`）；筆記視窗 `<NoteSheet>`、筆記小卡 `<NoteField>`、場次分組標題 `<SessionGroupHeading>`；筆記種類集中在 `NOTE_KINDS`。文字編輯器、概念卡彈窗改成需要時才載入 |
 | 2026-10-08 | 3.11 | 討論卡的「我的想法」改成 `<MarkdownEditor>` 小卡，可以隨時收起；`/notes` 新增「作答紀錄」檢視（`<NoteAnswers>`：對錯徽章卡片，視窗先回想再揭曉答案）；名詞卡的 hover 改加在整張卡上，翻開後不再上下兩截不同色 |
 | 2026-09-29 | 3.10 | 播放器可以「放大影片」浮到畫面中間（桌機，不加遮罩，頁面照樣可以捲動），預設在側欄，可以拖曳移動。「看之前」單欄改成置中 |

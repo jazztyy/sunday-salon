@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // /concepts 概念卡牆。版面和 /archive 一致：左邊固定的篩選欄（搜尋、詞彙表各面向的 tag、場次），
-// 右邊依「領域」分組，每組是一列橫向滑動的卡片（<ConceptRow>），不會無限往下長。
-// 一張卡片有多個領域時每組都會出現，沒有領域的放在「其他」。有搜尋字時不分組，改成依相關程度排列的「搜尋結果」一列。
+// 右邊依「領域」分組，每組是一個卡片 grid（<ConceptRow>），預設只顯示兩列，按「顯示全部」展開。
+// 一張卡片有多個領域時每組都會出現，沒有領域的放在「其他」。有搜尋字時不分組，改成依相關程度排列的「搜尋結果」一組。
+// 有任何篩選或搜尋時各組直接全部顯示。
 // 點卡片開概念卡彈窗（app.vue 攔截 /c/{id} 連結），不換頁。
 // 篩選條件同步到網址 ?q=…&tag=…&s=…（場次 slug），方便分享。
 import type { FilterSummaryItem } from '~/components/filter/Summary.vue'
@@ -155,7 +156,7 @@ watch(() => route.query.tag, (v) => {
         </template>
 
         <p v-if="!groups.length" class="text-small text-muted">沒有符合的概念卡。</p>
-        <ConceptRow v-for="g in groups" :key="g.label" :label="g.label" :cards="g.cards" />
+        <ConceptRow v-for="g in groups" :key="g.label" :label="g.label" :cards="g.cards" :collapsible="!hasFilter" />
       </FilterLayout>
     </main>
   </div>

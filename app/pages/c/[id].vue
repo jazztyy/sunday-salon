@@ -20,6 +20,8 @@ useSeoMeta({
       <div class="overflow-hidden rounded-card border border-default">
         <ConceptDetail :id="id" />
       </div>
+      <!-- 直接打開網址時沒有「從哪裡點進來」，照全部概念卡的順序 -->
+      <ConceptPager :current="id" mode="page" class="mt-3" />
     </main>
   </div>
 </template>
