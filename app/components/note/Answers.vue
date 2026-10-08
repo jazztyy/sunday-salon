@@ -3,6 +3,7 @@
 // 版面和筆記一樣：左邊篩選欄（結果、場次），右邊依場次、再依講座分組的卡片；點卡片打開視窗。
 // 為了記得住，視窗先只給題目和選項（提取練習），自己想過再按「看答案與解析」；下面可以直接寫筆記，
 // 和 /review 同一則（salon-review-notes 的 q:{slug}:{雜湊}），會出現在「複習筆記」。規格見 SPEC.md「筆記」。
+import type { FilterSummaryItem } from '~/components/filter/Summary.vue'
 import type { StudySession as Session } from '~/types/content'
 import type { QuizRecord } from '~/composables/useQuizRecords'
 
@@ -35,6 +36,12 @@ const placeOptions = computed(() => {
 })
 
 const hasFilter = computed(() => result.value !== 'all' || !!place.value)
+
+/** 篩選欄最上面的「已選」 */
+const summary = computed<FilterSummaryItem[]>(() => [
+  ...(result.value !== 'all' ? [{ key: 'result', label: resultOptions.value.find(o => o.value === result.value)?.label ?? '', remove: () => { result.value = 'all' } }] : []),
+  ...(place.value ? [{ key: 'place', label: placeOptions.value.find(o => o.value === place.value)?.label ?? '', remove: () => { place.value = null } }] : []),
+])
 const clearFilters = () => {
   result.value = 'all'
   place.value = null
@@ -101,9 +108,10 @@ const optionClass = (r: QuizRecord, j: number) => {
 <template>
   <FilterLayout aside-label="篩選作答紀錄">
     <template #aside>
+      <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
       <FilterChips v-model="result" label="結果" :options="resultOptions" />
-      <FilterChips v-if="placeOptions.length" v-model="place" label="場次" all-label="全部" :options="placeOptions" />
-      <FilterFooter :count="visible.length" unit="題" :has-filter="hasFilter" @clear="clearFilters" />
+      <FilterChips v-if="placeOptions.length" v-model="place" label="場次" all-label="全部" :options="placeOptions" :limit="6" more-label="更早的場次" />
+      <FilterStatus :count="visible.length" unit="題" />
 
       <NuxtLink
         v-if="records.length"

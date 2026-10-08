@@ -3,6 +3,7 @@
 // 搜尋是模糊比對（Fuse.js），打錯字或只記得片段也找得到；年份、月份各選一個（或全部）；tag 可以多選，結果要全部符合。
 // 篩選條件同步到網址 ?q=靈魂&year=2026&month=10&tag=A&tag=B，方便分享。
 import Fuse from 'fuse.js'
+import type { FilterSummaryItem } from '~/components/filter/Summary.vue'
 import type { SessionSummary as Session } from '~/types/content'
 
 useSeoMeta({ title: '全部場次・悅讀聊天室' })
@@ -129,7 +130,20 @@ const clear = () => {
 /** 篩選欄的 chip 選項 */
 const yearOptions = computed(() => years.value.map(y => ({ value: y, label: y, class: 'font-mono' })))
 const monthOptions = computed(() => months.value.map(m => ({ value: m, label: `${m} 月` })))
-const tagOptions = (tags: string[]) => tags.map(t => ({ value: t, label: t }))
+/** 每個 tag 有幾場（顯示在 chip 上，也決定收起時留哪些） */
+const tagCount = computed(() => {
+  const out = new Map<string, number>()
+  for (const s of sessions.value) for (const t of s.tags) out.set(t, (out.get(t) ?? 0) + 1)
+  return out
+})
+const tagOptions = (tags: string[]) => tags.map(t => ({ value: t, label: t, count: tagCount.value.get(t) ?? 0 }))
+
+/** 篩選欄最上面的「已選」 */
+const summary = computed<FilterSummaryItem[]>(() => [
+  ...(year.value ? [{ key: 'year', label: `${year.value} 年`, remove: () => { year.value = null } }] : []),
+  ...(month.value ? [{ key: 'month', label: `${month.value} 月`, remove: () => { month.value = null } }] : []),
+  ...selected.value.map(t => ({ key: `tag:${t}`, label: t, remove: () => { selected.value = selected.value.filter(x => x !== t) } })),
+])
 
 // 篩選條件同步到網址（初次載入讀原始 search、等 Nuxt 就緒才寫回，見 useUrlFilters）。
 // 月份要在年份之後套用：只接受選定年份裡有場次的月份
@@ -158,6 +172,7 @@ useUrlFilters([
       <FilterLayout>
         <template #aside>
           <FilterSearch v-model="query" placeholder="搜尋標題、講座、章節…" label="搜尋場次" />
+          <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clear" />
           <FilterChips v-model="year" label="年份" all-label="全部" :options="yearOptions" />
           <FilterChips v-model="month" label="月份" all-label="全部" :options="monthOptions" />
           <FilterChips
@@ -167,8 +182,10 @@ useUrlFilters([
             :label="facet.label"
             :options="tagOptions(facet.tags)"
             multiple
+            :limit="8"
+            rank="count"
           />
-          <FilterFooter :count="filtered.length" unit="場" :has-filter="hasFilter" @clear="clear" />
+          <FilterStatus :count="filtered.length" unit="場" />
         </template>
 
         <p v-if="!groups.length" class="text-small text-muted">沒有符合的場次。</p>

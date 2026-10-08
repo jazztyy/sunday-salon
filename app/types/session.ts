@@ -114,7 +114,7 @@ export interface Session {
   date: string
   /** 顯示用的日期：'2026 年 10 月 4 日（週日）' */
   dateLabel: string
-  /** 場次標籤：日期 + 兩個字的主題 */
+  /** 場次標籤：日期 + 3–6 個字的主題，例：'10/4 靈魂與永生'（篩選 chip、頁面標題用） */
   chip: string
   eyebrow: string
   /** h1，用問句 */

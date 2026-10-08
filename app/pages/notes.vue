@@ -11,6 +11,7 @@ import Fuse from 'fuse.js'
 import type { StudySession as Session } from '~/types/content'
 import type { NoteEntry } from '~/composables/useNoteEntries'
 import { NOTE_KINDS, type NoteKind } from '~/utils/noteKinds'
+import type { FilterSummaryItem } from '~/components/filter/Summary.vue'
 import type { NoteExportFormat } from '~/utils/noteExport'
 
 useSeoMeta({ title: '筆記・悅讀聊天室' })
@@ -104,6 +105,12 @@ watch(placeOptions, (list) => {
 })
 
 const hasFilter = computed(() => !!(query.value.trim() || kind.value !== 'all' || place.value))
+/** 篩選欄最上面的「已選」 */
+const summary = computed<FilterSummaryItem[]>(() => [
+  ...(kind.value !== 'all' ? [{ key: 'kind', label: kindOptions.value.find(o => o.value === kind.value)?.label ?? '', remove: () => { kind.value = 'all' } }] : []),
+  ...(place.value ? [{ key: 'place', label: placeOptions.value.find(o => o.value === place.value)?.label ?? '', remove: () => { place.value = null } }] : []),
+])
+
 const clearFilters = () => {
   query.value = ''
   kind.value = 'all'
@@ -201,9 +208,10 @@ const download = (format: NoteExportFormat) => {
           />
 
           <FilterSearch v-model="query" placeholder="搜尋筆記、題目或標題…" label="搜尋筆記" />
+          <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
           <FilterChips v-model="kind" label="種類" :options="kindOptions" />
-          <FilterChips v-if="placeOptions.length" v-model="place" label="場次" all-label="全部" :options="placeOptions" />
-          <FilterFooter :count="visible.length" unit="則" :has-filter="hasFilter" @clear="clearFilters" />
+          <FilterChips v-if="placeOptions.length" v-model="place" label="場次" all-label="全部" :options="placeOptions" :limit="6" more-label="更早的場次" />
+          <FilterStatus :count="visible.length" unit="則" />
 
           <div v-if="visible.length" class="flex flex-col gap-1.5">
             <span id="facet-export" class="text-ui text-muted">匯出{{ hasFilter ? '目前篩選的' : '全部' }} {{ visible.length }} 則</span>

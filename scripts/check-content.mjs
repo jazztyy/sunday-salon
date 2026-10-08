@@ -93,6 +93,17 @@ for (const { file, data: s } of sessions) {
   if (!validate(file, strictSchemas.session, s)) continue
   valid.add(s)
   if (!/^[a-z0-9-]+$/.test(s.slug)) err(file, `slug「${s.slug}」只能用英文小寫、數字、連字號`)
+  // chip：「{月}/{日} {主題}」，日期要和 date 一致，主題 3–6 個字（太短容易只剩一個很衝的詞，太長篩選 chip 會擠）
+  {
+    const m = s.chip.match(/^(\d{1,2})\/(\d{1,2}) (.+)$/)
+    const [, mm, dd] = s.date.match(/^\d{4}-(\d{2})-(\d{2})$/) ?? []
+    if (!m) err(file, `chip「${s.chip}」要寫成「月/日 主題」，例：10/4 靈魂與永生`)
+    else {
+      if (Number(m[1]) !== Number(mm) || Number(m[2]) !== Number(dd)) err(file, `chip「${s.chip}」的日期和 date ${s.date} 不一致`)
+      const len = [...m[3]].length
+      if (len < 3 || len > 6) err(file, `chip 的主題「${m[3]}」是 ${len} 個字，要 3–6 個字`)
+    }
+  }
   // 檔名：content/sessions/{年}/{月-日}-{主題}.yml，年和月-日都要和 date 一致
   const [year, month, day] = s.date.split('-')
   if (path.basename(path.dirname(file)) !== year) err(file, `檔案要放在 content/sessions/${year}/`)

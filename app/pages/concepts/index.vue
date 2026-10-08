@@ -4,6 +4,7 @@
 // 一張卡片有多個領域時每組都會出現，沒有領域的放在「其他」。有搜尋字時不分組，改成依相關程度排列的「搜尋結果」一列。
 // 點卡片開概念卡彈窗（app.vue 攔截 /c/{id} 連結），不換頁。
 // 篩選條件同步到網址 ?q=…&tag=…&s=…（場次 slug），方便分享。
+import type { FilterSummaryItem } from '~/components/filter/Summary.vue'
 import Fuse from 'fuse.js'
 import type { Concept } from '~/types/session'
 
@@ -81,8 +82,22 @@ const clear = () => {
 }
 
 /** 篩選欄的 chip 選項 */
-const tagOptions = (tags: string[]) => tags.map(t => ({ value: t, label: t }))
+/** 每個 tag 有幾張卡（顯示在 chip 上，也決定收起時留哪些） */
+const tagCount = computed(() => {
+  const out = new Map<string, number>()
+  for (const c of concepts.value) for (const t of c.tags) out.set(t, (out.get(t) ?? 0) + 1)
+  return out
+})
+const tagOptions = (tags: string[]) => tags.map(t => ({ value: t, label: t, count: tagCount.value.get(t) ?? 0 }))
 const sessionChips = computed(() => sessionOptions.value.map(s => ({ value: s.slug, label: s.chip })))
+
+/** 篩選欄最上面的「已選」 */
+const summary = computed<FilterSummaryItem[]>(() => [
+  ...selected.value.map(t => ({ key: `tag:${t}`, label: t, remove: () => { selected.value = selected.value.filter(x => x !== t) } })),
+  ...(session.value
+    ? [{ key: 'session', label: sessionChips.value.find(o => o.value === session.value)?.label ?? session.value, remove: () => { session.value = null } }]
+    : []),
+])
 
 // 篩選條件同步到網址（初次載入讀原始 search、等 Nuxt 就緒才寫回，同 /archive，見 useUrlFilters）
 const { urlReady } = useUrlFilters([
@@ -123,6 +138,7 @@ watch(() => route.query.tag, (v) => {
       <FilterLayout>
         <template #aside>
           <FilterSearch v-model="query" placeholder="搜尋詞條、英文、別名或定義…" label="搜尋概念卡" />
+          <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clear" />
           <FilterChips
             v-for="facet in visibleFacets"
             :key="facet.key"
@@ -130,9 +146,11 @@ watch(() => route.query.tag, (v) => {
             :label="facet.label"
             :options="tagOptions(facet.tags)"
             multiple
+            :limit="8"
+            rank="count"
           />
-          <FilterChips v-model="session" label="場次" all-label="全部" :options="sessionChips" />
-          <FilterFooter :count="total" unit="張" :has-filter="hasFilter" @clear="clear" />
+          <FilterChips v-model="session" label="場次" all-label="全部" :options="sessionChips" :limit="6" more-label="更早的場次" />
+          <FilterStatus :count="total" unit="張" />
         </template>
 
         <p v-if="!groups.length" class="text-small text-muted">沒有符合的概念卡。</p>
