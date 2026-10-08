@@ -294,6 +294,14 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 ---
 
+### 確認彈窗
+
+不使用瀏覽器內建的 `window.confirm` / `alert` / `prompt`（外觀無法控制）。需要確認時用 `useConfirm()`：`if (await confirm({ title, description, confirmLabel })) { … }`。彈窗是 `<ConfirmDialog>`（掛在 `app.vue`，全站一個）：深色卡片、襯線標題（`text-title`）、說明（`text-small text-muted`）、右下「取消」（`ghost`）和確認按鈕（`neutral` `solid`）。打開時不自動聚焦按鈕；點外面、按 Esc 都算取消。破壞性動作的確認按鈕也不用 `error` 色（語意色只表示判斷結果），改用文字說清楚後果（例如「無法復原」）。
+
+### 捲軸
+
+全站隱藏捲軸（`main.css` 的 `*` 規則：`scrollbar-width: none` 與 `::-webkit-scrollbar { display: none }`），頁面、彈窗、側欄、文字框都一樣，捲動功能照常。需要提示「還有更多內容」時用版面處理（例如概念卡列的箭頭），不要靠捲軸。
+
 ## 9. 無障礙與品質檢查清單
 
 改完畫面後逐項確認：

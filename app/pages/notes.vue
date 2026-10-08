@@ -18,11 +18,12 @@ const discussStores = sessions.value.map(s => ({ session: s, ...useDiscussNotes(
 const { notes: myNotes, add, update, remove } = useMyNotes()
 const { notes: reviewNotes, setNote: setReviewNote } = useReviewNotes()
 
-type Kind = 'all' | 'discuss' | 'review' | 'mine'
+type Kind = 'all' | 'discuss' | 'review' | 'concept' | 'mine'
 const KINDS: { key: Kind, label: string }[] = [
   { key: 'all', label: '全部' },
   { key: 'discuss', label: '討論筆記' },
   { key: 'review', label: '複習筆記' },
+  { key: 'concept', label: '概念筆記' },
   { key: 'mine', label: '我的筆記' },
 ]
 const kind = ref<Kind>('all')
@@ -41,6 +42,7 @@ type Entry =
   | { key: string, kind: 'discuss', slug: string, session: Session, item: DiscussItem, text: string }
   | { key: string, kind: 'mine', slug: string | null, note: MyNote }
   | { key: string, kind: 'review', slug: string, question: ReviewQuestion, text: string }
+  | { key: string, kind: 'concept', slug: string, question: ReviewQuestion, title: string, text: string }
 
 const discussEntries = computed<Entry[]>(() =>
   discussStores.flatMap(({ session, getNote }) =>
@@ -59,13 +61,29 @@ const mineEntries = computed<Entry[]>(() =>
 /** 複習筆記：key 對回題目（測驗題算在它的場次，概念卡題算在第一次用到這張卡的場次）；題目改掉或刪掉的筆記不顯示 */
 const reviewQuestions = computed(() => new Map(buildReviewQuestions(sessions.value, concepts.value).map(q => [q.key, q])))
 
+// 概念卡題的筆記（key `c:{id}`）就是概念卡彈窗裡寫的筆記，所以另外歸成「概念筆記」
 const reviewEntries = computed<Entry[]>(() =>
   [...reviewQuestions.value.values()]
+    .filter(q => q.kind === 'quiz')
     .map(q => ({ key: `r:${q.key}`, kind: 'review' as const, slug: q.session.slug, question: q, text: reviewNotes.value?.[q.key] ?? '' }))
     .filter(e => e.text.trim() || editing.value === e.key),
 )
 
-const allEntries = computed(() => [...discussEntries.value, ...reviewEntries.value, ...mineEntries.value])
+const conceptEntries = computed<Entry[]>(() =>
+  [...reviewQuestions.value.values()]
+    .filter(q => q.kind === 'concept')
+    .map(q => ({
+      key: `r:${q.key}`,
+      kind: 'concept' as const,
+      slug: q.session.slug,
+      question: q,
+      title: concepts.value.find(c => c.id === q.conceptId)?.title ?? '',
+      text: reviewNotes.value?.[q.key] ?? '',
+    }))
+    .filter(e => e.text.trim() || editing.value === e.key),
+)
+
+const allEntries = computed(() => [...discussEntries.value, ...reviewEntries.value, ...conceptEntries.value, ...mineEntries.value])
 
 const active = computed(() => allEntries.value.find(e => e.key === editing.value) ?? null)
 
@@ -75,6 +93,8 @@ const fuse = computed(() => new Fuse(
     ? { key: e.key, title: '', question: e.item.q, text: e.text }
     : e.kind === 'review'
       ? { key: e.key, title: '', question: e.question.item.q, text: e.text }
+      : e.kind === 'concept'
+        ? { key: e.key, title: e.title, question: e.question.item.q, text: e.text }
       : { key: e.key, title: e.note.title, question: '', text: e.note.body }),
   {
     keys: [{ name: 'title', weight: 2 }, { name: 'text', weight: 2 }, { name: 'question', weight: 1 }],
@@ -136,6 +156,7 @@ const counts = computed(() => ({
   all: allEntries.value.length,
   discuss: discussEntries.value.length,
   review: reviewEntries.value.length,
+  concept: conceptEntries.value.length,
   mine: mineEntries.value.length,
 }))
 
@@ -149,11 +170,36 @@ const newNote = () => {
   editing.value = `m:${note.id}`
 }
 
-const removeNote = (note: MyNote) => {
-  if (window.confirm(`刪除「${note.title || '未命名筆記'}」？刪除後無法復原。`)) {
-    if (editing.value === `m:${note.id}`) editing.value = null
-    remove(note.id)
-  }
+const { confirm } = useConfirm()
+
+const shorten = (text: string) => text.length > 24 ? `${text.slice(0, 24)}…` : text
+
+const removeNote = async (note: MyNote) => {
+  const ok = await confirm({
+    title: `刪除「${shorten(note.title || '未命名筆記')}」？`,
+    description: '這則筆記會從這個瀏覽器刪除，無法復原。',
+    confirmLabel: '刪除',
+  })
+  if (!ok) return
+  if (editing.value === `m:${note.id}`) editing.value = null
+  remove(note.id)
+}
+
+/**
+ * 刪除討論、複習、概念筆記：清空筆記內容（題目和概念卡本身不受影響，之後還可以在原處重寫）。
+ * 我的筆記走 removeNote，整則刪除。
+ */
+const removeEntry = async (e: Entry) => {
+  if (e.kind === 'mine') return removeNote(e.note)
+  const name = e.kind === 'concept' ? e.title : headOf(e)
+  const ok = await confirm({
+    title: `刪除這則${kindLabel(e)}？`,
+    description: `「${shorten(name)}」的筆記內容會被清空，無法復原；${e.kind === 'concept' ? '概念卡' : '題目'}本身不受影響，之後還可以重寫。`,
+    confirmLabel: '刪除',
+  })
+  if (!ok) return
+  if (editing.value === e.key) editing.value = null
+  setBody(e, '')
 }
 
 const sessionOptions = computed(() => [
@@ -170,8 +216,92 @@ const setDiscussNote = (e: Extract<Entry, { kind: 'discuss' }>, text: string) =>
 const reviewLabel = (q: ReviewQuestion) =>
   q.kind === 'concept' ? '概念卡' : q.item.scope === 'all' ? '整合回顧' : lecOf(q.session, q.item.scope)
 
+const kindLabel = (e: Entry) => ({ discuss: '討論筆記', review: '複習筆記', concept: '概念筆記', mine: '我的筆記' })[e.kind]
+
+/** 彈窗的大標題：題目或詞條（我的筆記的標題可以直接改，不走這裡） */
+const headOf = (e: Entry) =>
+  e.kind === 'discuss' ? e.item.q : e.kind === 'review' ? e.question.item.q : e.kind === 'concept' ? e.title : e.note.title
+
+/** 屬性列的「場次」 */
+const whereOf = (e: Entry) =>
+  e.kind === 'discuss'
+    ? `${e.session.chip}・${discussLabel(e)}`
+    : e.kind === 'review' || e.kind === 'concept'
+      ? `${e.question.session.chip}・${reviewLabel(e.question)}`
+      : ''
+
+/** 屬性列的「連結」。leaves：會換頁的連結點了要先關掉彈窗；概念卡連結只是開另一個彈窗 */
+const linkOf = (e: Entry): { to: string, label: string, leaves: boolean } | null =>
+  e.kind === 'discuss'
+    ? { to: `/s/${e.slug}#sunday`, label: '回到題目，看 Kagan 怎麼說', leaves: true }
+    : e.kind === 'review'
+      ? { to: `/s/${e.slug}#recall`, label: '回到這一場的「看完回想」', leaves: true }
+      : e.kind === 'concept'
+        ? { to: `/c/${e.question.conceptId}`, label: '看概念卡', leaves: false }
+        : null
+
+const bodyOf = (e: Entry) => e.kind === 'mine' ? e.note.body : e.text
+
+const setBody = (e: Entry, v: string) => {
+  if (e.kind === 'discuss') setDiscussNote(e, v)
+  else if (e.kind === 'mine') update(e.note.id, { body: v })
+  else setReviewNote(e.question.key, v)
+}
+
 const dateText = (iso: string) =>
   new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' })
+
+// ---- 匯出：目前篩選出來的筆記（沒篩選就是全部），依場次分組，下載成 .md 或 .txt ----
+type Format = 'md' | 'txt'
+
+/** 一則筆記的標籤、題目或標題、內容 */
+const exportParts = (e: Entry) => {
+  if (e.kind === 'discuss') return { label: `討論筆記・${discussLabel(e)}`, head: e.item.q, quote: true, body: e.text }
+  if (e.kind === 'review') return { label: `複習筆記・${reviewLabel(e.question)}`, head: e.question.item.q, quote: true, body: e.text }
+  if (e.kind === 'concept') return { label: '概念筆記', head: e.title, quote: false, body: e.text }
+  return { label: `我的筆記・${dateText(e.note.updatedAt)}`, head: e.note.title || '未命名筆記', quote: false, body: e.note.body }
+}
+
+const buildExport = (format: Format) => {
+  const md = format === 'md'
+  const today = taipeiToday()
+  const out: string[] = []
+  out.push(md ? '# 悅讀聊天室筆記' : '悅讀聊天室筆記')
+  out.push(`匯出日期：${today}　共 ${visible.value.length} 則`, '')
+  for (const g of groups.value) {
+    const title = g.session ? `${g.session.chip}・${g.session.title}` : '其他筆記'
+    out.push(md ? `## ${title}` : `■ ${title}`, '')
+    for (const e of g.entries) {
+      const p = exportParts(e)
+      if (md) {
+        out.push(`### ${p.label}`, '')
+        out.push(p.quote ? `> ${p.head}` : `**${p.head}**`, '')
+      }
+      else {
+        out.push(`【${p.label}】`)
+        out.push(p.quote ? `題目：${p.head}` : p.head)
+      }
+      const body = p.body.trim() || '（沒有內容）'
+      // Markdown 的單一換行會被合併成同一行，行尾加兩個空白保留換行
+      out.push(md ? body.replace(/\n/g, '  \n') : body, '')
+      if (!md) out.push('―――', '')
+    }
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n'
+}
+
+const download = (format: Format) => {
+  const text = buildExport(format)
+  const blob = new Blob([text], { type: format === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `悅讀聊天室筆記-${taipeiToday()}.${format}`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -182,7 +312,7 @@ const dateText = (iso: string) =>
       <header class="mb-6 flex flex-col gap-2 lg:mb-8">
         <h1 class="font-serif text-h1 leading-tight font-black text-highlighted">筆記</h1>
         <p class="text-body text-muted">
-          各場討論題的「我的想法」和複習時寫的筆記會自動收在這裡，也可以自己新增筆記。筆記只存在這個瀏覽器。
+          各場討論題的「我的想法」、複習和概念卡上寫的筆記會自動收在這裡，也可以自己新增筆記。筆記只存在這個瀏覽器。
         </p>
       </header>
 
@@ -275,6 +405,32 @@ const dateText = (iso: string) =>
               @click="clearFilters"
             />
           </div>
+
+          <div v-if="visible.length" class="flex flex-col gap-1.5">
+            <span id="facet-export" class="text-ui text-muted">匯出{{ hasFilter ? '目前篩選的' : '全部' }} {{ visible.length }} 則</span>
+            <div role="group" aria-labelledby="facet-export" class="flex flex-wrap gap-1.5">
+              <UButton
+                label="Markdown"
+                icon="i-lucide-download"
+                color="neutral"
+                variant="outline"
+                size="xs"
+                class="rounded-full px-3"
+                :ui="{ label: 'text-ui font-medium' }"
+                @click="download('md')"
+              />
+              <UButton
+                label="純文字"
+                icon="i-lucide-download"
+                color="neutral"
+                variant="outline"
+                size="xs"
+                class="rounded-full px-3"
+                :ui="{ label: 'text-ui font-medium' }"
+                @click="download('txt')"
+              />
+            </div>
+          </div>
         </aside>
 
         <div class="flex min-w-0 flex-col gap-8">
@@ -305,6 +461,8 @@ const dateText = (iso: string) =>
                   :title="e.item.q"
                   :meta="discussLabel(e)"
                   :body="e.text"
+                  deletable
+                  @delete="removeEntry(e)"
                   @open="editing = e.key"
                 />
                 <NoteCard
@@ -313,6 +471,18 @@ const dateText = (iso: string) =>
                   :title="e.question.item.q"
                   :meta="reviewLabel(e.question)"
                   :body="e.text"
+                  deletable
+                  @delete="removeEntry(e)"
+                  @open="editing = e.key"
+                />
+                <NoteCard
+                  v-else-if="e.kind === 'concept'"
+                  kind="concept"
+                  :title="e.title"
+                  meta="概念卡"
+                  :body="e.text"
+                  deletable
+                  @delete="removeEntry(e)"
                   @open="editing = e.key"
                 />
                 <NoteCard
@@ -321,7 +491,9 @@ const dateText = (iso: string) =>
                   :title="e.note.title"
                   :meta="dateText(e.note.updatedAt)"
                   :body="e.note.body"
+                  deletable
                   @open="editing = e.key"
+                  @delete="removeEntry(e)"
                 />
               </li>
             </ul>
@@ -329,111 +501,106 @@ const dateText = (iso: string) =>
         </div>
       </div>
 
-      <!-- 編輯視窗：內容一改就存（和討論卡片一樣），按「完成」或點外面關閉 -->
+      <!--
+        編輯視窗：仿 Heptabase 卡片，像一張文件而不是表單。
+        上方是種類標籤和關閉圖示（刪除在外層的卡片上），大字標題、一排屬性（場次、修改時間、連結），下面一大塊無框的書寫區。
+        內容一改就自動儲存，沒有「完成」按鈕；按右上角關閉、點外面或按 Esc 都會關閉。
+      -->
       <UModal
         v-model:open="modalOpen"
-        :title="{ discuss: '討論筆記', review: '複習筆記', mine: '我的筆記' }[active?.kind ?? 'mine']"
-        :description="active?.kind === 'discuss'
-          ? `${active.session.chip}・${discussLabel(active)}`
-          : active?.kind === 'review' ? `${active.question.session.chip}・${reviewLabel(active.question)}` : '只存在這個瀏覽器'"
-        :ui="{ content: 'sm:max-w-2xl', title: 'font-serif text-title font-black', description: 'font-mono text-meta' }"
+        :title="active ? kindLabel(active) : '筆記'"
+        :close="false"
+        :ui="{ content: 'sm:max-w-2xl', header: 'sr-only', body: 'p-0 sm:p-0' }"
       >
         <template #body>
-          <div v-if="active?.kind === 'discuss'" class="flex flex-col gap-3">
-            <p class="text-body font-medium text-highlighted">{{ active.item.q }}</p>
-            <UTextarea
-              :model-value="active.text"
-              autoresize
-              autofocus
-              :rows="5"
-              :maxrows="18"
-              placeholder="寫下你的想法；清空就是刪除這則筆記"
-              aria-label="我的想法"
-              :ui="{ base: 'text-body-sm leading-relaxed' }"
-              @update:model-value="(v: string) => setDiscussNote(active as Extract<Entry, { kind: 'discuss' }>, v)"
-            />
-            <NuxtLink
-              :to="`/s/${active.slug}#sunday`"
-              class="self-start text-ui text-secondary hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
-              @click="editing = null"
-            >
-              回到題目，看 Kagan 怎麼說 ›
-            </NuxtLink>
-          </div>
+          <article v-if="active" class="flex flex-col">
+            <div class="flex items-center gap-2 px-6 pt-4 sm:px-8">
+              <UBadge
+                :label="kindLabel(active)"
+                :color="active.kind === 'mine' ? 'primary' : active.kind === 'discuss' ? 'neutral' : 'secondary'"
+                variant="outline"
+                class="rounded-tag px-1.5 py-0 text-label font-medium"
+              />
+              <span class="text-meta text-dimmed">自動儲存・只存在這個瀏覽器</span>
+              <div class="ml-auto flex gap-0.5">
+                <UButton
+                  icon="i-lucide-x"
+                  aria-label="關閉"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="text-muted hover:text-highlighted"
+                  @click="editing = null"
+                />
+              </div>
+            </div>
 
-          <div v-else-if="active?.kind === 'review'" class="flex flex-col gap-3">
-            <p class="text-body font-medium text-highlighted">{{ active.question.item.q }}</p>
-            <UTextarea
-              :model-value="active.text"
-              autoresize
-              autofocus
-              :rows="5"
-              :maxrows="18"
-              placeholder="寫下你的筆記；清空就是刪除這則筆記"
-              aria-label="複習筆記"
-              :ui="{ base: 'text-body-sm leading-relaxed' }"
-              @update:model-value="(v: string) => setReviewNote((active as Extract<Entry, { kind: 'review' }>).question.key, v)"
-            />
-            <NuxtLink
-              :to="active.question.kind === 'concept' ? `/c/${active.question.conceptId}` : `/s/${active.slug}#recall`"
-              class="self-start text-ui text-secondary hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
-              @click="editing = null"
-            >
-              {{ active.question.kind === 'concept' ? '看概念卡 ›' : '回到這一場的「看完回想」 ›' }}
-            </NuxtLink>
-          </div>
+            <div class="flex flex-col gap-5 px-6 pt-3 pb-8 sm:px-8">
+              <!-- 標題：我的筆記可以改；其他種類是題目或詞條 -->
+              <UInput
+                v-if="active.kind === 'mine'"
+                :model-value="active.note.title"
+                variant="none"
+                placeholder="未命名筆記"
+                aria-label="筆記標題"
+                autofocus
+                :ui="{ root: 'w-full', base: 'p-0 font-serif text-h2! leading-snug font-black text-highlighted placeholder:text-dimmed' }"
+                @update:model-value="(v: string) => update((active as Extract<Entry, { kind: 'mine' }>).note.id, { title: v })"
+              />
+              <h2 v-else class="font-serif leading-snug font-black text-highlighted" :class="active.kind === 'concept' ? 'text-h2' : 'text-title'">
+                {{ headOf(active) }}
+              </h2>
 
-          <div v-else-if="active?.kind === 'mine'" class="flex flex-col gap-3">
-            <UInput
-              :model-value="active.note.title"
-              placeholder="標題"
-              aria-label="筆記標題"
-              autofocus
-              :ui="{ base: 'font-serif text-body font-semibold' }"
-              @update:model-value="(v: string) => update((active as Extract<Entry, { kind: 'mine' }>).note.id, { title: v })"
-            />
-            <UTextarea
-              :model-value="active.note.body"
-              autoresize
-              :rows="6"
-              :maxrows="20"
-              placeholder="寫下你的筆記"
-              aria-label="筆記內容"
-              :ui="{ base: 'text-body-sm leading-relaxed' }"
-              @update:model-value="(v: string) => update((active as Extract<Entry, { kind: 'mine' }>).note.id, { body: v })"
-            />
-            <USelect
-              :model-value="active.note.slug ?? 'none'"
-              :items="sessionOptions"
-              aria-label="屬於哪一場"
-              class="w-full"
-              :ui="{ base: 'text-ui' }"
-              @update:model-value="(v: string) => update((active as Extract<Entry, { kind: 'mine' }>).note.id, { slug: v === 'none' ? null : v })"
-            />
-          </div>
-        </template>
+              <!-- 屬性列 -->
+              <dl class="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 text-ui">
+                <dt class="flex items-center gap-1.5 text-muted"><UIcon name="i-lucide-calendar-days" class="size-3.5" />場次</dt>
+                <dd class="min-w-0">
+                  <USelect
+                    v-if="active.kind === 'mine'"
+                    :model-value="active.note.slug ?? 'none'"
+                    :items="sessionOptions"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="屬於哪一場"
+                    class="-ms-2.5 w-full max-w-full"
+                    :ui="{ base: 'text-ui text-default', value: 'truncate' }"
+                    @update:model-value="(v: string) => update((active as Extract<Entry, { kind: 'mine' }>).note.id, { slug: v === 'none' ? null : v })"
+                  />
+                  <span v-else class="truncate text-default">{{ whereOf(active) }}</span>
+                </dd>
 
-        <template #footer>
-          <div class="flex w-full items-center gap-2">
-            <UButton
-              v-if="active?.kind === 'mine'"
-              label="刪除"
-              icon="i-lucide-trash-2"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              class="text-ui text-muted hover:text-highlighted"
-              @click="removeNote((active as Extract<Entry, { kind: 'mine' }>).note)"
-            />
-            <UButton
-              label="完成"
-              color="primary"
-              variant="outline"
-              size="sm"
-              class="ml-auto rounded-control px-4 text-ui font-medium"
-              @click="editing = null"
-            />
-          </div>
+                <template v-if="active.kind === 'mine'">
+                  <dt class="flex items-center gap-1.5 text-muted"><UIcon name="i-lucide-clock" class="size-3.5" />修改</dt>
+                  <dd class="font-mono text-meta text-default">{{ dateText(active.note.updatedAt) }}</dd>
+                </template>
+
+                <template v-if="linkOf(active)">
+                  <dt class="flex items-center gap-1.5 text-muted"><UIcon name="i-lucide-link" class="size-3.5" />連結</dt>
+                  <dd>
+                    <NuxtLink
+                      :to="linkOf(active)!.to"
+                      class="text-secondary hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
+                      @click="linkOf(active)!.leaves && (editing = null)"
+                    >
+                      {{ linkOf(active)!.label }} ›
+                    </NuxtLink>
+                  </dd>
+                </template>
+              </dl>
+
+              <div class="border-t border-default" />
+
+              <!-- 書寫區：沒有外框，像在紙上寫；Markdown 編輯器（有工具列，也可以直接打 ## 、**、- ） -->
+              <MarkdownEditor
+                :key="active.key"
+                :model-value="bodyOf(active)"
+                :autofocus="active.kind !== 'mine'"
+                min-height="min-h-48"
+                :placeholder="active.kind === 'mine' ? '開始寫…（支援 Markdown）' : '寫下你的想法…（清空就是刪除這則筆記）'"
+                @update:model-value="(v: string) => setBody(active!, v)"
+              />
+            </div>
+          </article>
         </template>
       </UModal>
     </main>

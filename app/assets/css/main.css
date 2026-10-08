@@ -160,6 +160,18 @@ h1, h2, h3 {
 }
 
 /*
+ * 全站隱藏捲軸（頁面、彈窗、側欄、文字框都一樣），仍然可以用滾輪、觸控板、鍵盤捲動。
+ * Firefox 用 scrollbar-width，Chrome / Safari 用 ::-webkit-scrollbar。
+ */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/*
  * 可點選的元素一律顯示手指游標（DESIGN.md「實作規則」）。
  * Tailwind CSS 4 預設讓按鈕維持一般游標，所以在這裡統一補上。
  * 停用的元素用一般游標（例如作答後鎖定的測驗選項，用禁止符號會讓人以為出錯）。

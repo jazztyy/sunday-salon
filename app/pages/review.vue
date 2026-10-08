@@ -366,15 +366,13 @@ const sourceOf = (q: ReviewQuestion) =>
                 />
                 <template v-else>
                   <label :for="`review-note-${index}`" class="text-meta font-medium text-muted">我的筆記<span class="font-normal text-dimmed">・會收進「筆記」頁</span></label>
-                  <UTextarea
+                  <MarkdownEditor
                     :id="`review-note-${index}`"
+                    :key="`review-note-${index}`"
                     v-model="note"
-                    autoresize
                     :autofocus="noteOpen && !note"
-                    :rows="3"
-                    :maxrows="12"
+                    min-height="min-h-24"
                     placeholder="用最簡單的話，向沒看過影片的朋友解釋為什麼是這個答案；卡住的地方就是還不懂的地方"
-                    :ui="{ base: 'text-body-sm leading-relaxed' }"
                   />
                 </template>
               </div>
