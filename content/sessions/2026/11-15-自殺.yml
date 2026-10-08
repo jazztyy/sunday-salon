@@ -13,7 +13,13 @@ tags:
   - 宗教哲學
   - Shelly Kagan
   - Yale PHIL 176 Death
-concepts: []
+  - 休謨
+concepts:
+  - two-state-requirement
+  - container-theory
+  - utilitarianism
+  - deontology
+  - consent-principle
 related:
   - slug: w6
     reason: 上一場問知道自己會死，該怎麼看待死亡、怎麼活；這場接著問它的反面：人能不能決定提早結束生命
