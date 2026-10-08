@@ -139,6 +139,8 @@ watch(() => route.query.tag, (v) => {
         <template #aside>
           <FilterSearch v-model="query" placeholder="搜尋詞條、英文、別名或定義…" label="搜尋概念卡" />
           <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clear" />
+          <!-- 場次放在 tag 上面：只占一行，tag 越來越多時不會被擠到最下面 -->
+          <FilterSelect v-model="session" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="sessionChips" />
           <FilterChips
             v-for="facet in visibleFacets"
             :key="facet.key"
@@ -149,7 +151,6 @@ watch(() => route.query.tag, (v) => {
             :limit="8"
             rank="count"
           />
-          <FilterSelect v-model="session" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="sessionChips" />
           <FilterStatus :count="total" unit="張" />
         </template>
 
