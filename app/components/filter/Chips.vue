@@ -4,6 +4,7 @@
 // 只負責畫面，選了什麼怎麼篩由各頁決定。組名後面的 slot 放說明文字。
 // limit：選項多時先只顯示 limit 個，其他收在「顯示全部（N）」。rank='count' 時留用得最多的（依 count），
 // 否則留前面幾個（例如場次是新的在前）。已選的不管排第幾都一定顯示；只多出一兩個時不收。
+// list：改成一行一個的直排清單（場次用）。label 開頭是日期（「10/4 靈魂與永生」）時，日期放在固定寬度的左欄，主題對齊。
 
 export interface FilterChipOption<V> {
   value: V
@@ -28,6 +29,8 @@ const props = defineProps<{
   rank?: 'count' | 'order'
   /** 展開按鈕的文字，後面會接（隱藏的數量） */
   moreLabel?: string
+  /** 一行一個的直排清單，不用 pill */
+  list?: boolean
 }>()
 
 const model = defineModel<M>({ required: true })
@@ -56,6 +59,16 @@ const shown = computed(() => {
   return props.options.filter(o => keep.has(o.value) || isOn(o.value))
 })
 
+/** 「10/4 靈魂與永生」→ ['10/4', '靈魂與永生']；開頭不是日期就整個當主題 */
+const splitDate = (text: string): [string, string] => {
+  const m = text.match(/^(\d{1,2}\/\d{1,2})\s+(.+)$/)
+  return m ? [m[1]!, m[2]!] : ['', text]
+}
+
+const rowClass = (on: boolean) => on
+  ? 'bg-inverted font-medium text-inverted'
+  : 'text-toned hover:bg-accented hover:text-highlighted'
+
 const hiddenCount = computed(() => props.options.length - shown.value.length)
 
 const choose = (value: T) => {
@@ -71,7 +84,46 @@ const choose = (value: T) => {
 <template>
   <div class="flex flex-col gap-1.5">
     <span :id="id" class="text-ui text-muted">{{ label }}</span>
-    <div role="group" :aria-labelledby="id" class="flex flex-wrap gap-1.5">
+    <!-- 直排清單（場次） -->
+    <div v-if="list" role="group" :aria-labelledby="id" class="flex flex-col gap-0.5">
+      <button
+        v-if="allLabel !== undefined && !multiple"
+        type="button"
+        class="flex w-full items-baseline gap-2.5 rounded-control px-2 py-1 text-left text-ui transition-colors focus-visible:outline-2 focus-visible:outline-primary"
+        :class="rowClass(model === null)"
+        :aria-pressed="model === null"
+        @click="model = null as M"
+      >
+        {{ allLabel }}
+      </button>
+      <button
+        v-for="o in shown"
+        :key="o.value"
+        type="button"
+        class="flex w-full items-baseline gap-2.5 rounded-control px-2 py-1 text-left text-ui transition-colors focus-visible:outline-2 focus-visible:outline-primary"
+        :class="[rowClass(isOn(o.value)), o.class]"
+        :aria-pressed="isOn(o.value)"
+        @click="choose(o.value)"
+      >
+        <span class="w-11 shrink-0 font-mono text-meta" :class="isOn(o.value) ? '' : 'text-muted'">{{ splitDate(o.label)[0] }}</span>
+        <span class="min-w-0 truncate">{{ splitDate(o.label)[1] }}</span>
+        <span v-if="o.count !== undefined" class="ml-auto font-mono text-meta" :class="isOn(o.value) ? '' : 'text-dimmed'">{{ o.count }}</span>
+      </button>
+      <UButton
+        v-if="collapsible"
+        :label="expanded ? '收起' : `${moreLabel ?? '顯示全部'}（${hiddenCount}）`"
+        :trailing-icon="expanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+        color="neutral"
+        variant="link"
+        size="xs"
+        :aria-expanded="expanded"
+        class="self-start px-2 text-muted hover:text-highlighted"
+        :ui="{ label: 'text-ui', trailingIcon: 'size-3.5' }"
+        @click="expanded = !expanded"
+      />
+    </div>
+
+    <div v-else role="group" :aria-labelledby="id" class="flex flex-wrap gap-1.5">
       <UButton
         v-if="allLabel !== undefined && !multiple"
         :label="allLabel"

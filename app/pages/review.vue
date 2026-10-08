@@ -192,7 +192,7 @@ const sourceOf = (q: ReviewQuestion) =>
       <FilterLayout aside-label="複習設定" main-class="gap-4">
         <template #aside>
           <FilterChips v-model="mode" label="出題方式" :options="modeOptions" />
-          <FilterChips v-model="scope" label="範圍" :options="scopeOptions" multiple :limit="6" more-label="更早的場次">
+          <FilterChips v-model="scope" label="範圍" :options="scopeOptions" multiple list :limit="6" more-label="更早的場次">
             <p class="text-meta text-dimmed">預設是已經討論過的場次</p>
           </FilterChips>
           <FilterChips v-model="kinds" label="題型" :options="KIND_OPTIONS" multiple />
