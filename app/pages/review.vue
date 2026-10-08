@@ -276,7 +276,7 @@ const sourceOf = (q: ReviewQuestion) =>
       </header>
 
       <!-- 手機：設定收在「複習設定」裡（按鈕下面一行是目前設定的摘要），題數和「開始複習」一直看得到 -->
-      <FilterLayout aside-label="複習設定" toggle-label="複習設定" :toggle-hint="storageReady ? settingsHint : ''" main-class="gap-4">
+      <FilterLayout aside-label="複習設定" toggle-label="複習設定" :sticky-mobile="false" :toggle-hint="storageReady ? settingsHint : ''" main-class="gap-4">
         <template #aside>
           <!-- 掛載前：題數還沒套上作答紀錄和存的範圍，先放骨架（同樣的組數和 chip 數），不顯示錯的數字 -->
           <div v-if="!storageReady" class="flex flex-col gap-5" aria-busy="true">

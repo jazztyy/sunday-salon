@@ -247,16 +247,23 @@ const download = (format: NoteExportFormat) => {
         -->
         <FilterLayout v-else-if="storageReady" key="notes" :active-count="summary.length">
           <template #top>
+            <!-- 桌機：篩選欄最上面的按鈕。手機：右下角的圓形浮動按鈕，不佔固定在上方的篩選欄 -->
             <UButton
               icon="i-lucide-plus"
               label="新增筆記"
+              aria-label="新增筆記"
               color="primary"
               variant="outline"
-              class="justify-center rounded-control px-3 text-ui font-medium"
+              class="justify-center rounded-control px-3 text-ui font-medium max-lg:fixed max-lg:right-4 max-lg:bottom-5 max-lg:z-30 max-lg:size-14 max-lg:rounded-full max-lg:bg-primary max-lg:p-0 max-lg:text-inverted max-lg:shadow-lg max-lg:ring-0"
+              :ui="{ label: 'max-lg:sr-only', leadingIcon: 'max-lg:size-6' }"
               @click="newNote"
             />
 
+          </template>
+          <template #search>
             <FilterSearch v-model="query" placeholder="搜尋筆記、題目或標題…" label="搜尋筆記" />
+          </template>
+          <template #summary>
             <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
           </template>
 

@@ -112,7 +112,7 @@ const optionClass = (r: QuizRecord, j: number) => {
 <template>
   <!-- 手機：「已選」一直在上面，結果和場次收在「篩選（N）」裡 -->
   <FilterLayout aside-label="篩選作答紀錄" :active-count="summary.length">
-    <template #top>
+    <template #summary>
       <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
     </template>
 

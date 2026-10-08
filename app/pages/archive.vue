@@ -171,8 +171,10 @@ useUrlFilters([
 
       <!-- 手機：搜尋和「已選」一直在上面，年份、月份、tag 收在「篩選（N）」裡 -->
       <FilterLayout :active-count="summary.length">
-        <template #top>
+        <template #search>
           <FilterSearch v-model="query" placeholder="搜尋標題、講座、章節…" label="搜尋場次" />
+        </template>
+        <template #summary>
           <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clear" />
         </template>
 

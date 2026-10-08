@@ -138,8 +138,10 @@ watch(() => route.query.tag, (v) => {
 
       <!-- 手機：搜尋和「已選」一直在上面，場次和 tag 收在「篩選（N）」裡 -->
       <FilterLayout :active-count="summary.length">
-        <template #top>
+        <template #search>
           <FilterSearch v-model="query" placeholder="搜尋詞條、英文、別名或定義…" label="搜尋概念卡" />
+        </template>
+        <template #summary>
           <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clear" />
         </template>
 

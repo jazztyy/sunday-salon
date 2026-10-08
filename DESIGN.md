@@ -247,8 +247,9 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 場次卡 | `pages/archive.vue` 裡 | — | `bg-elevated rounded-card border-default`，整張可以點，連到 `/s/{slug}`。內容：日期（`font-mono text-meta text-muted`，用 `dateLabel`）、標題（`font-serif`）、tag 列。hover 時 `border-accented` |
 | 月份標題 | `pages/archive.vue` 裡 | — | 「依月份」檢視的分組標題，`h2` |
 | 檢視切換 | `pages/archive.vue` 裡 | `UTabs` | 「依月份」「依主題」兩個選項 |
-| 篩選版面 | `filter/Layout.vue`（`<FilterLayout>`） | — | 列表頁共用的兩欄版面：左邊 232px 的篩選欄（`lg` 以上 sticky 在頂部列下方，太高時自己捲動；手機放在上方），右邊內容。`/archive`、`/concepts`、`/review`、`/notes` 共用。三個 slot：`#top` 一直顯示（搜尋框、已選摘要、新增筆記）、`#aside` 是篩選選項、`#bottom` 一直顯示（複習的「開始複習」）。**手機（< lg）**：`#aside` 預設收起（`max-lg:hidden`），上方一顆 `lg:hidden` 的 outline 按鈕「篩選（N）」（`toggleLabel`、`activeCount`；左邊滑桿圖示、右邊 chevron、`aria-expanded`／`aria-controls`），可以加一行摘要（`toggleHint`，例如複習設定）；展開時 `animate-reveal`，面板底部有「收起篩選」。slot 只渲染一次、用 CSS 切換（不會 hydration 不一致），不記住展開狀態 |
+| 篩選版面 | `filter/Layout.vue`（`<FilterLayout>`） | — | 列表頁共用的兩欄版面：左邊 232px 的篩選欄（`lg` 以上 sticky 在頂部列下方，太高時自己捲動；手機放在上方），右邊內容。`/archive`、`/concepts`、`/review`、`/notes` 共用。slot：`#top`（新增筆記）、`#search`（搜尋框）、`#summary`（已選摘要）一直顯示，`#aside` 是篩選選項，`#bottom` 一直顯示（複習的「開始複習」）。**手機（< lg）**：整個篩選欄固定在頂部列下方（`sticky top-[var(--tb)]`、滿版、實色 `bg-default`、下框線；不用半透明＋blur，會讓裡面的 fixed 元素改成相對篩選欄定位），展開的選項太長時在裡面捲動；複習頁不固定（`:sticky-mobile="false"`）。搜尋框和精簡的「篩選（N）」按鈕排同一行。`#aside` 預設收起（`max-lg:hidden`），上方一顆 `lg:hidden` 的 outline 按鈕「篩選（N）」（`toggleLabel`、`activeCount`；左邊滑桿圖示、右邊 chevron、`aria-expanded`／`aria-controls`），可以加一行摘要（`toggleHint`，例如複習設定）；展開時 `animate-reveal`，面板底部有「收起篩選」。slot 只渲染一次、用 CSS 切換（不會 hydration 不一致），不記住展開狀態 |
 | 筆記卡 | `note/Card.vue`（`<NoteCard>`） | `UBadge`、`UButton` | `/notes` 的卡片，外觀同場次卡。種類的名稱和徽章顏色讀 `utils/noteKinds.ts` 的 `NOTE_KINDS`，不要在元件裡另外寫 |
+| 新增筆記（手機） | `pages/notes.vue` 裡 | `UButton` | 桌機是篩選欄最上面的 outline 按鈕；手機是右下角的圓形浮動按鈕（`fixed right-4 bottom-5`、56px、`bg-primary text-inverted`、陰影、文字只給螢幕閱讀器），不佔固定在上方的篩選欄 |
 | 筆記視窗 | `note/Sheet.vue`（`<NoteSheet>`）、`note/SheetProp.vue`（`<NoteSheetProp>`） | `UModal` | 仿 Heptabase 卡片的文件式視窗：上方徽章＋灰字提示＋關閉，serif 大標，一排屬性（圖示＋名稱），分隔線下面是內容。筆記和作答紀錄共用 |
 | 筆記小卡 | `NoteField.vue`（`<NoteField>`） | `<LazyMarkdownEditor>` | `rounded-control border-default bg-default` 小卡：名稱＋灰字說明，可以加收起的 ✕。討論卡的「我的想法」、作答紀錄的筆記用；概念卡的側欄筆記版面不同，不用它 |
 | 場次分組標題 | `SessionGroupHeading.vue`（`<SessionGroupHeading>`） | — | 場次 chip 連結＋「N 則／題」＋下一行題目。筆記、作答紀錄共用 |
@@ -376,7 +377,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
-| 2026-10-08 | 3.14 | 新增 7.1「動態」：換頁、分頁、子分頁、複習換題、揭曉、展開都有短過場（`page`、`rise`、`slide-next/prev`、`fade`、`animate-reveal`），概念卡換卡不再閃（預先載入＋舊卡疊著淡出）；載入骨架（筆記、複習、首頁換場次、概念卡彈窗、文字編輯器）；過場時保住焦點 |
+| 2026-10-08 | 3.14 | 手機篩選欄固定在頂部列下方（搜尋＋「篩選（N）」一行），筆記頁的新增筆記改成右下角浮動按鈕。新增 7.1「動態」：換頁、分頁、子分頁、複習換題、揭曉、展開都有短過場（`page`、`rise`、`slide-next/prev`、`fade`、`animate-reveal`），概念卡換卡不再閃（預先載入＋舊卡疊著淡出）；載入骨架（筆記、複習、首頁換場次、概念卡彈窗、文字編輯器）；過場時保住焦點 |
 | 2026-10-08 | 3.13 | 概念卡牆改成兩排網格＋「顯示全部」（`<ConceptRow>`），新增上一則／下一則（`<ConceptPager>`）。單選的場次篩選改成可搜尋的下拉選單（`<FilterSelect>`）；複習範圍改成預設＋自己選（`<FilterScopePicker>`）。篩選欄新增 `<FilterSummary>`（已選＋清除篩選），`<FilterChips>` 加上 `limit` 收起；側欄底部的「共 N 場」改成只給螢幕閱讀器的 `<FilterStatus>` |
 | 2026-10-08 | 3.12 | 抽出共用元件，畫面不變：篩選欄 `<FilterLayout>`、`<FilterChips>`、`<FilterSearch>`、`<FilterFooter>`（`/archive`、`/concepts`、`/review`、`/notes`）；筆記視窗 `<NoteSheet>`、筆記小卡 `<NoteField>`、場次分組標題 `<SessionGroupHeading>`；筆記種類集中在 `NOTE_KINDS`。文字編輯器、概念卡彈窗改成需要時才載入 |
 | 2026-10-08 | 3.11 | 討論卡的「我的想法」改成 `<MarkdownEditor>` 小卡，可以隨時收起；`/notes` 新增「作答紀錄」檢視（`<NoteAnswers>`：對錯徽章卡片，視窗先回想再揭曉答案）；名詞卡的 hover 改加在整張卡上，翻開後不再上下兩截不同色 |
