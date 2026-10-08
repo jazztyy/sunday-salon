@@ -110,7 +110,7 @@ const optionClass = (r: QuizRecord, j: number) => {
     <template #aside>
       <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
       <FilterChips v-model="result" label="結果" :options="resultOptions" />
-      <FilterChips v-if="placeOptions.length" v-model="place" label="場次" all-label="全部" :options="placeOptions" list :limit="6" more-label="更早的場次" />
+      <FilterSelect v-if="placeOptions.length" v-model="place" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="placeOptions" />
       <FilterStatus :count="visible.length" unit="題" />
 
       <NuxtLink

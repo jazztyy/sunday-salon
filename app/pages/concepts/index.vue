@@ -149,7 +149,7 @@ watch(() => route.query.tag, (v) => {
             :limit="8"
             rank="count"
           />
-          <FilterChips v-model="session" label="場次" all-label="全部" :options="sessionChips" list :limit="6" more-label="更早的場次" />
+          <FilterSelect v-model="session" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="sessionChips" />
           <FilterStatus :count="total" unit="張" />
         </template>
 

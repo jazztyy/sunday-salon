@@ -24,4 +24,6 @@ export const STORAGE_KEYS = {
   reviewLog: 'salon-review-log',
   /** /notes 自己新增的筆記 */
   myNotes: 'salon-mynotes',
+  /** /review 的範圍（預設範圍或自己選的場次） */
+  reviewScope: 'salon-review-scope',
 } as const

@@ -252,8 +252,10 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 筆記視窗 | `note/Sheet.vue`（`<NoteSheet>`）、`note/SheetProp.vue`（`<NoteSheetProp>`） | `UModal` | 仿 Heptabase 卡片的文件式視窗：上方徽章＋灰字提示＋關閉，serif 大標，一排屬性（圖示＋名稱），分隔線下面是內容。筆記和作答紀錄共用 |
 | 筆記小卡 | `NoteField.vue`（`<NoteField>`） | `<LazyMarkdownEditor>` | `rounded-control border-default bg-default` 小卡：名稱＋灰字說明，可以加收起的 ✕。討論卡的「我的想法」、作答紀錄的筆記用；概念卡的側欄筆記版面不同，不用它 |
 | 場次分組標題 | `SessionGroupHeading.vue`（`<SessionGroupHeading>`） | — | 場次 chip 連結＋「N 則／題」＋下一行題目。筆記、作答紀錄共用 |
-| tag 篩選 pill | `filter/Chips.vue`（`<FilterChips>`） | `UButton`（`rounded-full`） | 一組 chip：前面有面向名稱（`text-ui text-muted`），`role="group"` 用 `useId()` 接 `aria-labelledby`。未選取 `color="neutral" variant="outline"`；選取後 solid，並設 `aria-pressed`。`multiple` 可以多選（v-model 是陣列）；單選時可以加 `all-label` 的「全部」chip（對應 null）；有 `count` 時顯示成「{名稱} {數量}」。依面向（領域／人物／系列）分組時每組一個 `<FilterChips>`。選項多時用 `limit` 收起：`rank="count"` 留筆數最多的（tag），否則留前面的（場次，新的在前）；後面接 `variant="link"` 的「顯示全部（N）」／「收起」，已選的一定顯示，至少多出 3 個才收。**場次用 `list`**：一行一個的直排清單，日期放在固定寬度的左欄（`font-mono text-meta`），主題對齊；選中的那行 `bg-inverted text-inverted`，hover `bg-accented`。場次名稱長短不一，排成 pill 會參差不齊 |
+| tag 篩選 pill | `filter/Chips.vue`（`<FilterChips>`） | `UButton`（`rounded-full`） | 一組 chip：前面有面向名稱（`text-ui text-muted`），`role="group"` 用 `useId()` 接 `aria-labelledby`。未選取 `color="neutral" variant="outline"`；選取後 solid，並設 `aria-pressed`。`multiple` 可以多選（v-model 是陣列）；單選時可以加 `all-label` 的「全部」chip（對應 null）；有 `count` 時顯示成「{名稱} {數量}」。依面向（領域／人物／系列）分組時每組一個 `<FilterChips>`。選項多時用 `limit` 收起：`rank="count"` 留筆數最多的（tag），否則留前面的（場次，新的在前）；後面接 `variant="link"` 的「顯示全部（N）」／「收起」，已選的一定顯示，至少多出 3 個才收。**`list`**：一行一個的直排清單，日期放在固定寬度的左欄（`font-mono text-meta`），主題對齊；選中的那行 `bg-inverted text-inverted`，hover `bg-accented`。場次名稱長短不一，排成 pill 會參差不齊 |
 | 篩選搜尋框 | `filter/Search.vue`（`<FilterSearch>`） | `UInput` | 搜尋圖示＋有字時出現清除鈕 |
+| 場次下拉選單 | `filter/Select.vue`（`<FilterSelect>`） | `USelectMenu` | 單選的場次篩選（概念卡、筆記、作答紀錄）：一行的下拉選單，沒選時顯示「全部場次」，可以打字搜尋（主題或日期），選項是固定寬度的日期欄＋主題；選了之後右邊有 ✕ 清除。場次一年多 52 個，攤開成 chip 太長 |
+| 複習範圍 | `filter/ScopePicker.vue`（`<FilterScopePicker>`） | `<FilterChips>` | 三個單選 pill（全部討論過的／最近 4 場／自己選，附題數）；「自己選」時下面出現依月份分組的勾選清單：月份標題是可收合的按鈕（`aria-expanded`，`text-meta text-muted`），右邊是 `variant="link"` 的全選；每一行 `role="checkbox"`，左邊是勾選框，日期欄同 `<FilterChips list>`，選中 `bg-inverted text-inverted`，hover `bg-accented`，`rounded-control`。還沒討論的場次沒勾時淡一點 |
 | 已選摘要 | `filter/Summary.vue`（`<FilterSummary>`） | `UButton` | 篩選欄搜尋框下面：「已選」＋右邊的「清除篩選」文字按鈕，下面一排已選條件（`color="primary" variant="subtle"`、`rounded-full`、後面 `i-lucide-x`，點了取消）。沒有任何條件時整個不顯示 |
 | 結果數 | `filter/Status.vue`（`<FilterStatus>`） | — | 「共 N 場」只給螢幕閱讀器（`sr-only`、`aria-live="polite"`），畫面上不顯示 |
 | 概念卡 | `concept/Card.vue`（`<ConceptCard>`） | — | 卡片牆和「相關概念」共用。`bg-elevated rounded-card border-default`，整張可以點，連到 `/c/{id}`。內容：詞條（`font-serif text-title`）、英文（`font-mono text-meta text-muted`）、`summary`（`text-small text-toned`） |
@@ -348,7 +350,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
-| 2026-10-08 | 3.13 | 場次篩選改成直排清單（`<FilterChips list>`）。篩選欄新增 `<FilterSummary>`（已選＋清除篩選），`<FilterChips>` 加上 `limit` 收起；側欄底部的「共 N 場」改成只給螢幕閱讀器的 `<FilterStatus>` |
+| 2026-10-08 | 3.13 | 單選的場次篩選改成可搜尋的下拉選單（`<FilterSelect>`）；複習範圍改成預設＋自己選（`<FilterScopePicker>`）。篩選欄新增 `<FilterSummary>`（已選＋清除篩選），`<FilterChips>` 加上 `limit` 收起；側欄底部的「共 N 場」改成只給螢幕閱讀器的 `<FilterStatus>` |
 | 2026-10-08 | 3.12 | 抽出共用元件，畫面不變：篩選欄 `<FilterLayout>`、`<FilterChips>`、`<FilterSearch>`、`<FilterFooter>`（`/archive`、`/concepts`、`/review`、`/notes`）；筆記視窗 `<NoteSheet>`、筆記小卡 `<NoteField>`、場次分組標題 `<SessionGroupHeading>`；筆記種類集中在 `NOTE_KINDS`。文字編輯器、概念卡彈窗改成需要時才載入 |
 | 2026-10-08 | 3.11 | 討論卡的「我的想法」改成 `<MarkdownEditor>` 小卡，可以隨時收起；`/notes` 新增「作答紀錄」檢視（`<NoteAnswers>`：對錯徽章卡片，視窗先回想再揭曉答案）；名詞卡的 hover 改加在整張卡上，翻開後不再上下兩截不同色 |
 | 2026-09-29 | 3.10 | 播放器可以「放大影片」浮到畫面中間（桌機，不加遮罩，頁面照樣可以捲動），預設在側欄，可以拖曳移動。「看之前」單欄改成置中 |

@@ -210,7 +210,7 @@ const download = (format: NoteExportFormat) => {
           <FilterSearch v-model="query" placeholder="搜尋筆記、題目或標題…" label="搜尋筆記" />
           <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
           <FilterChips v-model="kind" label="種類" :options="kindOptions" />
-          <FilterChips v-if="placeOptions.length" v-model="place" label="場次" all-label="全部" :options="placeOptions" list :limit="6" more-label="更早的場次" />
+          <FilterSelect v-if="placeOptions.length" v-model="place" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="placeOptions" />
           <FilterStatus :count="visible.length" unit="則" />
 
           <div v-if="visible.length" class="flex flex-col gap-1.5">

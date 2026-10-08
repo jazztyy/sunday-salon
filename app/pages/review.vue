@@ -8,6 +8,7 @@
 // 方法依據：pdf-parser 專案的 study skill（整合 11 本學習科學書籍），間隔照它的 1/2/4/7/15/30 天。
 // 規格見 SPEC.md「複習」。
 import type { ReviewQuestion } from '~/utils/review'
+import type { ScopeMode, ScopeSession } from '~/components/filter/ScopePicker.vue'
 
 useSeoMeta({ title: '複習・悅讀聊天室' })
 
@@ -22,20 +23,63 @@ const today = useToday()
 const discussed = computed(() => sessions.value.filter(s => s.date <= today.value))
 const discussedSlugs = computed(() => new Set(discussed.value.map(s => s.slug)))
 
-/** 範圍：選取的場次 slug；掛載後預設是討論過的場次（還沒有就選本週那一場） */
-const scope = ref<string[]>([])
-onMounted(() => {
-  const base = discussed.value.length ? discussed.value : [pickCurrentSession(sessions.value, today.value)].filter(s => !!s)
-  scope.value = base.map(s => s.slug)
+/** 「全部討論過的」：討論過的場次（還沒有就是本週那一場） */
+const discussedBase = computed(() => discussed.value.length
+  ? discussed.value
+  : [pickCurrentSession(sessions.value, today.value)].filter(s => !!s))
+
+/** 「最近 4 場」：討論過的場次裡最新的 4 場（sessions 是新到舊） */
+const RECENT_COUNT = 4
+
+const presetSlugs = computed(() => ({
+  discussed: discussedBase.value.map(s => s.slug),
+  recent: discussedBase.value.slice(0, RECENT_COUNT).map(s => s.slug),
+}))
+
+/** 範圍設定存在瀏覽器：預設範圍，或「自己選」的場次 slug */
+const scopeState = useSalonStorage<{ mode: ScopeMode, slugs: string[] }>(STORAGE_KEYS.reviewScope, { mode: 'discussed', slugs: [] })
+
+const scopeMode = computed({
+  get: () => scopeState.value.mode,
+  set: (mode: ScopeMode) => {
+    // 第一次切到「自己選」時，從目前的範圍開始勾
+    const slugs = mode === 'custom' && !scopeState.value.slugs.length && scopeState.value.mode !== 'custom'
+      ? presetSlugs.value[scopeState.value.mode]
+      : scopeState.value.slugs
+    scopeState.value = { mode, slugs }
+  },
 })
+const customSlugs = computed({
+  get: () => scopeState.value.slugs,
+  set: (slugs: string[]) => { scopeState.value = { ...scopeState.value, slugs } },
+})
+
+// 掛載後讀回存的範圍（useSalonStorage 在這之前已經讀好）：丟掉已經不存在的場次；
+// 自己選的剛好等於某個預設範圍時改回那個預設，之後有新場次會跟著更新。只在讀回時整理，勾選途中不動
+onMounted(() => {
+  const { mode, slugs } = scopeState.value
+  const known = new Set(sessions.value.map(s => s.slug))
+  const kept = (Array.isArray(slugs) ? slugs : []).filter(v => known.has(v))
+  const same = (list: string[]) => list.length === kept.length && list.every(v => kept.includes(v))
+  const normalized: ScopeMode = !['discussed', 'recent', 'custom'].includes(mode) ? 'discussed'
+    : mode !== 'custom' ? mode
+      : !kept.length || same(presetSlugs.value.discussed) ? 'discussed'
+          : same(presetSlugs.value.recent) ? 'recent'
+            : 'custom'
+  if (normalized !== mode || kept.length !== slugs?.length) scopeState.value = { mode: normalized, slugs: kept }
+})
+
+/** 範圍：實際選取的場次 slug */
+const scope = computed(() => scopeMode.value === 'custom' ? customSlugs.value : presetSlugs.value[scopeMode.value])
 
 const scopeSet = computed(() => new Set(scope.value))
 
-/** 範圍的 chip：還沒討論、也沒選的場次淡一點 */
-const scopeOptions = computed(() => sessions.value.map(s => ({
-  value: s.slug,
-  label: s.chip,
-  class: { 'opacity-70': !discussedSlugs.value.has(s.slug) && !scopeSet.value.has(s.slug) },
+/** 「自己選」清單：全部場次，還沒討論的淡一點 */
+const scopeSessions = computed<ScopeSession[]>(() => sessions.value.map(s => ({
+  slug: s.slug,
+  date: s.date,
+  chip: s.chip,
+  upcoming: !discussedSlugs.value.has(s.slug),
 })))
 
 type Kind = 'quiz' | 'concept'
@@ -61,27 +105,42 @@ const mode = ref<Mode>('due')
 /** 先回想再看選項（預設開） */
 const recallFirst = ref(true)
 
-/** 範圍和題型篩完、還沒套出題方式的題目 */
-const base = computed(() => {
-  const picked = sessions.value.filter(s => scopeSet.value.has(s.slug))
+/** 這些場次、篩完題型的題目（還沒套出題方式） */
+const questionsOf = (slugs: Set<string>) => {
   const kindSet = new Set(kinds.value)
-  return buildReviewQuestions(picked, concepts.value).filter(q => kindSet.has(q.kind))
-})
+  return buildReviewQuestions(sessions.value.filter(s => slugs.has(s.slug)), concepts.value).filter(q => kindSet.has(q.kind))
+}
+
+/** 套用出題方式 */
+const byMode = (list: ReviewQuestion[], m: Mode) => list.filter(q =>
+  m === 'all'
+  || (m === 'due' && isDue(q.key, today.value))
+  || (m === 'wrong' && log.value?.[q.key]?.lastCorrect === false),
+)
+
+/** 範圍和題型篩完、還沒套出題方式的題目 */
+const base = computed(() => questionsOf(scopeSet.value))
 
 const modeCounts = computed(() => ({
-  due: base.value.filter(q => isDue(q.key, today.value)).length,
-  wrong: base.value.filter(q => log.value?.[q.key]?.lastCorrect === false).length,
+  due: byMode(base.value, 'due').length,
+  wrong: byMode(base.value, 'wrong').length,
   all: base.value.length,
 }))
 
 const modeOptions = computed(() => MODES.map(m => ({ value: m.key, label: m.label, count: modeCounts.value[m.key] })))
 
 /** 依目前設定可以出的題目 */
-const pool = computed(() => base.value.filter(q =>
-  mode.value === 'all'
-  || (mode.value === 'due' && isDue(q.key, today.value))
-  || (mode.value === 'wrong' && log.value?.[q.key]?.lastCorrect === false),
-))
+const pool = computed(() => byMode(base.value, mode.value))
+
+/** 範圍 chip 上的題數：換成那個範圍、其他設定不變時可以出幾題 */
+const scopeCounts = computed(() => {
+  const count = (slugs: string[]) => byMode(questionsOf(new Set(slugs)), mode.value).length
+  return {
+    discussed: count(presetSlugs.value.discussed),
+    recent: count(presetSlugs.value.recent),
+    custom: count(customSlugs.value),
+  }
+})
 
 // ---- 一輪複習 ----
 const deck = ref<ReviewQuestion[]>([])
@@ -192,9 +251,7 @@ const sourceOf = (q: ReviewQuestion) =>
       <FilterLayout aside-label="複習設定" main-class="gap-4">
         <template #aside>
           <FilterChips v-model="mode" label="出題方式" :options="modeOptions" />
-          <FilterChips v-model="scope" label="範圍" :options="scopeOptions" multiple list :limit="6" more-label="更早的場次">
-            <p class="text-meta text-dimmed">預設是已經討論過的場次</p>
-          </FilterChips>
+          <FilterScopePicker v-model:mode="scopeMode" v-model:slugs="customSlugs" :sessions="scopeSessions" :counts="scopeCounts" />
           <FilterChips v-model="kinds" label="題型" :options="KIND_OPTIONS" multiple />
           <FilterChips v-model="size" label="題數" :options="SIZE_OPTIONS" />
 
