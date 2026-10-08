@@ -27,6 +27,10 @@ export default defineNuxtConfig({
         { innerHTML: 'window.__salonInitialHash=location.hash;window.__salonInitialSearch=location.search', tagPosition: 'head' },
       ],
       link: [
+        // 網站 icon：夜空裡的金星（public/favicon.svg）。路徑要加上部署時的網址前綴
+        { rel: 'icon', href: `${process.env.NUXT_APP_BASE_URL ?? '/'}favicon.ico`, sizes: '48x48' },
+        { rel: 'icon', type: 'image/svg+xml', href: `${process.env.NUXT_APP_BASE_URL ?? '/'}favicon.svg` },
+        { rel: 'apple-touch-icon', href: `${process.env.NUXT_APP_BASE_URL ?? '/'}apple-touch-icon.png` },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {

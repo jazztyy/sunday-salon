@@ -17,6 +17,7 @@ const emit = defineEmits<{ 'open-chapters': [] }>()
 const tab = defineModel<TabKey>('tab')
 
 const route = useRoute()
+const { baseURL } = useRuntimeConfig().app
 
 const NAV = [
   { label: '本週', to: '/', match: (p: string) => p === '/' || p.startsWith('/s/') },
@@ -49,8 +50,10 @@ const onTabChange = (value: string | number) => {
         <div class="flex min-w-0 items-center gap-2 sm:gap-4">
           <NuxtLink
             to="/"
-            class="shrink-0 rounded-control font-serif text-lead font-black sm:text-title tracking-normal text-highlighted transition-colors hover:text-primary sm:tracking-[.08em] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
+            class="flex shrink-0 items-center gap-2 rounded-control font-serif text-lead font-black sm:text-title tracking-normal text-highlighted transition-colors hover:text-primary sm:tracking-[.08em] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
           >
+            <!-- 網站 icon（public/favicon.svg），純裝飾，站名本身就是連結文字 -->
+            <img :src="`${baseURL}favicon.svg`" alt="" aria-hidden="true" width="28" height="28" class="size-6 shrink-0 sm:size-7">
             悅讀聊天室
           </NuxtLink>
 

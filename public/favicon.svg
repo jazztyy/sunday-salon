@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 網站 icon：夜空底色、地平線上的金星（晨星／昏星）。色值同 DESIGN.md：頁面底色、金星金、暮色藍 -->
+  <rect width="64" height="64" rx="14" fill="#0E1120"/>
+  <path d="M7 52 Q32 41 57 52" fill="none" stroke="#AAB0E8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 8 C33.6 21 35 22.4 48 24 C35 25.6 33.6 27 32 40 C30.4 27 29 25.6 16 24 C29 22.4 30.4 21 32 8 Z" fill="#E2B455"/>
+</svg>
