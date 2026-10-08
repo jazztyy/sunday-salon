@@ -38,6 +38,9 @@ export default defineNuxtConfig({
   colorMode: { preference: 'dark', fallback: 'dark' },
 
   app: {
+    // 換頁過場：舊頁淡出後新頁淡入上浮（main.css 的 .page-*）。out-in 讓新頁等舊頁離開才掛載，
+    // 場次頁讀網址 hash（takeInitialLocation）和換頁後捲回頂部都在新頁掛載之後，不受影響
+    pageTransition: { name: 'page', mode: 'out-in' },
     head: {
       htmlAttrs: { lang: 'zh-Hant' },
       title: '悅讀聊天室',

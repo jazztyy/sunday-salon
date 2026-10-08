@@ -12,5 +12,8 @@ useSeoMeta({
 </script>
 
 <template>
-  <SessionView v-if="session" :session="session" />
+  <div>
+    <!-- 換頁過場（app.pageTransition）要求頁面只有一個根元素（註解也算一個節點，所以放在 div 裡） -->
+    <SessionView v-if="session" :session="session" />
+  </div>
 </template>

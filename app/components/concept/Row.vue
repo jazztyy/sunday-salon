@@ -19,13 +19,23 @@ const expanded = ref(false)
 const collapsed = computed(() => props.collapsible && !expanded.value)
 const gridId = useId()
 
-/** 收起時，第 i 張卡在哪些斷點要藏起來 */
+/**
+ * 收起時，第 i 張卡在哪些斷點要藏起來；按「顯示全部」後，同一批卡（只在原本藏起來的斷點）淡入（animate-reveal）。
+ * 有篩選時（collapsible = false）整組直接顯示，不播。
+ */
 const hideClass = (i: number) => {
-  if (!collapsed.value) return undefined
+  if (collapsed.value) {
+    return [
+      i >= 2 && 'max-sm:hidden',
+      i >= 4 && 'sm:max-xl:hidden',
+      i >= 6 && 'xl:hidden',
+    ]
+  }
+  if (!props.collapsible) return undefined
   return [
-    i >= 2 && 'max-sm:hidden',
-    i >= 4 && 'sm:max-xl:hidden',
-    i >= 6 && 'xl:hidden',
+    i >= 2 && 'max-sm:animate-reveal',
+    i >= 4 && 'sm:max-xl:animate-reveal',
+    i >= 6 && 'xl:animate-reveal',
   ]
 }
 

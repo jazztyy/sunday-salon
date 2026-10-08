@@ -37,12 +37,18 @@ const id = useId()
         @click="$emit('close')"
       />
     </div>
-    <LazyMarkdownEditor
-      :id="id"
-      v-model="model"
-      :autofocus="props.autofocus"
-      :min-height="props.minHeight"
-      :placeholder="props.placeholder"
-    />
+    <!-- 編輯器的程式第一次下載時先放骨架（<Suspense> 等 LazyMarkdownEditor 載入） -->
+    <Suspense>
+      <LazyMarkdownEditor
+        :id="id"
+        v-model="model"
+        :autofocus="props.autofocus"
+        :min-height="props.minHeight"
+        :placeholder="props.placeholder"
+      />
+      <template #fallback>
+        <MarkdownEditorSkeleton :min-height="props.minHeight" />
+      </template>
+    </Suspense>
   </div>
 </template>

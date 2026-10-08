@@ -57,8 +57,9 @@ const items: EditorToolbarItem[][] = [
         class="-mx-1 flex-wrap border-b border-default pb-1.5"
       />
     </UEditor>
+    <!-- 掛載前：同高度的骨架（工具列＋幾行字），出來時版面不跳 -->
     <template #fallback>
-      <div :class="props.minHeight" />
+      <MarkdownEditorSkeleton :min-height="props.minHeight" />
     </template>
   </ClientOnly>
 </template>

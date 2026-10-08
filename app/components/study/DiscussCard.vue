@@ -20,6 +20,10 @@ const note = computed({
 const noteToggled = ref<boolean | null>(null)
 const writing = computed(() => noteToggled.value ?? !!note.value)
 const noteToggleLabel = computed(() => writing.value ? '收起我的想法' : note.value ? '看我的想法' : '寫下我的想法')
+
+// 用小卡右上角的 X 收起時，X 跟著小卡消失：焦點交回「寫下我的想法」按鈕
+const noteToggle = useTemplateRef<{ $el: HTMLElement }>('noteToggle')
+const onNoteLeft = () => focusIfLost(noteToggle.value?.$el)
 </script>
 
 <template>
@@ -52,6 +56,7 @@ const noteToggleLabel = computed(() => writing.value ? '收起我的想法' : no
         @click="open = !open"
       />
       <UButton
+        ref="noteToggle"
         color="neutral"
         variant="ghost"
         :icon="writing ? 'i-lucide-chevron-up' : 'i-lucide-pencil-line'"
@@ -62,28 +67,35 @@ const noteToggleLabel = computed(() => writing.value ? '收起我的想法' : no
       />
     </div>
 
-    <div v-if="writing || open" class="grid gap-3" :class="{ 'md:grid-cols-2': writing && open }">
-      <NoteField
-        v-if="writing"
-        v-model="note"
-        label="我的想法"
-        hint="支援 Markdown，會收進「筆記」頁"
-        placeholder="先寫下你的想法，再看 Kagan 怎麼說"
-        :autofocus="noteToggled === true && !note"
-        closable
-        close-label="收起我的想法"
-        @close="noteToggled = false"
-      />
+    <!-- 打開、收起都淡入淡出（rise）：外層是「至少開了一個」，裡面兩塊各自出現或消失 -->
+    <Transition name="rise" @after-leave="onNoteLeft">
+      <div v-if="writing || open" class="grid gap-3" :class="{ 'md:grid-cols-2': writing && open }">
+        <Transition name="rise" @after-leave="onNoteLeft">
+          <NoteField
+            v-if="writing"
+            v-model="note"
+            label="我的想法"
+            hint="支援 Markdown，會收進「筆記」頁"
+            placeholder="先寫下你的想法，再看 Kagan 怎麼說"
+            :autofocus="noteToggled === true && !note"
+            closable
+            close-label="收起我的想法"
+            @close="noteToggled = false"
+          />
+        </Transition>
 
-      <div v-show="open" :id="panelId" class="flex flex-col gap-2 rounded-control bg-accented p-3">
-        <span class="text-meta font-medium text-muted">Kagan 怎麼說</span>
-        <p class="text-small leading-relaxed text-toned">{{ item.answer }}</p>
-        <ul class="flex flex-wrap gap-x-4 gap-y-1">
-          <li v-for="(r, k) in item.refs" :key="k">
-            <VideoLink :vid="r[0]" :t="r[1]" class="font-mono text-meta">▸ {{ refLabel(session, r) }}</VideoLink>
-          </li>
-        </ul>
+        <Transition name="rise">
+          <div v-show="open" :id="panelId" class="flex flex-col gap-2 rounded-control bg-accented p-3">
+            <span class="text-meta font-medium text-muted">Kagan 怎麼說</span>
+            <p class="text-small leading-relaxed text-toned">{{ item.answer }}</p>
+            <ul class="flex flex-wrap gap-x-4 gap-y-1">
+              <li v-for="(r, k) in item.refs" :key="k">
+                <VideoLink :vid="r[0]" :t="r[1]" class="font-mono text-meta">▸ {{ refLabel(session, r) }}</VideoLink>
+              </li>
+            </ul>
+          </div>
+        </Transition>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>

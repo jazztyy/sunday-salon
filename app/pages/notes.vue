@@ -6,7 +6,7 @@
 // 題目文字改掉後對不到新題目的筆記，另外列成「題目已修改」，不會默默消失。
 // 各種筆記的資料整理在 useNoteEntries，種類的名稱和顏色在 utils/noteKinds.ts；這裡只管篩選、版面和視窗。
 // 上方切換「筆記」和「作答紀錄」（<NoteAnswers>：每一場測驗題的作答，複習用）。
-// 全部存在這個瀏覽器（掛載後才讀），預先產生的 HTML 是空的。規格見 SPEC.md「筆記」。
+// 全部存在這個瀏覽器（掛載後才讀）：預先產生的 HTML 和掛載前放骨架（useStorageReady），不先閃「還沒有筆記」。規格見 SPEC.md「筆記」。
 import Fuse from 'fuse.js'
 import type { StudySession as Session } from '~/types/content'
 import type { NoteEntry } from '~/composables/useNoteEntries'
@@ -40,6 +40,9 @@ const modalOpen = computed({
 })
 
 const { entries, filled, addMine, updateMine } = useNoteEntries(sessions, concepts, editing)
+
+/** localStorage 讀好了沒；還沒讀好時放骨架 */
+const storageReady = useStorageReady()
 
 const active = computed(() => entries.value.find(e => e.key === editing.value) ?? null)
 
@@ -193,76 +196,117 @@ const download = (format: NoteExportFormat) => {
         :ui="{ label: 'text-ui' }"
       />
 
-      <NoteAnswers v-if="view === 'answers'" :sessions="sessions" />
-
-      <!-- 篩選欄：桌機固定在左邊，往下捲也看得到（同 /archive） -->
-      <FilterLayout v-else>
+      <!--
+        掛載前（localStorage 還沒讀）：同樣版面的骨架，不顯示「還沒有筆記」。
+        骨架直接拿掉（不淡出），真的內容淡入；站內換頁時已經讀好，不會出現骨架
+      -->
+      <FilterLayout v-if="!storageReady" aria-busy="true">
         <template #aside>
-          <UButton
-            icon="i-lucide-plus"
-            label="新增筆記"
-            color="primary"
-            variant="outline"
-            class="justify-center rounded-control px-3 text-ui font-medium"
-            @click="newNote"
-          />
-
-          <FilterSearch v-model="query" placeholder="搜尋筆記、題目或標題…" label="搜尋筆記" />
-          <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
-          <FilterChips v-model="kind" label="種類" :options="kindOptions" />
-          <FilterSelect v-if="placeOptions.length" v-model="place" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="placeOptions" />
-          <FilterStatus :count="visible.length" unit="則" />
-
-          <div v-if="visible.length" class="flex flex-col gap-1.5">
-            <span id="facet-export" class="text-ui text-muted">匯出{{ hasFilter ? '目前篩選的' : '全部' }} {{ visible.length }} 則</span>
-            <div role="group" aria-labelledby="facet-export" class="flex flex-wrap gap-1.5">
-              <UButton
-                label="Markdown"
-                icon="i-lucide-download"
-                color="neutral"
-                variant="outline"
-                size="xs"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="download('md')"
-              />
-              <UButton
-                label="純文字"
-                icon="i-lucide-download"
-                color="neutral"
-                variant="outline"
-                size="xs"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="download('txt')"
-              />
+          <span class="sr-only">載入中…</span>
+          <USkeleton class="h-8 w-full rounded-control" aria-hidden="true" />
+          <USkeleton class="h-8 w-full rounded-control" aria-hidden="true" />
+          <div class="flex flex-col gap-1.5" aria-hidden="true">
+            <USkeleton class="my-1 h-3.5 w-10" />
+            <div class="flex flex-wrap gap-1.5">
+              <USkeleton v-for="i in 5" :key="i" class="h-6 w-16 rounded-full" />
             </div>
           </div>
         </template>
 
-        <p v-if="!entries.length" class="rounded-card border border-dashed border-default p-6 text-center text-small leading-relaxed text-muted">
-          還沒有筆記。在場次的「邊看邊想」或「週日討論」寫下的想法會出現在這裡，也可以按「新增筆記」。
-        </p>
-        <p v-else-if="!groups.length" class="text-small text-muted">沒有符合的筆記。</p>
-
-        <section v-for="group in groups" :key="group.key" class="flex flex-col gap-3">
-          <SessionGroupHeading :session="group.session" :count="group.entries.length" unit="則" />
-
+        <div class="flex flex-col gap-3" aria-hidden="true">
+          <div class="flex flex-col gap-2 py-1">
+            <USkeleton class="h-7 w-28" />
+            <USkeleton class="h-4 w-56" />
+          </div>
           <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <li v-for="e in group.entries" :key="e.key">
-              <NoteCard
-                :kind="e.kind"
-                :title="e.title"
-                :meta="e.meta"
-                :body="e.body"
-                deletable
-                @delete="removeEntry(e)"
-                @open="editing = e.key"
-              />
+            <li v-for="i in 3" :key="i" class="flex h-36 flex-col gap-3 rounded-card border border-default bg-elevated p-4">
+              <div class="flex items-center justify-between">
+                <USkeleton class="h-3 w-20 bg-accented" />
+                <USkeleton class="h-4 w-14 bg-accented" />
+              </div>
+              <USkeleton class="h-5 w-4/5 bg-accented" />
+              <USkeleton class="h-3.5 w-full bg-accented" />
+              <USkeleton class="h-3.5 w-3/5 bg-accented" />
             </li>
           </ul>
-        </section>
+        </div>
       </FilterLayout>
+
+      <Transition name="rise" mode="out-in">
+        <!-- 切換檢視：淡出後淡入上浮（rise）。<NoteAnswers> 有兩個根節點（版面＋視窗），包一層 div 才能套過場 -->
+        <div v-if="storageReady && view === 'answers'" key="answers">
+          <NoteAnswers :sessions="sessions" />
+        </div>
+
+        <!-- 篩選欄：桌機固定在左邊，往下捲也看得到（同 /archive） -->
+        <FilterLayout v-else-if="storageReady" key="notes">
+          <template #aside>
+            <UButton
+              icon="i-lucide-plus"
+              label="新增筆記"
+              color="primary"
+              variant="outline"
+              class="justify-center rounded-control px-3 text-ui font-medium"
+              @click="newNote"
+            />
+
+            <FilterSearch v-model="query" placeholder="搜尋筆記、題目或標題…" label="搜尋筆記" />
+            <FilterSummary :items="summary" :has-filter="hasFilter" @clear="clearFilters" />
+            <FilterChips v-model="kind" label="種類" :options="kindOptions" />
+            <FilterSelect v-if="placeOptions.length" v-model="place" label="場次" placeholder="全部場次" search-placeholder="搜尋場次…" :options="placeOptions" />
+            <FilterStatus :count="visible.length" unit="則" />
+
+            <div v-if="visible.length" class="flex flex-col gap-1.5">
+              <span id="facet-export" class="text-ui text-muted">匯出{{ hasFilter ? '目前篩選的' : '全部' }} {{ visible.length }} 則</span>
+              <div role="group" aria-labelledby="facet-export" class="flex flex-wrap gap-1.5">
+                <UButton
+                  label="Markdown"
+                  icon="i-lucide-download"
+                  color="neutral"
+                  variant="outline"
+                  size="xs"
+                  class="rounded-full px-3"
+                  :ui="{ label: 'text-ui font-medium' }"
+                  @click="download('md')"
+                />
+                <UButton
+                  label="純文字"
+                  icon="i-lucide-download"
+                  color="neutral"
+                  variant="outline"
+                  size="xs"
+                  class="rounded-full px-3"
+                  :ui="{ label: 'text-ui font-medium' }"
+                  @click="download('txt')"
+                />
+              </div>
+            </div>
+          </template>
+
+          <p v-if="!entries.length" class="rounded-card border border-dashed border-default p-6 text-center text-small leading-relaxed text-muted">
+            還沒有筆記。在場次的「邊看邊想」或「週日討論」寫下的想法會出現在這裡，也可以按「新增筆記」。
+          </p>
+          <p v-else-if="!groups.length" class="text-small text-muted">沒有符合的筆記。</p>
+
+          <section v-for="group in groups" :key="group.key" class="flex flex-col gap-3">
+            <SessionGroupHeading :session="group.session" :count="group.entries.length" unit="則" />
+
+            <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <li v-for="e in group.entries" :key="e.key">
+                <NoteCard
+                  :kind="e.kind"
+                  :title="e.title"
+                  :meta="e.meta"
+                  :body="e.body"
+                  deletable
+                  @delete="removeEntry(e)"
+                  @open="editing = e.key"
+                />
+              </li>
+            </ul>
+          </section>
+        </FilterLayout>
+      </Transition>
 
       <!--
         編輯視窗（<NoteSheet>）：上方是種類標籤和關閉圖示（刪除在外層的卡片上），大字標題、一排屬性（場次、修改時間、連結），

@@ -88,59 +88,64 @@ const id = useId()
 
 <template>
   <FilterChips v-model="mode" label="範圍" :options="options">
-    <div v-if="mode === 'custom'" :id="id" class="mt-1 flex flex-col gap-2">
-      <section v-for="month in months" :key="month.key" class="flex flex-col gap-0.5">
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="flex min-w-0 items-center gap-1 rounded-control px-1 py-0.5 text-left text-meta font-medium text-muted transition-colors hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
-            :aria-expanded="open.has(month.key)"
-            :aria-controls="`${id}-${month.key}`"
-            @click="toggleMonth(month.key)"
-          >
-            <UIcon :name="open.has(month.key) ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'" class="size-3.5 shrink-0" />
-            <span>{{ month.label }}</span>
-            <span v-if="!open.has(month.key)" class="font-normal text-dimmed">
-              （{{ month.list.length }} 場<template v-if="pickedIn(month.list)">，已選 {{ pickedIn(month.list) }}</template>）
-            </span>
-          </button>
-          <UButton
-            v-if="open.has(month.key)"
-            :label="pickedIn(month.list) === month.list.length ? '取消全選' : '全選'"
-            color="neutral"
-            variant="link"
-            size="xs"
-            class="ml-auto p-0 text-muted hover:text-highlighted"
-            :ui="{ label: 'text-meta' }"
-            :aria-label="`${month.label}${pickedIn(month.list) === month.list.length ? '取消全選' : '全選'}`"
-            @click="toggleAll(month.list)"
-          />
-        </div>
-        <div v-show="open.has(month.key)" :id="`${id}-${month.key}`" role="group" :aria-label="month.label" class="flex flex-col gap-0.5">
-          <button
-            v-for="s in month.list"
-            :key="s.slug"
-            type="button"
-            role="checkbox"
-            :aria-checked="picked.has(s.slug)"
-            class="flex w-full items-center gap-2 rounded-control px-2 py-1 text-left text-ui transition-colors focus-visible:outline-2 focus-visible:outline-primary"
-            :class="picked.has(s.slug)
-              ? 'bg-inverted font-medium text-inverted'
-              : ['text-toned hover:bg-accented hover:text-highlighted', { 'opacity-70': s.upcoming }]"
-            @click="toggle(s.slug)"
-          >
-            <span
-              class="flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border"
-              :class="picked.has(s.slug) ? 'border-current' : 'border-accented'"
-              aria-hidden="true"
+    <!-- 選「自己選」時清單淡入上浮；月份展開時那個月的場次也一樣（rise） -->
+    <Transition name="rise">
+      <div v-if="mode === 'custom'" :id="id" class="mt-1 flex flex-col gap-2">
+        <section v-for="month in months" :key="month.key" class="flex flex-col gap-0.5">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="flex min-w-0 items-center gap-1 rounded-control px-1 py-0.5 text-left text-meta font-medium text-muted transition-colors hover:text-highlighted focus-visible:outline-2 focus-visible:outline-primary"
+              :aria-expanded="open.has(month.key)"
+              :aria-controls="`${id}-${month.key}`"
+              @click="toggleMonth(month.key)"
             >
-              <UIcon v-if="picked.has(s.slug)" name="i-lucide-check" class="size-3" />
-            </span>
-            <span class="w-11 shrink-0 font-mono text-meta" :class="picked.has(s.slug) ? '' : 'text-muted'">{{ splitDate(s.chip)[0] }}</span>
-            <span class="min-w-0 truncate">{{ splitDate(s.chip)[1] }}</span>
-          </button>
-        </div>
-      </section>
-    </div>
+              <UIcon :name="open.has(month.key) ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'" class="size-3.5 shrink-0" />
+              <span>{{ month.label }}</span>
+              <span v-if="!open.has(month.key)" class="font-normal text-dimmed">
+                （{{ month.list.length }} 場<template v-if="pickedIn(month.list)">，已選 {{ pickedIn(month.list) }}</template>）
+              </span>
+            </button>
+            <UButton
+              v-if="open.has(month.key)"
+              :label="pickedIn(month.list) === month.list.length ? '取消全選' : '全選'"
+              color="neutral"
+              variant="link"
+              size="xs"
+              class="ml-auto p-0 text-muted hover:text-highlighted"
+              :ui="{ label: 'text-meta' }"
+              :aria-label="`${month.label}${pickedIn(month.list) === month.list.length ? '取消全選' : '全選'}`"
+              @click="toggleAll(month.list)"
+            />
+          </div>
+          <Transition name="rise">
+            <div v-show="open.has(month.key)" :id="`${id}-${month.key}`" role="group" :aria-label="month.label" class="flex flex-col gap-0.5">
+              <button
+                v-for="s in month.list"
+                :key="s.slug"
+                type="button"
+                role="checkbox"
+                :aria-checked="picked.has(s.slug)"
+                class="flex w-full items-center gap-2 rounded-control px-2 py-1 text-left text-ui transition-colors focus-visible:outline-2 focus-visible:outline-primary"
+                :class="picked.has(s.slug)
+                  ? 'bg-inverted font-medium text-inverted'
+                  : ['text-toned hover:bg-accented hover:text-highlighted', { 'opacity-70': s.upcoming }]"
+                @click="toggle(s.slug)"
+              >
+                <span
+                  class="flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border"
+                  :class="picked.has(s.slug) ? 'border-current' : 'border-accented'"
+                  aria-hidden="true"
+                >
+                  <UIcon v-if="picked.has(s.slug)" name="i-lucide-check" class="size-3" />
+                </span>
+                <span class="w-11 shrink-0 font-mono text-meta" :class="picked.has(s.slug) ? '' : 'text-muted'">{{ splitDate(s.chip)[0] }}</span>
+                <span class="min-w-0 truncate">{{ splitDate(s.chip)[1] }}</span>
+              </button>
+            </div>
+          </Transition>
+        </section>
+      </div>
+    </Transition>
   </FilterChips>
 </template>

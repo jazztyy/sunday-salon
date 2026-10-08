@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.13 ・ 2026-10-08 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.14 ・ 2026-10-08 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -258,6 +258,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 複習範圍 | `filter/ScopePicker.vue`（`<FilterScopePicker>`） | `<FilterChips>` | 三個單選 pill（全部討論過的／最近 4 場／自己選，附題數）；「自己選」時下面出現依月份分組的勾選清單：月份標題是可收合的按鈕（`aria-expanded`，`text-meta text-muted`），右邊是 `variant="link"` 的全選；每一行 `role="checkbox"`，左邊是勾選框，日期欄同 `<FilterChips list>`，選中 `bg-inverted text-inverted`，hover `bg-accented`，`rounded-control`。還沒討論的場次沒勾時淡一點 |
 | 概念卡牆的一組 | `concept/Row.vue`（`<ConceptRow>`） | `UButton` | 標題（領域＋「N 張」）＋卡片網格（手機一欄、`sm` 兩欄、`xl` 三欄，`gap-3`）。預設兩排，下面 `variant="link"` 的「顯示全部（N 張）／收起」（chevron、`aria-expanded`、`aria-controls`），只在有卡被收起時出現；有篩選時全部展開。收起用 CSS 隱藏，卡片仍在 DOM 裡（上一則／下一則要用） |
 | 上一則／下一則 | `concept/Pager.vue`（`<ConceptPager>`） | `UIcon` | 一列：左「‹ 上一則・詞條」、中間 `font-mono text-meta text-dimmed` 的「3 / 12」、右「下一則・詞條 ›」；「上一則」「下一則」用 `text-dimmed`，詞條太長就截斷，hover `bg-accented`。彈窗裡固定在底部（`sticky bottom-0`、半透明 `bg-default` 加模糊），`/c/{id}` 頁面放在卡片下方 |
+| 編輯器骨架 | `MarkdownEditorSkeleton.vue`（`<MarkdownEditorSkeleton>`） | `USkeleton` | 工具列＋三行字，和 `<MarkdownEditor>` 同高（換成真的編輯器時不跳）。`ClientOnly` 的 fallback，也用在 `<Suspense>` 等編輯器程式碼下載時 |
 | 已選摘要 | `filter/Summary.vue`（`<FilterSummary>`） | `UButton` | 篩選欄搜尋框下面：「已選」＋右邊的「清除篩選」文字按鈕，下面一排已選條件（`color="primary" variant="subtle"`、`rounded-full`、後面 `i-lucide-x`，點了取消）。沒有任何條件時整個不顯示 |
 | 結果數 | `filter/Status.vue`（`<FilterStatus>`） | — | 「共 N 場」只給螢幕閱讀器（`sr-only`、`aria-live="polite"`），畫面上不顯示 |
 | 概念卡 | `concept/Card.vue`（`<ConceptCard>`） | — | 卡片牆和「相關概念」共用。`bg-elevated rounded-card border-default`，整張可以點，連到 `/c/{id}`。內容：詞條（`font-serif text-title`）、英文（`font-mono text-meta text-muted`）、`summary`（`text-small text-toned`） |
@@ -280,6 +281,27 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 - **狀態**：會存進瀏覽器的狀態一律用 `useSalonStorage()`；播放器狀態一律用 `usePlayer()`。不要直接碰 `localStorage` 或 YouTube API。
 
 ---
+
+### 7.1 動態
+
+內容換掉時用短的過場，讓人看得出「換了什麼」，不是裝飾。
+
+- **原則**：短（150–220ms）、只動透明度和小位移（上浮 6px 以內、左右 20px 以內），離開比進來快（120ms ease-in）。不做高度動畫、彈跳、縮放。`prefers-reduced-motion` 時全部關閉（`main.css` 全域規則）。
+- **過場一覽**（`main.css`，搭配 `<Transition name="…">`）：
+  - `page`：淡出 → 淡入上浮。換頁（`nuxt.config.ts` 的 `app.pageTransition`，out-in）。
+  - `rise`：淡出 → 淡入上浮 6px。場次分頁、`/notes` 的檢視切換、複習的三個畫面、揭曉（解析、Kagan 怎麼說、我的想法、論證判斷、先回想→選項）、複習範圍的清單與月份展開。
+  - `slide-next`／`slide-prev`：往左滑出、從右邊進來（後退相反）。邊看邊想的影片子分頁、複習換題、概念卡上一則／下一則。概念卡彈窗換卡時舊卡疊在上面淡出（不用 out-in），彈窗高度直接變成新卡的。
+  - `fade`：單純淡入淡出。已選篩選 chip、寫筆記按鈕↔編輯器、骨架換成內容。
+  - `animate-reveal`：CSS animation，淡入上浮 4px。用 class 藏起來的項目重新出現（「顯示全部」的 chip 與概念卡、名詞卡翻面），可加斷點前綴；也用在首頁換場次時新內容淡入。
+- **掛載時不播**：頁面載入時依網址或上次停留位置跳到某個分頁、子分頁，直接換掉，不播過場。
+- **小心 out-in**：短時間內連續切換好幾次（例如 hydration 時首頁「建置那一場 → 骨架 → 新的那一場」）會讓 out-in 卡在中間、什麼都不顯示。這種地方只做進場的 `animate-reveal`，不用 `<Transition mode="out-in">`。
+- **焦點不能掉**：按鈕跟著舊內容一起消失時（下一步、下一段、下一題、看選項、收起我的想法），新內容出現後用 `focusIfLost()`（`utils/focus.ts`）把焦點交給合理的位置（目前分頁、題目卡、第一個選項、原本的開關按鈕）；使用者已經點了別處就不動。整塊換掉的區塊用 `tabindex="-1"`＋`focus-visible:outline-none`。
+- **載入骨架**：用 `<USkeleton>`，形狀和尺寸照真的版面，換成內容時不跳；放在卡片或視窗上時加 `bg-accented`。骨架外層 `aria-busy="true"`＋`sr-only` 的「載入中…」，`USkeleton` 本身要包在 `aria-hidden` 裡（它自帶 `role="alert"`）。
+  - 依 localStorage 的頁面（`/notes`、`/review`）掛載前放骨架（`useStorageReady()`），不先顯示空狀態或錯的數字；站內換頁不放。
+  - 文字編輯器：`<MarkdownEditorSkeleton>`（工具列＋幾行字，和真的編輯器同高），當 `ClientOnly` 的 fallback，也包在 `<Suspense>` 裡等編輯器程式碼下載。
+  - 首頁換到別場、正在抓資料時：頂部列＋場次標頭形狀的骨架。
+  - 概念卡彈窗第一次打開、資料還沒到時：左右兩欄形狀的骨架；內文還沒到時三行骨架。
+- **頁面只有一個根元素**：換頁過場要求；註解也算節點，要放在根元素裡面。
 
 ## 8. 文案規範
 
@@ -324,6 +346,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 - [ ] 所有可以操作的元素都能用鍵盤操作，而且有看得見的 focus 樣式（primary 外框）
 - [ ] 狀態除了顏色之外，也有文字或形狀可以辨識（例如「質疑」「接受」徽章）
 - [ ] 有 `prefers-reduced-motion` 的使用者不會看到動畫（`main.css` 已全域關閉）
+- [ ] 過場時焦點不會掉到 `<body>`（按鈕跟著舊內容消失時用 `focusIfLost()`）
+- [ ] 依 localStorage 的頁面掛載前是骨架，不會先閃空狀態或錯的數字
 - [ ] 自訂的切換按鈕有 `aria-pressed` 或 `aria-expanded` 反映目前狀態（Nuxt UI 元件自帶）
 - [ ] 從外部直接打開 `/s/{slug}#recall`、`/archive?tag=…` 時，分頁和篩選都正確（見 SPEC.md 3.1）
 
@@ -352,6 +376,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-10-08 | 3.14 | 新增 7.1「動態」：換頁、分頁、子分頁、複習換題、揭曉、展開都有短過場（`page`、`rise`、`slide-next/prev`、`fade`、`animate-reveal`），概念卡換卡不再閃（預先載入＋舊卡疊著淡出）；載入骨架（筆記、複習、首頁換場次、概念卡彈窗、文字編輯器）；過場時保住焦點 |
 | 2026-10-08 | 3.13 | 概念卡牆改成兩排網格＋「顯示全部」（`<ConceptRow>`），新增上一則／下一則（`<ConceptPager>`）。單選的場次篩選改成可搜尋的下拉選單（`<FilterSelect>`）；複習範圍改成預設＋自己選（`<FilterScopePicker>`）。篩選欄新增 `<FilterSummary>`（已選＋清除篩選），`<FilterChips>` 加上 `limit` 收起；側欄底部的「共 N 場」改成只給螢幕閱讀器的 `<FilterStatus>` |
 | 2026-10-08 | 3.12 | 抽出共用元件，畫面不變：篩選欄 `<FilterLayout>`、`<FilterChips>`、`<FilterSearch>`、`<FilterFooter>`（`/archive`、`/concepts`、`/review`、`/notes`）；筆記視窗 `<NoteSheet>`、筆記小卡 `<NoteField>`、場次分組標題 `<SessionGroupHeading>`；筆記種類集中在 `NOTE_KINDS`。文字編輯器、概念卡彈窗改成需要時才載入 |
 | 2026-10-08 | 3.11 | 討論卡的「我的想法」改成 `<MarkdownEditor>` 小卡，可以隨時收起；`/notes` 新增「作答紀錄」檢視（`<NoteAnswers>`：對錯徽章卡片，視窗先回想再揭曉答案）；名詞卡的 hover 改加在整張卡上，翻開後不再上下兩截不同色 |

@@ -191,6 +191,51 @@ h1, h2, h3 {
   outline-offset: 2px;
 }
 
+/*
+ * 動態（DESIGN.md「動態」）：內容切換時的過場，搭配 Vue 的 <Transition name="…">。
+ * 原則：短（150–220ms）、只動透明度和小位移、離開比進來快；prefers-reduced-motion 時下面全域關閉。
+ */
+:root {
+  --ease-out-soft: cubic-bezier(.22, .61, .36, 1);
+}
+
+/* fade：單純淡入淡出（彈窗內容、小區塊替換） */
+.fade-enter-active { transition: opacity 180ms var(--ease-out-soft); }
+.fade-leave-active { transition: opacity 120ms ease-in; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+/* rise：淡入＋往上浮 6px（換頁、分頁、展開出現的區塊） */
+.rise-enter-active { transition: opacity 200ms var(--ease-out-soft), transform 200ms var(--ease-out-soft); }
+.rise-leave-active { transition: opacity 120ms ease-in; }
+.rise-enter-from { opacity: 0; transform: translateY(6px); }
+.rise-leave-to { opacity: 0; }
+
+/* slide-next / slide-prev：左右換（上一則／下一則、影片子分頁、複習換題），方向跟著前進或後退 */
+.slide-next-enter-active, .slide-prev-enter-active { transition: opacity 200ms var(--ease-out-soft), transform 200ms var(--ease-out-soft); }
+.slide-next-leave-active, .slide-prev-leave-active { transition: opacity 120ms ease-in, transform 120ms ease-in; }
+.slide-next-enter-from { opacity: 0; transform: translateX(20px); }
+.slide-next-leave-to { opacity: 0; transform: translateX(-12px); }
+.slide-prev-enter-from { opacity: 0; transform: translateX(-20px); }
+.slide-prev-leave-to { opacity: 0; transform: translateX(12px); }
+
+/* 換頁（nuxt.config 的 app.pageTransition） */
+.page-enter-active { transition: opacity 200ms var(--ease-out-soft), transform 200ms var(--ease-out-soft); }
+.page-leave-active { transition: opacity 120ms ease-in; }
+.page-enter-from { opacity: 0; transform: translateY(6px); }
+.page-leave-to { opacity: 0; }
+
+/*
+ * animate-reveal：用 CSS 藏起來的項目重新出現時淡入（「顯示全部」展開的 chip、概念卡）。
+ * 這些元素一直在 DOM 裡、只是換 class，Vue 的 <Transition> 管不到，改用 CSS animation；可以加斷點前綴（max-sm:animate-reveal）。
+ */
+@theme {
+  --animate-reveal: reveal 200ms var(--ease-out-soft) both;
+
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(4px); }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition: none !important;

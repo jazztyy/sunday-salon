@@ -80,19 +80,20 @@ const cardClass = (id: string) => {
         >
           <span class="font-serif text-title font-black">{{ c.title }}</span>
           <span class="font-mono text-meta text-muted">{{ c.en }}</span>
-          <span v-if="opened[c.id]" class="text-small leading-relaxed text-toned">{{ c.summary }}</span>
+          <!-- 翻開：定義、連結、自評按鈕淡入（animate-reveal） -->
+          <span v-if="opened[c.id]" class="animate-reveal text-small leading-relaxed text-toned">{{ c.summary }}</span>
           <span v-else class="mt-auto text-meta text-muted">先想想意思，再點開</span>
         </button>
 
         <NuxtLink
           v-if="opened[c.id]"
           :to="`/c/${c.id}`"
-          class="self-start px-3.5 pb-2 text-ui font-medium text-secondary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="animate-reveal self-start px-3.5 pb-2 text-ui font-medium text-secondary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           看完整卡片 →
         </NuxtLink>
 
-        <div v-if="opened[c.id]" class="flex gap-1.5 px-3.5 pb-3">
+        <div v-if="opened[c.id]" class="flex animate-reveal gap-1.5 px-3.5 pb-3">
           <button
             v-for="[r, label] in RATES"
             :key="r"

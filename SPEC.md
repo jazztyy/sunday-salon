@@ -1,6 +1,6 @@
 # 悅讀聊天室 功能規格
 
-> 版本 3.11 ・ 2026-10-08
+> 版本 3.12 ・ 2026-10-08
 >
 > 這份文件描述網站**做什麼、怎麼運作、資料怎麼放**。視覺規範請看 [DESIGN.md](DESIGN.md)。
 > 要改功能時，先在這份文件寫下變更並討論，確定後再改程式，最後更新文末的修改紀錄。
@@ -185,7 +185,9 @@ site/
 
 - 所有 composable 都是 `useAsyncData` 加 `$fetch` 那個 JSON。預先產生頁面時結果存進該頁的 payload；瀏覽器端碰到 payload 沒有的資料（例如在任何頁面打開概念卡彈窗、首頁換了本週那一場）才去抓 JSON。
 - 首頁：預先產生時內嵌建置當天挑到的那一場；掛載後用瀏覽器的今天重挑，挑到別場就抓那一場的 JSON。
-- 概念卡彈窗（`<LazyConceptModal>`）只在打開時載入；文字編輯器一律用 `<LazyMarkdownEditor>`（TipTap 約 190KB gzip），不放進每一頁的首次載入。
+- 概念卡彈窗（`<LazyConceptModal>`）只在打開時載入；文字編輯器一律用 `<LazyMarkdownEditor>`（TipTap 約 190KB gzip），不放進每一頁的首次載入，下載時顯示 `<MarkdownEditorSkeleton>`。
+- **概念卡快取與預先載入**：瀏覽器端抓過的概念卡存在 `useContent.ts` 的快取裡（`useConcept` 的 `getCachedData` 會先找它）。彈窗打開一張時先抓前後兩張，滑鼠移到任何概念卡連結上時也先抓（`useConceptPrefetch()`，掛在 `app.vue`），所以上一則／下一則、點卡片時都不用等網路。
+- **首頁換場次**：`useCurrentSession` 的 `getCachedData` 在 `watch` 觸發時一律重抓（預設會拿 payload 裡建置當天那一場）。
 - 新增頁面要用內容時，先看上表有沒有合適的形狀；需要新形狀時在 `app/types/content.ts`、`shared/utils/content.ts`、`server/routes/data/` 各加一個，並加進 `nuxt.config.ts` 的 `dataRoutes()` 和 `scripts/check-output.mjs`。
 
 ---
@@ -213,6 +215,7 @@ site/
 - 每個分頁底部有「下一步：{下一個分頁} →」。「邊看邊想」只在最後一段（整合回顧）顯示，其他段落用「下一段」按鈕，避免兩個往下走的按鈕同時出現。
 - **實作注意**：靜態頁面初次載入時，Nuxt 路由會把網址換成預先產生頁面的路徑，**hash 和 query 都會在任何元件掛載前被拿掉**。所以 `nuxt.config.ts` 在 `<head>` 放了一行腳本，先把它們存到 `window.__salonInitialHash`、`window.__salonInitialSearch`。元件掛載時呼叫 `takeInitialLocation()`（`useContent.ts`）讀取一次，讀完就清掉。場次頁的分頁 hash 和 `/archive` 的 `?tag=` 都靠它。改動路由、分頁或篩選邏輯時不要拿掉它。
   - 另外，Nuxt 會在元件掛載**之後**再做一次網址修正（網址多了 query 或結尾的 `/` 時會改回產生時的路徑）。所以要把狀態**寫回網址**的頁面（例如 `/archive` 的 `?tag=`），必須等 `onNuxtReady()` 之後才寫，否則會被覆蓋。只改 hash 的場次頁不受影響。
+  - **換頁有過場**（`app.pageTransition`，DESIGN.md 7.1）：每一頁只能有一個根元素，註解也要放在根元素裡面。依網址或上次停留位置選分頁、子分頁時不播過場。
   - 這套讀寫網址 query 的邏輯集中在 `composables/useUrlFilters.ts`（`/archive`、`/concepts` 共用）。新增可分享篩選的頁面時用它，不要自己再寫一份。
 
 ### 3.2 頂部列
@@ -637,6 +640,7 @@ facets:
 - key 全部定義在 `app/utils/storageKeys.ts`（`STORAGE_KEYS`），不要在元件裡自己拼字串。
 - 元件透過具名的 composable 讀寫：學習進度用 `useProgress.ts`（`useVotes`、`useArgPicks`、`useCardRates`、`useQuizAnswers`），筆記用 `useDiscussNotes`、`useReviewNotes`、`useMyNotes`，作答紀錄用 `useReviewLog`。之後搬到 Supabase 時只改這些 composable 的內部。
 - 底層一律是 `useSalonStorage(key, 預設值)`（包裝 VueUse 的 `useLocalStorage`）。**預設值要用 `{}`、`[]` 或字串**：VueUse 依預設值的型別選序列化方式，預設 `null` 會把物件存成 `"[object Object]"`。
+- 依 localStorage 的頁面（`/notes`、`/review`）用 `useStorageReady()` 判斷：hydration 時、掛載前顯示骨架，不先顯示空狀態或錯的數字；站內換頁時不放骨架。
 - `writeDefaults: false`：只有真的寫入時才建立 key（`/notes` 會替每一場建立好幾個讀取，否則每場都多出空的 key）。
 - 使用 `initOnMounted`：預先產生的 HTML 一律用預設值，頁面掛載後才讀 localStorage，避免 hydration 不一致。
 - 無痕模式或儲存被封鎖時，VueUse 會退回記憶體中的值，網站照常運作，只是不會記住狀態。
@@ -919,6 +923,7 @@ RLS：
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-10-08 | 3.12 | 全站過場動畫與載入骨架（DESIGN.md 7.1）。概念卡快取與預先載入，上一則／下一則換卡不再閃。修正首頁在瀏覽器換到別場時不會重抓那一場 |
 | 2026-10-08 | 3.11 | 場次 `chip` 的主題從兩個字改成 3–6 個字（「11/15 自殺」→「11/15 自殺與理性」），內容檢查加上 chip 格式與日期。概念卡牆從橫向輪播改成兩排網格＋「顯示全部」；概念卡彈窗和 `/c/{id}` 加上一則／下一則（`<ConceptPager>`，順序跟著從哪裡點進來）。複習的「範圍」改成三個預設（全部討論過的、最近 4 場、自己選），自己選才展開依月份分組的清單。單選的場次篩選改成可搜尋的下拉選單。篩選欄整理：「已選」摘要（點 ✕ 取消、清除篩選移到這裡）、tag 和場次選項多時收起、tag chip 顯示筆數、拿掉側欄底部的「共 N 場」 |
 | 2026-10-08 | 3.10 | 為之後擴充整理架構。**資料載入**（新增 2.6）：每一頁不再內嵌全部場次和概念卡，改成精簡列表、單場、題目資料、單張概念卡等形狀，由建置時產生的 `/data/*.json` 提供；首頁掛載後換場次時才抓那一場；概念卡彈窗和文字編輯器改成需要時才載入；新增建置輸出檢查（頁面齊全、payload 上限）。**內容**：schema 集中到 `lib/schema.ts`，內容檢查改成嚴格比對，新增題目 key 重複、時間超過片長、章節遞增、檔名日期、slug 格式、立場題選項數等規則；題目可加選填的 `id`；手寫型別和 schema 對不上時 typecheck 失敗。**儲存**：key 集中到 `STORAGE_KEYS`；立場題、論證卡、測驗作答改用題目 key（`{v: 2, …}`），舊格式讀取時換算；元件改用 `useProgress.ts` 的具名 composable；`writeDefaults: false`。**工具**：vitest 單元測試、CI workflow、deploy 加上型別檢查和測試、`.nvmrc`。第 12 節補上筆記類資料表、立場題 `question` 改成 text |
 | 2026-10-08 | 3.9 | 筆記儲存：`salon-notes-{slug}`、`salon-review-notes` 改成連題目一起存（`{q, text}`，舊格式照讀）；`/notes` 新增「題目已修改」，題目改掉後對不到的筆記不再默默消失；localStorage 容量滿時提示「沒有存到」。討論題的「我的想法」改用 `<MarkdownEditor>` 卡片，和其他筆記一致，可以隨時收起。`/notes` 新增「作答紀錄」（`<NoteAnswers>`、`useQuizRecords`）：每一場測驗題答過的結果，先回想再看答案，可以直接寫複習筆記 |

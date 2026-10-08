@@ -49,15 +49,22 @@ const expanded = ref(false)
 
 const collapsible = computed(() => props.limit !== undefined && props.options.length - props.limit >= MIN_HIDDEN)
 
-/** 收起時要顯示的選項（維持原本順序） */
-const shown = computed(() => {
-  if (!collapsible.value || expanded.value) return props.options
+/** 收起時留下的選項 */
+const kept = computed(() => {
   const ranked = props.rank === 'count'
     ? [...props.options].sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
     : props.options
-  const keep = new Set(ranked.slice(0, props.limit).map(o => o.value))
-  return props.options.filter(o => keep.has(o.value) || isOn(o.value))
+  return new Set(ranked.slice(0, props.limit).map(o => o.value))
 })
+
+/** 要顯示的選項（維持原本順序） */
+const shown = computed(() => {
+  if (!collapsible.value || expanded.value) return props.options
+  return props.options.filter(o => kept.value.has(o.value) || isOn(o.value))
+})
+
+/** 按「顯示全部」才出現的選項淡入（animate-reveal，DESIGN.md「動態」） */
+const revealClass = (value: T) => collapsible.value && expanded.value && !kept.value.has(value) && 'animate-reveal'
 
 /** 「10/4 靈魂與永生」→ ['10/4', '靈魂與永生']；開頭不是日期就整個當主題 */
 const splitDate = (text: string): [string, string] => {
@@ -101,7 +108,7 @@ const choose = (value: T) => {
         :key="o.value"
         type="button"
         class="flex w-full items-baseline gap-2.5 rounded-control px-2 py-1 text-left text-ui transition-colors focus-visible:outline-2 focus-visible:outline-primary"
-        :class="[rowClass(isOn(o.value)), o.class]"
+        :class="[rowClass(isOn(o.value)), o.class, revealClass(o.value)]"
         :aria-pressed="isOn(o.value)"
         @click="choose(o.value)"
       >
@@ -144,7 +151,7 @@ const choose = (value: T) => {
         size="xs"
         :aria-pressed="isOn(o.value)"
         class="rounded-full px-3"
-        :class="o.class"
+        :class="[o.class, revealClass(o.value)]"
         :ui="{ label: 'text-ui font-medium' }"
         @click="choose(o.value)"
       />

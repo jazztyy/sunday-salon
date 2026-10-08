@@ -144,6 +144,8 @@ const scopeCounts = computed(() => {
 
 // ---- 一輪複習 ----
 const deck = ref<ReviewQuestion[]>([])
+/** 第幾輪：重新抽題時第 1 題也要換一張卡（過場用的 key） */
+const round = ref(0)
 const index = ref(0)
 const picks = ref<Record<number, number>>({})
 const running = computed(() => deck.value.length > 0)
@@ -157,6 +159,7 @@ const start = (list = pool.value) => {
   const drawn = shuffled(list)
   deck.value = (size.value ? drawn.slice(0, size.value) : drawn)
     .map(q => q.kind === 'concept' ? withConceptOptions(q, concepts.value) : q)
+  round.value++
   index.value = 0
   picks.value = {}
   revealed.value = {}
@@ -211,6 +214,22 @@ const dueTomorrow = computed(() => {
   return base.value.filter(q => (log.value?.[q.key]?.due ?? '9999') <= tomorrow).length
 })
 
+/**
+ * 換題時題目卡整張換掉（slide-next），按的「下一題」也跟著消失、焦點會掉到 <body>。
+ * 新題目出現後把焦點放在題目卡上（tabindex="-1"），鍵盤和螢幕閱讀器從新題目開始
+ */
+const card = useTemplateRef<HTMLElement>('card')
+const onCardEntered = () => focusIfLost(card.value)
+
+/** 開始、結果這種整塊換掉的畫面：焦點掉了就交給新畫面裡標了 tabindex="-1" 的地方 */
+const onStageEntered = (el: Element) => focusIfLost(el.querySelector<HTMLElement>('[tabindex="-1"]'))
+
+/** 先回想模式按了「看選項」：按鈕消失，焦點交給第一個選項 */
+const onOptionsEntered = (el: Element) => focusIfLost(el.querySelector<HTMLElement>('button:not(:disabled)'))
+
+// 掛載前 localStorage 還沒讀（useSalonStorage 的 initOnMounted）：出題方式、範圍的題數都還不對，設定欄先放骨架
+const storageReady = useStorageReady()
+
 const isCorrect = computed(() => current.value !== undefined && picks.value[index.value] === current.value.item.a)
 
 /** 下一次到期日的文字，例如「明天」「4 天後」 */
@@ -250,184 +269,240 @@ const sourceOf = (q: ReviewQuestion) =>
 
       <FilterLayout aside-label="複習設定" main-class="gap-4">
         <template #aside>
-          <FilterChips v-model="mode" label="出題方式" :options="modeOptions" />
-          <FilterScopePicker v-model:mode="scopeMode" v-model:slugs="customSlugs" :sessions="scopeSessions" :counts="scopeCounts" />
-          <FilterChips v-model="kinds" label="題型" :options="KIND_OPTIONS" multiple />
-          <FilterChips v-model="size" label="題數" :options="SIZE_OPTIONS" />
-
-          <USwitch v-model="recallFirst" label="先回想再看選項" :ui="{ label: 'text-ui text-muted' }" />
-
-          <div class="flex flex-col gap-2 border-t border-default pt-3">
-            <span class="text-ui text-muted" aria-live="polite">可以出 {{ pool.length }} 題</span>
-            <UButton
-              :label="running && !finished ? '重新抽題' : '開始複習'"
-              icon="i-lucide-play"
-              color="primary"
-              variant="outline"
-              class="justify-center rounded-control px-3 text-ui font-medium"
-              :disabled="!pool.length"
-              @click="start()"
-            />
+          <!-- 掛載前：題數還沒套上作答紀錄和存的範圍，先放骨架（同樣的組數和 chip 數），不顯示錯的數字 -->
+          <div v-if="!storageReady" class="flex flex-col gap-5" aria-busy="true">
+            <span class="sr-only">載入中…</span>
+            <div v-for="(n, g) in [3, 3, 2, 3]" :key="g" class="flex flex-col gap-1.5" aria-hidden="true">
+              <USkeleton class="my-1 h-3.5 w-16" />
+              <div class="flex flex-wrap gap-1.5">
+                <USkeleton v-for="i in n" :key="i" class="h-6 w-20 rounded-full" />
+              </div>
+            </div>
+            <USkeleton class="h-5 w-36" aria-hidden="true" />
+            <div class="flex flex-col gap-2 border-t border-default pt-3" aria-hidden="true">
+              <USkeleton class="my-1 h-3.5 w-20" />
+              <USkeleton class="h-8 w-full rounded-control" />
+            </div>
           </div>
-        </template>
+          <Transition name="fade">
+            <div v-if="storageReady" class="flex flex-col gap-5">
+              <FilterChips v-model="mode" label="出題方式" :options="modeOptions" />
+              <FilterScopePicker v-model:mode="scopeMode" v-model:slugs="customSlugs" :sessions="scopeSessions" :counts="scopeCounts" />
+              <FilterChips v-model="kinds" label="題型" :options="KIND_OPTIONS" multiple />
+              <FilterChips v-model="size" label="題數" :options="SIZE_OPTIONS" />
 
-        <!-- 還沒開始 -->
-        <div v-if="!running" class="flex flex-col gap-3 rounded-card border border-dashed border-default p-6 text-small leading-relaxed text-muted">
-          <p>按左邊的「開始複習」。預設只出今天該複習的題目：沒做過的，和到了複習日期的。題目跨場次、跨題型混在一起隨機抽。</p>
-          <p>每題答完會依你的表現排下次複習的日期：有把握答對，間隔拉長（1、2、4、7、15、30 天）；猜對的間隔不變；答錯就明天再來。作答紀錄和筆記只存在這個瀏覽器。</p>
-          <WhyNote>間隔重複：快要忘記時再提取一次，記得最牢；已經熟的題目就不必每次都做。</WhyNote>
-        </div>
+              <USwitch v-model="recallFirst" label="先回想再看選項" :ui="{ label: 'text-ui text-muted' }" />
 
-        <!-- 做題 -->
-        <template v-else-if="!finished && current">
-          <div class="flex items-center gap-3 font-mono text-meta text-muted">
-            <span class="text-primary">第 {{ index + 1 }} / {{ deck.length }} 題</span>
-            <span>答對 {{ score }} / {{ answeredCount }}</span>
-            <UButton label="結束這一輪" color="neutral" variant="link" size="xs" class="ml-auto p-0 font-sans text-ui text-muted" @click="quit" />
-          </div>
-          <UProgress :model-value="index" :max="deck.length" size="xs" aria-label="複習進度" />
-
-          <article :key="index" class="flex flex-col gap-4 rounded-card border border-default bg-elevated p-4 sm:p-5">
-            <span class="font-mono text-meta text-muted">{{ sourceOf(current) }}</span>
-            <template v-if="!optionsShown">
-              <h3 class="text-body font-bold">{{ index + 1 }}. {{ current.item.q }}</h3>
-              <div class="flex flex-col items-start gap-3 rounded-control border border-dashed border-default p-4">
-                <p class="text-small text-muted">先不看選項，在心裡想好答案（可以寫在下面的筆記），再打開選項。</p>
+              <div class="flex flex-col gap-2 border-t border-default pt-3">
+                <span class="text-ui text-muted" aria-live="polite">可以出 {{ pool.length }} 題</span>
                 <UButton
-                  label="我想好了，看選項"
-                  trailing-icon="i-lucide-chevron-down"
-                  color="secondary"
-                  variant="subtle"
-                  class="rounded-control px-3 py-1.5 text-ui font-medium"
-                  @click="revealed = { ...revealed, [index]: true }"
+                  :label="running && !finished ? '重新抽題' : '開始複習'"
+                  icon="i-lucide-play"
+                  color="primary"
+                  variant="outline"
+                  class="justify-center rounded-control px-3 text-ui font-medium"
+                  :disabled="!pool.length"
+                  @click="start()"
                 />
               </div>
-              <WhyNote>提取練習：先從記憶裡把答案拉出來，比看著選項認答案記得更牢。</WhyNote>
-            </template>
-            <StudyQuizItem
-              v-else
-              :session="current.session"
-              :item="current.item"
-              :number="index + 1"
-              :pick="picks[index]"
-              hide-source
-              @pick="pick"
-            />
-            <NuxtLink
-              v-if="current.kind === 'concept' && picks[index] !== undefined"
-              :to="`/c/${current.conceptId}`"
-              class="-mt-2 self-start font-mono text-meta text-secondary hover:text-highlighted"
+            </div>
+          </Transition>
+        </template>
+
+        <!-- 三個畫面（還沒開始／做題／結果）整塊換：淡出後淡入上浮（rise）；做題時換題是 slide-next -->
+        <Transition name="rise" mode="out-in" @after-enter="onStageEntered">
+          <!-- 還沒開始 -->
+          <div v-if="!running" key="intro" class="flex flex-col gap-3 rounded-card border border-dashed border-default p-6 text-small leading-relaxed text-muted">
+            <p>按左邊的「開始複習」。預設只出今天該複習的題目：沒做過的，和到了複習日期的。題目跨場次、跨題型混在一起隨機抽。</p>
+            <p>每題答完會依你的表現排下次複習的日期：有把握答對，間隔拉長（1、2、4、7、15、30 天）；猜對的間隔不變；答錯就明天再來。作答紀錄和筆記只存在這個瀏覽器。</p>
+            <WhyNote>間隔重複：快要忘記時再提取一次，記得最牢；已經熟的題目就不必每次都做。</WhyNote>
+          </div>
+
+          <!-- 做題 -->
+          <div v-else-if="!finished && current" key="round" class="flex flex-col gap-4">
+            <div class="flex items-center gap-3 font-mono text-meta text-muted">
+              <span class="text-primary">第 {{ index + 1 }} / {{ deck.length }} 題</span>
+              <span>答對 {{ score }} / {{ answeredCount }}</span>
+              <UButton label="結束這一輪" color="neutral" variant="link" size="xs" class="ml-auto p-0 font-sans text-ui text-muted" @click="quit" />
+            </div>
+            <UProgress :model-value="index" :max="deck.length" size="xs" aria-label="複習進度" />
+
+            <!-- 換題：整張題目卡往左滑出、新的從右邊進來。tabindex="-1"：換題後焦點放在新題目上 -->
+            <Transition name="slide-next" mode="out-in" @after-enter="onCardEntered">
+              <article
+                :key="`${round}-${index}`"
+                ref="card"
+                tabindex="-1"
+                :aria-label="`第 ${index + 1} 題`"
+                class="flex flex-col gap-4 rounded-card border border-default bg-elevated p-4 focus-visible:outline-none sm:p-5"
+              >
+                <span class="font-mono text-meta text-muted">{{ sourceOf(current) }}</span>
+                <!-- 先回想 → 看選項：提示區淡出、選項淡入上浮 -->
+                <Transition name="rise" mode="out-in" @after-enter="onOptionsEntered">
+                  <div v-if="!optionsShown" key="recall" class="flex flex-col gap-4">
+                    <h3 class="text-body font-bold">{{ index + 1 }}. {{ current.item.q }}</h3>
+                    <div class="flex flex-col items-start gap-3 rounded-control border border-dashed border-default p-4">
+                      <p class="text-small text-muted">先不看選項，在心裡想好答案（可以寫在下面的筆記），再打開選項。</p>
+                      <UButton
+                        label="我想好了，看選項"
+                        trailing-icon="i-lucide-chevron-down"
+                        color="secondary"
+                        variant="subtle"
+                        class="rounded-control px-3 py-1.5 text-ui font-medium"
+                        @click="revealed = { ...revealed, [index]: true }"
+                      />
+                    </div>
+                    <WhyNote>提取練習：先從記憶裡把答案拉出來，比看著選項認答案記得更牢。</WhyNote>
+                  </div>
+                  <StudyQuizItem
+                    v-else
+                    key="options"
+                    :session="current.session"
+                    :item="current.item"
+                    :number="index + 1"
+                    :pick="picks[index]"
+                    hide-source
+                    @pick="pick"
+                  />
+                </Transition>
+
+                <!-- 作答後才出現的：概念卡連結、把握程度、下一題，和解析一起淡入 -->
+                <Transition name="rise">
+                  <NuxtLink
+                    v-if="current.kind === 'concept' && picks[index] !== undefined"
+                    :to="`/c/${current.conceptId}`"
+                    class="-mt-2 self-start font-mono text-meta text-secondary hover:text-highlighted"
+                  >
+                    ▸ 看概念卡
+                  </NuxtLink>
+                </Transition>
+
+                <Transition name="rise">
+                  <div v-if="picks[index] !== undefined" class="flex flex-wrap items-center gap-2 text-ui text-muted">
+                    <template v-if="isCorrect">
+                      <span>這題是：</span>
+                      <UButton
+                        label="有把握"
+                        color="neutral"
+                        :variant="sure ? 'solid' : 'outline'"
+                        size="xs"
+                        :aria-pressed="sure"
+                        class="rounded-full px-3"
+                        :ui="{ label: 'text-ui font-medium' }"
+                        @click="sure = true"
+                      />
+                      <UButton
+                        label="猜的"
+                        color="neutral"
+                        :variant="!sure ? 'solid' : 'outline'"
+                        size="xs"
+                        :aria-pressed="!sure"
+                        class="rounded-full px-3"
+                        :ui="{ label: 'text-ui font-medium' }"
+                        @click="sure = false"
+                      />
+                    </template>
+                    <span class="font-mono text-meta" :class="{ 'ml-auto': isCorrect }">下次複習：{{ nextDueLabel }}</span>
+                  </div>
+                </Transition>
+
+                <div class="flex flex-col gap-2 border-t border-default pt-3">
+                  <Transition name="fade" mode="out-in">
+                    <UButton
+                      v-if="!showNote"
+                      key="write"
+                      color="neutral"
+                      variant="ghost"
+                      icon="i-lucide-pencil-line"
+                      label="寫筆記"
+                      class="self-start rounded-control px-2.5 py-1.5 text-ui text-muted hover:bg-accented hover:text-highlighted"
+                      @click="noteOpen = true"
+                    />
+                    <div v-else key="note" class="flex flex-col gap-2">
+                      <label :for="`review-note-${index}`" class="text-meta font-medium text-muted">我的筆記<span class="font-normal text-dimmed">・會收進「筆記」頁</span></label>
+                      <!-- 編輯器的程式第一次下載時先放骨架 -->
+                      <Suspense>
+                        <LazyMarkdownEditor
+                          :id="`review-note-${index}`"
+                          :key="`review-note-${index}`"
+                          v-model="note"
+                          :autofocus="noteOpen && !note"
+                          min-height="min-h-24"
+                          placeholder="用最簡單的話，向沒看過影片的朋友解釋為什麼是這個答案；卡住的地方就是還不懂的地方"
+                        />
+                        <template #fallback>
+                          <MarkdownEditorSkeleton min-height="min-h-24" />
+                        </template>
+                      </Suspense>
+                    </div>
+                  </Transition>
+                </div>
+
+                <Transition name="rise">
+                  <UButton
+                    v-if="picks[index] !== undefined"
+                    :label="index + 1 < deck.length ? '下一題' : '看結果'"
+                    trailing-icon="i-lucide-arrow-right"
+                    color="primary"
+                    variant="outline"
+                    class="self-end rounded-control px-4 text-ui font-medium"
+                    @click="next"
+                  />
+                </Transition>
+              </article>
+            </Transition>
+          </div>
+
+          <!-- 結果 -->
+          <div v-else key="results" class="flex flex-col gap-4">
+            <section
+              tabindex="-1"
+              aria-labelledby="review-result"
+              class="flex flex-col gap-3 rounded-card border border-default bg-elevated p-5 focus-visible:outline-none"
             >
-              ▸ 看概念卡
-            </NuxtLink>
-
-            <div v-if="picks[index] !== undefined" class="flex flex-wrap items-center gap-2 text-ui text-muted">
-              <template v-if="isCorrect">
-                <span>這題是：</span>
+              <h2 id="review-result" class="font-serif text-h2 leading-snug font-semibold text-highlighted">
+                答對 {{ score }} / {{ deck.length }} 題
+              </h2>
+              <p class="text-small text-muted">
+                <template v-if="score === deck.length">全部答對。</template>
+                <template v-else-if="mastered">答對率超過 8 成。下面是答錯的題目，可以點「只練答錯的」補起來。</template>
+                <template v-else>答對率還不到 8 成，建議先「只練答錯的」，練到都答對再結束。</template>
+                每題下次複習的日期已經排好了，明天到期 {{ dueTomorrow }} 題。
+              </p>
+              <WhyNote v-if="score < deck.length">連續再學習：答錯的題目在同一次練到答對，之後再隔幾天複習，忘得最慢。</WhyNote>
+              <div class="flex flex-wrap gap-2">
                 <UButton
-                  label="有把握"
-                  color="neutral"
-                  :variant="sure ? 'solid' : 'outline'"
-                  size="xs"
-                  :aria-pressed="sure"
-                  class="rounded-full px-3"
-                  :ui="{ label: 'text-ui font-medium' }"
-                  @click="sure = true"
+                  v-if="score < deck.length"
+                  label="只練答錯的"
+                  icon="i-lucide-rotate-ccw"
+                  color="primary"
+                  variant="outline"
+                  class="rounded-control px-3 text-ui font-medium"
+                  @click="retryWrong"
                 />
                 <UButton
-                  label="猜的"
+                  label="再抽一輪"
+                  icon="i-lucide-play"
                   color="neutral"
-                  :variant="!sure ? 'solid' : 'outline'"
-                  size="xs"
-                  :aria-pressed="!sure"
-                  class="rounded-full px-3"
-                  :ui="{ label: 'text-ui font-medium' }"
-                  @click="sure = false"
+                  variant="outline"
+                  class="rounded-control px-3 text-ui font-medium"
+                  :disabled="!pool.length"
+                  @click="start()"
                 />
+              </div>
+            </section>
+
+            <ul v-if="score < deck.length" class="grid gap-3 sm:grid-cols-2">
+              <template v-for="(q, i) in deck" :key="q.key">
+                <li v-if="picks[i] !== q.item.a" class="flex flex-col gap-2 rounded-card border border-default bg-elevated p-4">
+                  <span class="font-mono text-meta text-muted">{{ sourceOf(q) }}</span>
+                  <p class="text-body-sm font-medium text-highlighted">{{ q.item.q }}</p>
+                  <p class="text-small text-toned">正解：{{ q.item.o[q.item.a] }}</p>
+                </li>
               </template>
-              <span class="font-mono text-meta" :class="{ 'ml-auto': isCorrect }">下次複習：{{ nextDueLabel }}</span>
-            </div>
-
-            <div class="flex flex-col gap-2 border-t border-default pt-3">
-              <UButton
-                v-if="!showNote"
-                color="neutral"
-                variant="ghost"
-                icon="i-lucide-pencil-line"
-                label="寫筆記"
-                class="self-start rounded-control px-2.5 py-1.5 text-ui text-muted hover:bg-accented hover:text-highlighted"
-                @click="noteOpen = true"
-              />
-              <template v-else>
-                <label :for="`review-note-${index}`" class="text-meta font-medium text-muted">我的筆記<span class="font-normal text-dimmed">・會收進「筆記」頁</span></label>
-                <LazyMarkdownEditor
-                  :id="`review-note-${index}`"
-                  :key="`review-note-${index}`"
-                  v-model="note"
-                  :autofocus="noteOpen && !note"
-                  min-height="min-h-24"
-                  placeholder="用最簡單的話，向沒看過影片的朋友解釋為什麼是這個答案；卡住的地方就是還不懂的地方"
-                />
-              </template>
-            </div>
-
-            <UButton
-              v-if="picks[index] !== undefined"
-              :label="index + 1 < deck.length ? '下一題' : '看結果'"
-              trailing-icon="i-lucide-arrow-right"
-              color="primary"
-              variant="outline"
-              class="self-end rounded-control px-4 text-ui font-medium"
-              @click="next"
-            />
-          </article>
-        </template>
-
-        <!-- 結果 -->
-        <template v-else>
-          <section class="flex flex-col gap-3 rounded-card border border-default bg-elevated p-5">
-            <h2 class="font-serif text-h2 leading-snug font-semibold text-highlighted">
-              答對 {{ score }} / {{ deck.length }} 題
-            </h2>
-            <p class="text-small text-muted">
-              <template v-if="score === deck.length">全部答對。</template>
-              <template v-else-if="mastered">答對率超過 8 成。下面是答錯的題目，可以點「只練答錯的」補起來。</template>
-              <template v-else>答對率還不到 8 成，建議先「只練答錯的」，練到都答對再結束。</template>
-              每題下次複習的日期已經排好了，明天到期 {{ dueTomorrow }} 題。
-            </p>
-            <WhyNote v-if="score < deck.length">連續再學習：答錯的題目在同一次練到答對，之後再隔幾天複習，忘得最慢。</WhyNote>
-            <div class="flex flex-wrap gap-2">
-              <UButton
-                v-if="score < deck.length"
-                label="只練答錯的"
-                icon="i-lucide-rotate-ccw"
-                color="primary"
-                variant="outline"
-                class="rounded-control px-3 text-ui font-medium"
-                @click="retryWrong"
-              />
-              <UButton
-                label="再抽一輪"
-                icon="i-lucide-play"
-                color="neutral"
-                variant="outline"
-                class="rounded-control px-3 text-ui font-medium"
-                :disabled="!pool.length"
-                @click="start()"
-              />
-            </div>
-          </section>
-
-          <ul v-if="score < deck.length" class="grid gap-3 sm:grid-cols-2">
-            <template v-for="(q, i) in deck" :key="q.key">
-              <li v-if="picks[i] !== q.item.a" class="flex flex-col gap-2 rounded-card border border-default bg-elevated p-4">
-                <span class="font-mono text-meta text-muted">{{ sourceOf(q) }}</span>
-                <p class="text-body-sm font-medium text-highlighted">{{ q.item.q }}</p>
-                <p class="text-small text-toned">正解：{{ q.item.o[q.item.a] }}</p>
-              </li>
-            </template>
-          </ul>
-        </template>
+            </ul>
+          </div>
+        </Transition>
       </FilterLayout>
     </main>
   </div>

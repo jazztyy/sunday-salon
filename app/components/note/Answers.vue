@@ -85,6 +85,10 @@ const active = computed(() => records.value.find(r => r.key === openKey.value) ?
 /** 看過答案沒：每次打開都從「先回想」開始 */
 const revealed = ref(false)
 watch(openKey, () => { revealed.value = false })
+/** 按了「看答案與解析」：按鈕消失，焦點交給解析（tabindex="-1"），不讓它掉出視窗 */
+const onRevealed = (el: Element) => {
+  if (revealed.value) focusIfLost(el as HTMLElement)
+}
 
 const note = computed({
   get: () => active.value ? getNote(active.value.key) : '',
@@ -214,23 +218,26 @@ const optionClass = (r: QuizRecord, j: number) => {
         </li>
       </ol>
 
-      <UButton
-        v-if="!revealed"
-        color="secondary"
-        variant="subtle"
-        trailing-icon="i-lucide-chevron-down"
-        label="我想好了，看答案與解析"
-        class="self-start rounded-control px-3 py-1.5 text-ui font-medium hover:bg-secondary/25 hover:ring-secondary"
-        @click="revealed = true"
-      />
-      <div v-else class="flex flex-col gap-1 text-small leading-relaxed text-toned" aria-live="polite">
-        <p><b class="text-success">答案是 {{ letter(active.item.a) }}。</b>{{ active.item.e }}</p>
-        <ul class="flex flex-wrap gap-x-4 gap-y-1">
-          <li v-for="(ref, k) in active.item.refs" :key="k">
-            <VideoLink :vid="ref[0]" :t="ref[1]" class="font-mono text-meta">▸ {{ refLabel(active.session, ref) }}</VideoLink>
-          </li>
-        </ul>
-      </div>
+      <!-- 揭曉：按鈕淡出、解析淡入上浮；按鈕消失後焦點交給解析 -->
+      <Transition name="rise" mode="out-in" @after-enter="onRevealed">
+        <UButton
+          v-if="!revealed"
+          color="secondary"
+          variant="subtle"
+          trailing-icon="i-lucide-chevron-down"
+          label="我想好了，看答案與解析"
+          class="self-start rounded-control px-3 py-1.5 text-ui font-medium hover:bg-secondary/25 hover:ring-secondary"
+          @click="revealed = true"
+        />
+        <div v-else tabindex="-1" class="flex flex-col gap-1 text-small leading-relaxed text-toned focus-visible:outline-none" aria-live="polite">
+          <p><b class="text-success">答案是 {{ letter(active.item.a) }}。</b>{{ active.item.e }}</p>
+          <ul class="flex flex-wrap gap-x-4 gap-y-1">
+            <li v-for="(ref, k) in active.item.refs" :key="k">
+              <VideoLink :vid="ref[0]" :t="ref[1]" class="font-mono text-meta">▸ {{ refLabel(active.session, ref) }}</VideoLink>
+            </li>
+          </ul>
+        </div>
+      </Transition>
 
       <NoteField
         :key="active.key"

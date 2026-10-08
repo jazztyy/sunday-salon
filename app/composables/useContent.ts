@@ -65,13 +65,51 @@ export const useCurrentSession = (index: Ref<SessionSummary[]>) => {
   const today = useToday()
   const slug = computed(() => pickCurrentSession(index.value, today.value)?.slug ?? '')
   const load = useSessionLoader()
-  return useAsyncData('session:current', () => load(slug.value), { watch: [slug] })
+  return useAsyncData('session:current', () => load(slug.value), {
+    watch: [slug],
+    // 掛載後換了一場（watch 觸發）一定要重抓；預設的 getCachedData 在 hydration 時會拿 payload 裡建置當天那一場
+    getCachedData: (key, nuxtApp, ctx) => ctx.cause === 'watch'
+      ? undefined
+      : (nuxtApp.isHydrating ? nuxtApp.payload.data[key] : nuxtApp.static.data[key]),
+  })
 }
 
-/** 單張概念卡（含內文） */
+/**
+ * 瀏覽器端抓過的概念卡：id → 資料。彈窗換卡（上一則／下一則）時直接拿，不用再等網路（等網路時畫面會空一下）。
+ * 只在瀏覽器端存：預先產生頁面時每一頁各自查。
+ */
+const conceptCache = new Map<string, ConceptFull | null>()
+const conceptPending = new Map<string, Promise<ConceptFull | null>>()
+
+const fetchConcept = (url: (path: string) => string, id: string): Promise<ConceptFull | null> => {
+  if (conceptCache.has(id)) return Promise.resolve(conceptCache.get(id)!)
+  let p = conceptPending.get(id)
+  if (!p) {
+    p = $fetch<ConceptFull>(url(`concepts/${encodeURIComponent(id)}.json`))
+      .catch(() => null)
+      .then((v) => {
+        if (import.meta.client) conceptCache.set(id, v)
+        conceptPending.delete(id)
+        return v
+      })
+    conceptPending.set(id, p)
+  }
+  return p
+}
+
+/** 單張概念卡（含內文）。抓過的直接用（conceptCache），沒抓過才去抓 JSON */
 export const useConcept = (id: string) => {
   const url = useDataUrl()
-  return useAsyncData(`concept:${id}`, () => $fetch<ConceptFull>(url(`concepts/${encodeURIComponent(id)}.json`)).catch(() => null))
+  return useAsyncData(`concept:${id}`, () => fetchConcept(url, id), {
+    getCachedData: (key, nuxtApp) =>
+      nuxtApp.payload.data[key] ?? nuxtApp.static.data[key] ?? (import.meta.client ? conceptCache.get(id) : undefined),
+  })
+}
+
+/** 預先抓概念卡（彈窗的前後兩張、滑鼠移到概念卡連結上時），回傳的 promise 在抓完時 resolve。要在 setup 裡呼叫 */
+export const useConceptPrefetch = () => {
+  const url = useDataUrl()
+  return (id: string) => fetchConcept(url, id)
 }
 
 /** 台灣時間的今天，ISO 日期（YYYY-MM-DD），和場次的 date 同格式可以直接比大小 */

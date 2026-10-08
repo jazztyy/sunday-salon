@@ -17,13 +17,22 @@ const hit = computed<boolean | null>(() => {
   return !!props.arg.prem[pick.value]?.[1]
 })
 
-const save = (value: number | undefined) => savePick(props.arg, value)
+/** 剛剛點了前提：點的按鈕換成結果、焦點會掉，揭曉出現後把焦點交給結果（掛載時讀回的紀錄不動焦點） */
+let picked = false
+const save = (value: number | undefined) => {
+  picked = value !== undefined && value !== -1
+  savePick(props.arg, value)
+}
+const onRevealed = (el: Element) => {
+  if (picked) focusIfLost(el as HTMLElement)
+  picked = false
+}
 
 const premClass = (j: number, weak: boolean) => {
-  const base = 'grid w-full grid-cols-[2.4em_1fr] items-start gap-2 rounded-control border px-2.5 py-2 text-left'
+  const base = 'grid w-full grid-cols-[2.4em_1fr] items-start gap-2 rounded-control border px-2.5 py-2 text-left transition-colors'
   const border = pick.value === j ? 'border-primary' : 'border-transparent'
   if (!done.value) {
-    return [base, border, 'cursor-pointer bg-accented transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary']
+    return [base, border, 'cursor-pointer bg-accented hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary']
   }
   return [base, border, weak ? 'bg-error-soft' : 'bg-success-soft']
 }
@@ -94,13 +103,16 @@ const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-
           </li>
         </ol>
 
-        <template v-if="done">
-          <p v-if="hit !== null" class="text-small font-bold" :class="hit ? 'text-success' : 'text-primary'">
-            <template v-if="hit">你選了 P{{ (pick ?? 0) + 1 }}，Kagan 也質疑這一步。</template>
-            <template v-else>你選了 P{{ (pick ?? 0) + 1 }}，但 Kagan 接受這一步。看看他質疑的是哪裡。</template>
-          </p>
-          <p class="border-l-3 border-primary pl-3 text-body-sm text-toned">{{ arg.verdict }}</p>
-        </template>
+        <!-- 揭曉：對照結果和 Kagan 的判斷淡入上浮（rise）；質疑、接受的說明跟著前提的底色一起換 -->
+        <Transition name="rise" @after-enter="onRevealed">
+          <div v-if="done" tabindex="-1" class="flex flex-col gap-3 focus-visible:outline-none">
+            <p v-if="hit !== null" class="text-small font-bold" :class="hit ? 'text-success' : 'text-primary'">
+              <template v-if="hit">你選了 P{{ (pick ?? 0) + 1 }}，Kagan 也質疑這一步。</template>
+              <template v-else>你選了 P{{ (pick ?? 0) + 1 }}，但 Kagan 接受這一步。看看他質疑的是哪裡。</template>
+            </p>
+            <p class="border-l-3 border-primary pl-3 text-body-sm text-toned">{{ arg.verdict }}</p>
+          </div>
+        </Transition>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
           <VideoLink :vid="arg.vid" :t="arg.t" class="text-ui">看這段影片 ▸</VideoLink>

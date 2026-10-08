@@ -13,33 +13,36 @@ const emit = defineEmits<{ clear: [] }>()
 </script>
 
 <template>
-  <div v-if="hasFilter" class="flex flex-col gap-1.5">
-    <div class="flex items-center gap-3">
-      <span v-if="items.length" class="text-ui text-muted">已選</span>
-      <UButton
-        label="清除篩選"
-        color="secondary"
-        variant="link"
-        size="xs"
-        class="ml-auto p-0"
-        :ui="{ label: 'text-ui' }"
-        @click="emit('clear')"
-      />
-    </div>
-    <ul v-if="items.length" class="flex flex-wrap gap-1.5">
-      <li v-for="item in items" :key="item.key">
+  <!-- 有條件時整塊淡入；已選的 chip 加入、取消時各自淡入淡出（fade） -->
+  <Transition name="fade">
+    <div v-if="hasFilter" class="flex flex-col gap-1.5">
+      <div class="flex items-center gap-3">
+        <span v-if="items.length" class="text-ui text-muted">已選</span>
         <UButton
-          :label="item.label"
-          trailing-icon="i-lucide-x"
-          color="primary"
-          variant="subtle"
+          label="清除篩選"
+          color="secondary"
+          variant="link"
           size="xs"
-          :aria-label="`取消「${item.label}」`"
-          class="rounded-full px-3"
-          :ui="{ label: 'text-ui font-medium', trailingIcon: 'size-3.5' }"
-          @click="item.remove()"
+          class="ml-auto p-0"
+          :ui="{ label: 'text-ui' }"
+          @click="emit('clear')"
         />
-      </li>
-    </ul>
-  </div>
+      </div>
+      <TransitionGroup v-if="items.length" tag="ul" name="fade" class="flex flex-wrap gap-1.5">
+        <li v-for="item in items" :key="item.key">
+          <UButton
+            :label="item.label"
+            trailing-icon="i-lucide-x"
+            color="primary"
+            variant="subtle"
+            size="xs"
+            :aria-label="`取消「${item.label}」`"
+            class="rounded-full px-3"
+            :ui="{ label: 'text-ui font-medium', trailingIcon: 'size-3.5' }"
+            @click="item.remove()"
+          />
+        </li>
+      </TransitionGroup>
+    </div>
+  </Transition>
 </template>

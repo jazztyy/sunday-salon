@@ -7,9 +7,11 @@
 // 這裡面的 /c/{id} 連結（內文、相關概念）會被 app.vue 攔下來改成開彈窗，所以在彈窗裡點也只是換一張卡。
 const props = defineProps<{ id: string }>()
 
-const { data: concepts } = await useConceptIndex()
-const { data: sessions } = await useSessionIndex()
-const { data: full } = await useConcept(props.id)
+// 不 await：彈窗換卡時要能馬上建立，才接得上切換動畫（資料多半已經在快取裡）。
+// 預先產生頁面時 useAsyncData 一樣會等資料，HTML 裡是完整內容。內文還沒到時顯示骨架。
+const { data: concepts } = useConceptIndex()
+const { data: sessions } = useSessionIndex()
+const { data: full } = useConcept(props.id)
 
 const concept = computed(() => concepts.value.find(c => c.id === props.id))
 
@@ -58,6 +60,12 @@ const related = computed(() => {
         Prose 預設連結是 text-primary、段落 my-5 leading-7；這裡用後代選擇器改成站內規範（連結用 secondary）。
       -->
       <ContentRenderer v-if="full?.raw" :value="full.raw" class="-my-3 text-body text-toned" />
+      <div v-else class="flex flex-col gap-2.5" aria-busy="true">
+        <span class="sr-only">載入中…</span>
+        <USkeleton class="h-4 w-full" />
+        <USkeleton class="h-4 w-11/12" />
+        <USkeleton class="h-4 w-4/5" />
+      </div>
 
       <div class="flex flex-col gap-5 border-t border-default pt-5">
         <section class="flex flex-col gap-2" :aria-labelledby="`used-in-${id}`">

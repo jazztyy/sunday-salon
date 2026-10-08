@@ -43,8 +43,17 @@ watchEffect(() => {
 
 const partsBar = useTemplateRef<HTMLElement>('partsBar')
 
+/**
+ * 換段的過場：往後面的段落是 slide-next（從右邊進來），往前是 slide-prev。
+ * 掛載時跳到上次停留的段落不播（partMotion 掛載後才開；不播時 mode 也改回 default，理由見 SessionView）
+ */
+const partSlide = ref<'slide-next' | 'slide-prev'>('slide-next')
+const partMotion = ref(false)
+const partIndex = (key: string) => parts.value.findIndex(p => p.key === key)
+
 const selectPart = (key: string, scroll = true) => {
   if (!parts.value.some(p => p.key === key)) return
+  partSlide.value = partIndex(key) < partIndex(part.value) ? 'slide-prev' : 'slide-next'
   part.value = key
   storedPart.value = key
   if (key !== 'all') select(key)
@@ -66,7 +75,14 @@ onMounted(() => {
   const initial = selected.value ?? storedPart.value
   if (initial) selectPart(initial, false)
   else select(part.value)
+  nextTick(() => { partMotion.value = true })
 })
+
+// 按最後一段之前的「下一段」到了整合回顧，按鈕消失、焦點掉到 <body>：交給子分頁列目前的那一段
+const onPartEntered = () => {
+  if (!partMotion.value || (document.activeElement && document.activeElement !== document.body)) return
+  partsBar.value?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true })
+}
 </script>
 
 <template>
@@ -93,46 +109,48 @@ onMounted(() => {
     />
   </div>
 
-  <StudyVideoSection
-    v-if="currentVideo"
-    :key="`${session.slug}-${currentVideo.id}`"
-    :session="session"
-    :video="currentVideo"
-    :quiz-picks="picks"
-    @pick="answer"
-  />
+  <Transition :name="partSlide" :mode="partMotion ? 'out-in' : 'default'" :css="partMotion" @after-enter="onPartEntered">
+    <StudyVideoSection
+      v-if="currentVideo"
+      :key="`${session.slug}-${currentVideo.id}`"
+      :session="session"
+      :video="currentVideo"
+      :quiz-picks="picks"
+      @pick="answer"
+    />
 
-  <section v-else-if="part === 'all'" class="flex flex-col gap-6">
-    <header class="flex flex-col gap-1">
-      <h2 class="font-serif text-h2 font-black leading-snug text-highlighted">整合回顧</h2>
-      <p class="text-small text-muted">三支影片都看完之後，把它們放在一起想。</p>
-    </header>
+    <section v-else-if="part === 'all'" key="all" class="flex flex-col gap-6">
+      <header class="flex flex-col gap-1">
+        <h2 class="font-serif text-h2 font-black leading-snug text-highlighted">整合回顧</h2>
+        <p class="text-small text-muted">三支影片都看完之後，把它們放在一起想。</p>
+      </header>
 
-    <div v-if="allQuiz.length" class="flex flex-col gap-7">
-      <h3 v-if="allQuiz.length" :class="h3Class">測一下</h3>
-      <StudyQuizItem
-        v-for="({ item, index }, n) in allQuiz"
-        :key="`${session.slug}-quiz-${index}`"
-        as="h4"
-        hide-source
-        :session="session"
-        :item="item"
-        :number="n + 1"
-        :pick="picks[index]"
-        @pick="answer(index, $event)"
-      />
-    </div>
+      <div v-if="allQuiz.length" class="flex flex-col gap-7">
+        <h3 v-if="allQuiz.length" :class="h3Class">測一下</h3>
+        <StudyQuizItem
+          v-for="({ item, index }, n) in allQuiz"
+          :key="`${session.slug}-quiz-${index}`"
+          as="h4"
+          hide-source
+          :session="session"
+          :item="item"
+          :number="n + 1"
+          :pick="picks[index]"
+          @pick="answer(index, $event)"
+        />
+      </div>
 
-    <div v-if="allDiscuss.length" class="flex flex-col gap-3">
-      <h3 :class="h3Class">想一想</h3>
-      <StudyDiscussCard
-        v-for="{ item, index } in allDiscuss"
-        :key="`${session.slug}-discuss-${index}`"
-        :session="session"
-        :item="item"
-      />
-    </div>
-  </section>
+      <div v-if="allDiscuss.length" class="flex flex-col gap-3">
+        <h3 :class="h3Class">想一想</h3>
+        <StudyDiscussCard
+          v-for="{ item, index } in allDiscuss"
+          :key="`${session.slug}-discuss-${index}`"
+          :session="session"
+          :item="item"
+        />
+      </div>
+    </section>
+  </Transition>
 
   <div v-if="nextPart" class="flex justify-end">
     <UButton color="neutral" variant="outline" :label="`下一段：${nextPart.label} →`" @click="selectPart(nextPart.key)" />
