@@ -7,8 +7,8 @@
 import Fuse from 'fuse.js'
 import type { Concept } from '~/types/session'
 
-const { data: concepts } = await useAllConcepts()
-const { data: sessions } = await useAllSessions()
+const { data: concepts } = await useConceptIndex()
+const { data: sessions } = await useSessionIndex()
 const { data: facets } = await useTaxonomy()
 
 useSeoMeta({ title: '概念卡・悅讀聊天室' })
@@ -42,9 +42,15 @@ const fuse = computed(() => new Fuse(concepts.value, {
   ignoreLocation: true,
 }))
 
+/** 選定場次用到的概念卡 id；沒選場次是 null（不篩）。先算好，不必每張卡都找一次場次 */
+const sessionConceptIds = computed(() => {
+  if (!session.value) return null
+  return new Set(sessions.value.find(s => s.slug === session.value)?.concepts ?? [])
+})
+
 const passesFilters = (c: Concept) =>
   selected.value.every(t => c.tags.includes(t))
-  && (!session.value || !!sessions.value.find(s => s.slug === session.value)?.concepts.includes(c.id))
+  && (!sessionConceptIds.value || sessionConceptIds.value.has(c.id))
 
 /** 有搜尋字時：依相關程度排列；沒有時是 null */
 const results = computed(() => {
@@ -57,19 +63,15 @@ const filtered = computed(() => concepts.value.filter(passesFilters))
 const groups = computed(() => {
   if (results.value) return results.value.length ? [{ label: '搜尋結果', cards: results.value }] : []
   const domains = facets.value.find(f => f.key === 'domain')?.tags ?? []
+  const domainSet = new Set(domains)
   const list = domains
     .map(tag => ({ label: tag, cards: filtered.value.filter(c => c.tags.includes(tag)) }))
     .filter(g => g.cards.length)
-  const others = filtered.value.filter(c => !c.tags.some(t => domains.includes(t)))
+  const others = filtered.value.filter(c => !c.tags.some(t => domainSet.has(t)))
   return others.length ? [...list, { label: '其他', cards: others }] : list
 })
 
 const total = computed(() => results.value ? results.value.length : filtered.value.length)
-
-const isSelected = (tag: string) => selected.value.includes(tag)
-const toggle = (tag: string) => {
-  selected.value = isSelected(tag) ? selected.value.filter(t => t !== tag) : [...selected.value, tag]
-}
 
 const hasFilter = computed(() => !!(query.value.trim() || selected.value.length || session.value))
 const clear = () => {
@@ -78,43 +80,30 @@ const clear = () => {
   session.value = null
 }
 
-// 預先產生的頁面初次載入時網址的 query 會被清掉，所以讀 head 腳本存下的原始 search（同 /archive），
-// 並等 Nuxt 完全就緒才寫回網址
-const route = useRoute()
-const router = useRouter()
-const urlReady = ref(false)
+/** 篩選欄的 chip 選項 */
+const tagOptions = (tags: string[]) => tags.map(t => ({ value: t, label: t }))
+const sessionChips = computed(() => sessionOptions.value.map(s => ({ value: s.slug, label: s.chip })))
 
-const syncUrl = () => router.replace({
-  query: {
-    ...route.query,
-    q: query.value.trim() || undefined,
-    tag: selected.value.length ? selected.value : undefined,
-    s: session.value ?? undefined,
+// 篩選條件同步到網址（初次載入讀原始 search、等 Nuxt 就緒才寫回，同 /archive，見 useUrlFilters）
+const { urlReady } = useUrlFilters([
+  { key: 'q', read: () => query.value.trim() || undefined, apply: (v) => { query.value = v[0] ?? '' } },
+  {
+    key: 'tag',
+    read: () => selected.value.length ? selected.value : undefined,
+    apply: (v) => { selected.value = [...new Set(v)].filter(t => usedTags.value.has(t)) },
   },
-  hash: route.hash,
-})
-
-watch([query, selected, session], () => {
-  if (urlReady.value) syncUrl()
-})
-
-const listOf = (v: unknown): string[] => (Array.isArray(v) ? v : [v]).filter((t): t is string => typeof t === 'string' && t.length > 0)
-
-onNuxtReady(() => {
-  const initial = new URLSearchParams(takeInitialLocation().search)
-  const fromRoute = Object.keys(route.query).length > 0
-  query.value = (fromRoute ? listOf(route.query.q)[0] : initial.get('q')) ?? ''
-  selected.value = [...new Set(fromRoute ? listOf(route.query.tag) : initial.getAll('tag'))].filter(t => usedTags.value.has(t))
-  const s = fromRoute ? listOf(route.query.s)[0] : initial.get('s')
-  session.value = s && sessionOptions.value.some(o => o.slug === s) ? s : null
-  urlReady.value = true
-  syncUrl()
-})
+  {
+    key: 's',
+    read: () => session.value ?? undefined,
+    apply: ([s]) => { session.value = s && sessionOptions.value.some(o => o.slug === s) ? s : null },
+  },
+])
 
 // 在本頁點概念卡上的 tag（/concepts?tag=…）時，Nuxt 只換 query 不重建頁面，所以跟著網址更新篩選
+const route = useRoute()
 watch(() => route.query.tag, (v) => {
   if (!urlReady.value) return
-  const tags = listOf(v).filter(t => usedTags.value.has(t))
+  const tags = queryValues(v).filter(t => usedTags.value.has(t))
   if (tags.join('|') !== selected.value.join('|')) selected.value = tags
 })
 </script>
@@ -131,93 +120,24 @@ watch(() => route.query.tag, (v) => {
         </p>
       </header>
 
-      <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:items-start lg:gap-10">
-        <!-- 篩選欄：桌機固定在左邊（同 /archive） -->
-        <aside
-          aria-label="篩選"
-          class="flex flex-col gap-5 lg:sticky lg:top-[calc(var(--tb,64px)+1.5rem)] lg:max-h-[calc(100vh-var(--tb,64px)-3rem)] lg:overflow-y-auto lg:pr-1"
-        >
-          <UInput
-            v-model="query"
-            type="text"
-            enterkeyhint="search"
-            icon="i-lucide-search"
-            placeholder="搜尋詞條、英文、別名或定義…"
-            aria-label="搜尋概念卡"
-            class="w-full"
-            :ui="{ base: 'text-ui', trailing: 'pe-1' }"
-          >
-            <template v-if="query" #trailing>
-              <UButton icon="i-lucide-x" aria-label="清除搜尋" color="neutral" variant="link" size="xs" @click="query = ''" />
-            </template>
-          </UInput>
+      <FilterLayout>
+        <template #aside>
+          <FilterSearch v-model="query" placeholder="搜尋詞條、英文、別名或定義…" label="搜尋概念卡" />
+          <FilterChips
+            v-for="facet in visibleFacets"
+            :key="facet.key"
+            v-model="selected"
+            :label="facet.label"
+            :options="tagOptions(facet.tags)"
+            multiple
+          />
+          <FilterChips v-model="session" label="場次" all-label="全部" :options="sessionChips" />
+          <FilterFooter :count="total" unit="張" :has-filter="hasFilter" @clear="clear" />
+        </template>
 
-          <div v-for="facet in visibleFacets" :key="facet.key" class="flex flex-col gap-1.5">
-            <span :id="`facet-${facet.key}`" class="text-ui text-muted">{{ facet.label }}</span>
-            <div role="group" :aria-labelledby="`facet-${facet.key}`" class="flex flex-wrap gap-1.5">
-              <UButton
-                v-for="tag in facet.tags"
-                :key="tag"
-                :label="tag"
-                color="neutral"
-                :variant="isSelected(tag) ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="isSelected(tag)"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="toggle(tag)"
-              />
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <span id="facet-session" class="text-ui text-muted">場次</span>
-            <div role="group" aria-labelledby="facet-session" class="flex flex-wrap gap-1.5">
-              <UButton
-                label="全部"
-                color="neutral"
-                :variant="session === null ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="session === null"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="session = null"
-              />
-              <UButton
-                v-for="s in sessionOptions"
-                :key="s.slug"
-                :label="s.chip"
-                color="neutral"
-                :variant="session === s.slug ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="session === s.slug"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="session = s.slug"
-              />
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 border-t border-default pt-3 text-ui text-muted" aria-live="polite">
-            <span>共 {{ total }} 張</span>
-            <UButton
-              v-if="hasFilter"
-              label="清除篩選"
-              color="secondary"
-              variant="link"
-              size="xs"
-              class="p-0"
-              :ui="{ label: 'text-ui' }"
-              @click="clear"
-            />
-          </div>
-        </aside>
-
-        <div class="flex min-w-0 flex-col gap-8">
-          <p v-if="!groups.length" class="text-small text-muted">沒有符合的概念卡。</p>
-          <ConceptRow v-for="g in groups" :key="g.label" :label="g.label" :cards="g.cards" />
-        </div>
-      </div>
+        <p v-if="!groups.length" class="text-small text-muted">沒有符合的概念卡。</p>
+        <ConceptRow v-for="g in groups" :key="g.label" :label="g.label" :cards="g.cards" />
+      </FilterLayout>
     </main>
   </div>
 </template>

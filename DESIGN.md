@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.10 ・ 2026-09-29 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.12 ・ 2026-10-08 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -232,8 +232,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 回想題 | `recall/Questions.vue`（`<RecallQuestions>`） | `UCollapsible` | 問題＋收合的「對照重點」 |
 | 測驗題 | `study/QuizItem.vue`（`<StudyQuizItem>`） | — | 單題。**本身不存狀態**，作答由父元件保管，透過 `pick` prop 傳入、`pick` 事件回報。題目上方標出處（講座標籤或「整合回顧」，`font-mono text-label text-muted`）；`sourceAfterAnswer` 時作答後才顯示（出處本身就是提示）。選項作答後鎖定：正解 `border-success bg-success-soft`、選錯 `border-error bg-error-soft`，下方顯示「答對了。／再想想。」、解析和段落連結。「邊看邊想」和「看完回想」共用 |
 | 自我測驗 | `recall/Quiz.vue`（`<RecallQuiz>`） | `UButton` | 用 `<StudyQuizItem>` 列出本場全部題目（含整合回顧），**第一次打開就是打亂的順序**，出處作答後才顯示，上方顯示分數。「打亂順序，重新作答」清空紀錄 |
-| 討論卡 | `study/DiscussCard.vue`（`<StudyDiscussCard>`） | `UBadge`、`UButton` | `bg-elevated rounded-card border-default`。題目（`text-body font-medium`）＋補充說明（`text-small text-muted`）。延伸題加「延伸」標籤（`bg-secondary-soft text-secondary`）。按鈕列：揭曉按鈕＋「寫下我的想法」（`variant="ghost"`＋`i-lucide-pencil-line`，已有筆記時不顯示）。「我的想法」是 `UTextarea`（autoresize，label 註明「只存在這個瀏覽器」）。「我想好了，看 Kagan 怎麼說」展開 `bg-accented rounded-control` 區塊：「Kagan 怎麼說」小標＋`answer`（`text-small text-toned`）＋段落連結。**兩者都打開時並排**（768px 以上兩欄），方便對照。展開狀態只在這次瀏覽有效，不存；筆記存在瀏覽器。「邊看邊想」和「週日討論」共用 |
-| 名詞卡 | `recall/Terms.vue`（`<RecallTerms>`） | `UButton` | 卡片來自本場 `concepts` 的概念卡（詞條、英文、`summary`）。未翻開 → 翻開（`bg-primary-soft`）並顯示自評按鈕。標成「還不熟」時加 `border-error` 紅框。自評以概念卡 id 儲存 |
+| 討論卡 | `study/DiscussCard.vue`（`<StudyDiscussCard>`） | `UBadge`、`UButton` | `bg-elevated rounded-card border-default`。題目（`text-body font-medium`）＋補充說明（`text-small text-muted`）。延伸題加「延伸」標籤（`bg-secondary-soft text-secondary`）。按鈕列：揭曉按鈕＋筆記切換鈕（`variant="ghost"`；收起時是 `i-lucide-pencil-line`「寫下我的想法」或「看我的想法」，打開時是 `i-lucide-chevron-up`「收起我的想法」）。筆記小卡右上角也有收起圖示。有筆記時預設打開，收起狀態只在這次瀏覽有效。「我的想法」是一張 `rounded-control border-default bg-default` 小卡，裡面是 `<MarkdownEditor>`（label 註明「支援 Markdown，會收進「筆記」頁」），和概念卡、複習的筆記一致。「我想好了，看 Kagan 怎麼說」展開 `bg-accented rounded-control` 區塊：「Kagan 怎麼說」小標＋`answer`（`text-small text-toned`）＋段落連結。**兩者都打開時並排**（768px 以上兩欄），方便對照。展開狀態只在這次瀏覽有效，不存；筆記存在瀏覽器。「邊看邊想」和「週日討論」共用 |
+| 名詞卡 | `recall/Terms.vue`（`<RecallTerms>`） | `UButton` | 卡片來自本場 `concepts` 的概念卡（詞條、英文、`summary`）。未翻開 → 翻開（`bg-primary-soft`）並顯示自評按鈕。hover 效果加在整張卡（`has-[>button:hover]:`），不加在裡面的翻面按鈕上，翻開後才不會上下兩截不同色。標成「還不熟」時加 `border-error` 紅框。自評以概念卡 id 儲存 |
 | 立場題 | `sunday/Vote.vue`（`<SundayVote>`） | `UButton`（`rounded-full`） | 題目下方一列 pill，選中的用 solid。只有一輪 |
 | 討論議題 | 在 `<TabSunday>` 裡 | `UButton` | 全部討論題，依影片分組（組標題是講座標籤與影片標題），最後一組是「整合回顧」。每題一張 `<StudyDiscussCard>`。有寫筆記時，標題右側出現次要按鈕「複製我的筆記」（Markdown），完成後用 toast 回饋。3.0 的 `<SundayDiscuss>` 已移除 |
 | 待補區塊 | 在 `<TabAfter>` 裡 | — | `border-dashed border-default`，用在「尚未舉行」這類還沒有內容的區塊 |
@@ -247,7 +247,14 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 場次卡 | `pages/archive.vue` 裡 | — | `bg-elevated rounded-card border-default`，整張可以點，連到 `/s/{slug}`。內容：日期（`font-mono text-meta text-muted`，用 `dateLabel`）、標題（`font-serif`）、tag 列。hover 時 `border-accented` |
 | 月份標題 | `pages/archive.vue` 裡 | — | 「依月份」檢視的分組標題，`h2` |
 | 檢視切換 | `pages/archive.vue` 裡 | `UTabs` | 「依月份」「依主題」兩個選項 |
-| tag 篩選 pill | `pages/archive.vue` 裡 | `UButton`（`rounded-full`） | 依面向（領域／人物／系列）分組，每組前面有面向名稱（`text-meta text-muted`）。未選取 `color="neutral" variant="outline"`；選取後 `bg-inverted text-inverted`，並設 `aria-pressed`。可以多選，另有「清除篩選」文字按鈕 |
+| 篩選版面 | `filter/Layout.vue`（`<FilterLayout>`） | — | 列表頁共用的兩欄版面：左邊 232px 的篩選欄（`lg` 以上 sticky 在頂部列下方，太高時自己捲動；手機放在上方），右邊內容。`/archive`、`/concepts`、`/review`、`/notes` 共用 |
+| 筆記卡 | `note/Card.vue`（`<NoteCard>`） | `UBadge`、`UButton` | `/notes` 的卡片，外觀同場次卡。種類的名稱和徽章顏色讀 `utils/noteKinds.ts` 的 `NOTE_KINDS`，不要在元件裡另外寫 |
+| 筆記視窗 | `note/Sheet.vue`（`<NoteSheet>`）、`note/SheetProp.vue`（`<NoteSheetProp>`） | `UModal` | 仿 Heptabase 卡片的文件式視窗：上方徽章＋灰字提示＋關閉，serif 大標，一排屬性（圖示＋名稱），分隔線下面是內容。筆記和作答紀錄共用 |
+| 筆記小卡 | `NoteField.vue`（`<NoteField>`） | `<LazyMarkdownEditor>` | `rounded-control border-default bg-default` 小卡：名稱＋灰字說明，可以加收起的 ✕。討論卡的「我的想法」、作答紀錄的筆記用；概念卡的側欄筆記版面不同，不用它 |
+| 場次分組標題 | `SessionGroupHeading.vue`（`<SessionGroupHeading>`） | — | 場次 chip 連結＋「N 則／題」＋下一行題目。筆記、作答紀錄共用 |
+| tag 篩選 pill | `filter/Chips.vue`（`<FilterChips>`） | `UButton`（`rounded-full`） | 一組 chip：前面有面向名稱（`text-ui text-muted`），`role="group"` 用 `useId()` 接 `aria-labelledby`。未選取 `color="neutral" variant="outline"`；選取後 solid，並設 `aria-pressed`。`multiple` 可以多選（v-model 是陣列）；單選時可以加 `all-label` 的「全部」chip（對應 null）；有 `count` 時顯示成「{名稱} {數量}」。依面向（領域／人物／系列）分組時每組一個 `<FilterChips>` |
+| 篩選搜尋框 | `filter/Search.vue`（`<FilterSearch>`） | `UInput` | 搜尋圖示＋有字時出現清除鈕 |
+| 篩選結果列 | `filter/Footer.vue`（`<FilterFooter>`） | `UButton` | 「共 N {單位}」＋有篩選時的「清除篩選」文字按鈕，`aria-live="polite"` |
 | 概念卡 | `concept/Card.vue`（`<ConceptCard>`） | — | 卡片牆和「相關概念」共用。`bg-elevated rounded-card border-default`，整張可以點，連到 `/c/{id}`。內容：詞條（`font-serif text-title`）、英文（`font-mono text-meta text-muted`）、`summary`（`text-small text-toned`） |
 | 概念卡牆 | `pages/concepts/index.vue` | — | 依「領域」分組，每組一個 `h2`，下方用 `grid` 排 `<ConceptCard>`，手機一欄 |
 | 概念卡頁 | `pages/c/[id].vue` | — | 由上到下：標頭（詞條 `h1`、英文、別名、tag 列）→ 定義（`summary`，`text-lead text-toned`）→ 內文（Markdown，`[[連結]]` 顯示成一般連結 `text-secondary`）→「相關概念」（`<ConceptCard>` grid）→「出現在這些場次」（場次卡清單）。沒有內容的區塊整個不顯示 |
@@ -340,6 +347,8 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-10-08 | 3.12 | 抽出共用元件，畫面不變：篩選欄 `<FilterLayout>`、`<FilterChips>`、`<FilterSearch>`、`<FilterFooter>`（`/archive`、`/concepts`、`/review`、`/notes`）；筆記視窗 `<NoteSheet>`、筆記小卡 `<NoteField>`、場次分組標題 `<SessionGroupHeading>`；筆記種類集中在 `NOTE_KINDS`。文字編輯器、概念卡彈窗改成需要時才載入 |
+| 2026-10-08 | 3.11 | 討論卡的「我的想法」改成 `<MarkdownEditor>` 小卡，可以隨時收起；`/notes` 新增「作答紀錄」檢視（`<NoteAnswers>`：對錯徽章卡片，視窗先回想再揭曉答案）；名詞卡的 hover 改加在整張卡上，翻開後不再上下兩截不同色 |
 | 2026-09-29 | 3.10 | 播放器可以「放大影片」浮到畫面中間（桌機，不加遮罩，頁面照樣可以捲動），預設在側欄，可以拖曳移動。「看之前」單欄改成置中 |
 | 2026-09-29 | 3.9 | 「看之前」不顯示側欄，開始播放後才出現；「下一步」列拿掉文字標籤與分隔線，只留靠右的主要按鈕；「邊看邊想」同一時間只有一個往下走的按鈕（下一段／下一步） |
 | 2026-09-29 | 3.8 | 立場題只有一輪：拿掉「討論前／討論後」兩列與改變提示；活動回顧的「立場變化」改成「大家的立場」 |

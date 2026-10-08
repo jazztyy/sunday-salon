@@ -1,0 +1,37 @@
+# 每次 push／PR 都跑：內容檢查、型別檢查、單元測試、靜態建置。只驗證，不部署（部署見 deploy.yml）。
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run check
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - run: npm run generate  # 和 deploy.yml 同樣的 base URL，確認正式建置不會壞
+        env:
+          NUXT_APP_BASE_URL: /sunday-salon/

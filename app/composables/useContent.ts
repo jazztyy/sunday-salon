@@ -1,59 +1,99 @@
 // 讀取內容的共用入口：場次、概念卡、詞彙表。所有頁面和元件都透過這裡查詢，不要直接呼叫 queryCollection。
-// 靜態輸出時這些查詢在建置階段執行，結果存進頁面 payload，瀏覽器端不需要資料庫。
-import type { Concept, Session, TagFacet } from '~/types/session'
+//
+// 資料來自建置時預先產生的 JSON 端點（server/routes/data/），每種形狀只拿頁面用得到的欄位（app/types/content.ts）：
+// - 列表（useSessionIndex、useConceptIndex）：每場約 1KB、每張卡約 0.3KB，全站共用。/archive 的搜尋文字另外放（useSessionSearch）。
+// - 完整的一場（useSession）、一張概念卡含內文（useConcept）：只在需要的頁面或打開彈窗時載入。
+// - 筆記、複習的題目（useStudySessions）：只有 /notes、/review。
+// 預先產生頁面時結果存進該頁的 payload；瀏覽器端碰到 payload 沒有的資料（例如在任何頁面打開概念卡彈窗）
+// 就去抓同一個 JSON 檔。
+//
+// ⚠️ 不要在瀏覽器端直接呼叫 queryCollection：Nuxt Content 會在沒有任何提示的情況下下載 1MB 的 SQLite wasm 和整份資料。
+import type { Session, TagFacet } from '~/types/session'
+import type { ConceptFull, ConceptSummary, SessionSearch, SessionSummary, StudySession } from '~/types/content'
 
-/** 概念卡 id = 檔名（content/concepts/{id}.md） */
-export const conceptIdOf = (stem: string): string => stem.split('/').pop() ?? stem
-
-/** 內容集合的欄位 → 元件使用的 Session 型別（去掉 Nuxt Content 附加的 id/stem/meta） */
-const toSession = (item: Record<string, unknown>): Session => {
-  const { id: _id, stem: _stem, extension: _ext, meta: _meta, ...rest } = item
-  return rest as unknown as Session
+/** /data/{path} 的完整網址（部署時有 /sunday-salon/ 前綴）。要在 setup 裡呼叫 */
+const useDataUrl = () => {
+  const base = useRuntimeConfig().app.baseURL
+  return (path: string) => `${base}data/${path}`
 }
 
-/** 所有場次，新的在前 */
-export const useAllSessions = () =>
-  useAsyncData('sessions:all', async () => {
-    const items = await queryCollection('sessions').order('date', 'DESC').all()
-    return items.map(i => toSession(i as unknown as Record<string, unknown>))
-  }, { default: () => [] as Session[] })
+/** 精簡場次列表，新的在前 */
+export const useSessionIndex = () => {
+  const url = useDataUrl()
+  return useAsyncData('sessions:index', () => $fetch<SessionSummary[]>(url('sessions.json')), { default: () => [] as SessionSummary[] })
+}
+
+/** /archive 搜尋用的文字 */
+export const useSessionSearch = () => {
+  const url = useDataUrl()
+  return useAsyncData('sessions:search', () => $fetch<SessionSearch[]>(url('search.json')), { default: () => [] as SessionSearch[] })
+}
+
+/** 筆記、複習用的題目資料，新的在前 */
+export const useStudySessions = () => {
+  const url = useDataUrl()
+  return useAsyncData('sessions:study', () => $fetch<StudySession[]>(url('study.json')), { default: () => [] as StudySession[] })
+}
+
+/** 概念卡列表（不含內文），依詞條排序 */
+export const useConceptIndex = () => {
+  const url = useDataUrl()
+  return useAsyncData('concepts:index', () => $fetch<ConceptSummary[]>(url('concepts.json')), { default: () => [] as ConceptSummary[] })
+}
+
+/** 抓一場的完整資料；找不到回傳 null */
+const useSessionLoader = () => {
+  const url = useDataUrl()
+  return (slug: string) => slug
+    ? $fetch<Session>(url(`sessions/${slug}.json`)).catch(() => null)
+    : Promise.resolve(null)
+}
+
+/** 單一場次（完整資料） */
+export const useSession = (slug: string) => {
+  const load = useSessionLoader()
+  return useAsyncData(`session:${slug}`, () => load(slug))
+}
+
+/**
+ * 本週場次（首頁）：依台灣日期挑，見 pickCurrentSession。
+ * 預先產生的 HTML 用建置當天的日期；掛載後用瀏覽器的今天重挑，挑到別場時再抓那一場的 JSON，這樣不必每週重新建置。
+ * today 放在 useState 裡，hydration 時沿用建置日期，避免不一致。index 是 useSessionIndex() 的結果。
+ */
+export const useCurrentSession = (index: Ref<SessionSummary[]>) => {
+  // 不在這裡 await useSessionIndex()：composable 裡 await 之後就拿不到 Nuxt 的 context，由頁面先載入列表再傳進來
+  const today = useToday()
+  const slug = computed(() => pickCurrentSession(index.value, today.value)?.slug ?? '')
+  const load = useSessionLoader()
+  return useAsyncData('session:current', () => load(slug.value), { watch: [slug] })
+}
+
+/** 單張概念卡（含內文） */
+export const useConcept = (id: string) => {
+  const url = useDataUrl()
+  return useAsyncData(`concept:${id}`, () => $fetch<ConceptFull>(url(`concepts/${encodeURIComponent(id)}.json`)).catch(() => null))
+}
 
 /** 台灣時間的今天，ISO 日期（YYYY-MM-DD），和場次的 date 同格式可以直接比大小 */
 export const taipeiToday = (): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date())
 
 /**
- * 本週場次：日期在今天或之後、最近的那一場（週一到週日都顯示這週日的討論）。
- * 全部都過了就顯示最後一場。sessions 要依日期新到舊排序（useAllSessions 的順序）。
+ * 今天（台灣時間）。預先產生時是建置日期，掛載後換成瀏覽器的今天；hydration 時沿用建置日期，避免不一致。
+ * 首頁、全部場次、複習、筆記共用同一個 state。
  */
-export const pickCurrentSession = (sessions: Session[], today: string): Session | null =>
+export const useToday = () => {
+  const today = useState('home:today', () => taipeiToday())
+  onMounted(() => { today.value = taipeiToday() })
+  return today
+}
+
+/**
+ * 本週場次：日期在今天或之後、最近的那一場（週一到週日都顯示這週日的討論）。
+ * 全部都過了就顯示最後一場。sessions 要依日期新到舊排序（useSessionIndex 的順序）。
+ */
+export const pickCurrentSession = <T extends { date: string }>(sessions: T[], today: string): T | null =>
   sessions.filter(s => s.date >= today).at(-1) ?? sessions[0] ?? null
-
-/** 單一場次；slug 省略時取最新一場 */
-export const useSession = (slug?: string) =>
-  useAsyncData(`session:${slug ?? 'latest'}`, async () => {
-    const q = queryCollection('sessions')
-    const item = slug ? await q.where('slug', '=', slug).first() : await q.order('date', 'DESC').first()
-    return item ? toSession(item as unknown as Record<string, unknown>) : null
-  })
-
-/** 所有概念卡（含內文，給 <ContentRenderer> 用的原始 item 放在 raw） */
-export const useAllConcepts = () =>
-  useAsyncData('concepts:all', async () => {
-    const items = await queryCollection('concepts').order('title', 'ASC').all()
-    return items.map(i => ({
-      id: conceptIdOf(i.stem),
-      title: i.title,
-      en: i.en,
-      aliases: i.aliases ?? [],
-      summary: i.summary,
-      tags: i.tags ?? [],
-      related: i.related ?? [],
-      raw: i,
-    }))
-  }, { default: () => [] })
-
-export type ConceptWithRaw = Concept & { raw: Awaited<ReturnType<ReturnType<typeof queryCollection<'concepts'>>['first']>> }
 
 /** 詞彙表的面向（領域、人物、系列） */
 export const useTaxonomy = () =>

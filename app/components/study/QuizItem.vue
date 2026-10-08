@@ -1,11 +1,13 @@
 <script setup lang="ts">
 // 單選題（無狀態）：作答紀錄由父元件保管（邊看邊想用 salon-quiz-inline-*、看完回想用 salon-quiz-*）。
 // 作答後鎖定，顯示對錯、解析與所有原片段連結。
-import type { QuizItem, Session } from '~/types/session'
+import type { QuizItem } from '~/types/session'
+import type { VideoSummary } from '~/types/content'
 
 const props = withDefaults(
   defineProps<{
-    session: Session
+    /** 只用到影片清單（顯示講座標籤），完整場次或筆記、複習用的精簡場次都可以 */
+    session: { videos: VideoSummary[] }
     item: QuizItem
     number: number
     /** 已選的選項索引，未作答為 undefined */

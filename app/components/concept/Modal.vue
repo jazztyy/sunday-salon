@@ -2,7 +2,7 @@
 // 全站共用的概念卡彈窗（掛在 app.vue）。內容是 <ConceptDetail>（左欄概念、右欄筆記）。
 // 彈窗裡點別的概念卡會直接換內容並捲回頂端；點場次或 tag 會換頁，換頁時自動關閉。
 const { id, close } = useConceptModal()
-const { data: concepts } = await useAllConcepts()
+const { data: concepts } = await useConceptIndex()
 
 const concept = computed(() => concepts.value.find(c => c.id === id.value))
 
@@ -37,7 +37,7 @@ watch(id, () => nextTick(() => body.value?.closest('[data-slot="body"]')?.scroll
           class="absolute top-3 right-3 z-10"
           @click="close"
         />
-        <ConceptDetail v-if="id" :id="id" />
+        <ConceptDetail v-if="id" :key="id" :id="id" />
       </div>
     </template>
   </UModal>

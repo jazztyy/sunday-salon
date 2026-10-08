@@ -1,4 +1,27 @@
 import { buildNameMap, readConcepts, replaceWikilinks } from './lib/wikilinks'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+/**
+ * 要預先產生的資料端點（server/routes/data/）。頁面連結爬不到 JSON，所以列在這裡：
+ * 每一場一個 /data/sessions/{slug}.json、每張概念卡一個 /data/concepts/{id}.json。
+ */
+const dataRoutes = (): string[] => {
+  const root = join(process.cwd(), 'content')
+  const slugs = readdirSync(join(root, 'sessions'), { recursive: true, encoding: 'utf8' })
+    .filter(f => f.endsWith('.yml'))
+    .map(f => readFileSync(join(root, 'sessions', f), 'utf8').match(/^slug:\s*['"]?([\w-]+)/m)?.[1])
+    .filter((s): s is string => !!s)
+  const ids = readdirSync(join(root, 'concepts')).filter(f => f.endsWith('.md')).map(f => f.slice(0, -3))
+  return [
+    '/data/sessions.json',
+    '/data/study.json',
+    '/data/search.json',
+    '/data/concepts.json',
+    ...slugs.map(s => `/data/sessions/${s}.json`),
+    ...ids.map(id => `/data/concepts/${encodeURIComponent(id)}.json`),
+  ]
+}
 
 // 靜態輸出（nuxt generate）部署到 GitHub Pages。
 // 專案網址前綴由環境變數 NUXT_APP_BASE_URL 決定（部署時為 /sunday-salon/），本機開發時為 /。
@@ -51,7 +74,7 @@ export default defineNuxtConfig({
 
   nitro: {
     preset: 'github_pages',
-    // 場次與概念卡頁面由 /archive、/concepts 的連結爬出來
-    prerender: { crawlLinks: true, routes: ['/', '/archive', '/concepts'] },
+    // 場次與概念卡頁面由 /archive、/concepts 的連結爬出來；資料端點見 dataRoutes()
+    prerender: { crawlLinks: true, routes: ['/', '/archive', '/concepts', ...dataRoutes()] },
   },
 })

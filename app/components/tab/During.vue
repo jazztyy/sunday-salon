@@ -1,22 +1,12 @@
 <script setup lang="ts">
 // 「邊看邊想」分頁：照影片順序，每支影片一段（論證卡、小測驗、討論題），最後是整合回顧。規格見 SPEC.md 4.2。
-// 這裡的測驗紀錄存在 salon-quiz-inline-{slug}：{ sig: 題目簽章, ans: {題目在 session.quiz 的索引: 選項索引} }，
-// 和「看完回想」的 salon-quiz-{slug} 分開，之後重測才是從頭開始。題目改過（簽章不同）就重置。
+// 這裡的測驗紀錄存在 salon-quiz-inline-{slug}（useQuizAnswers，依題目 key 記答案），
+// 和「看完回想」的 salon-quiz-{slug} 分開，之後重測才是從頭開始。改過的題目要重答，其他題不受影響。
 import type { Session } from '~/types/session'
 
 const props = defineProps<{ session: Session }>()
 
-interface InlineState { sig: string, ans: Record<string, number> }
-
-const sig = computed(() => quizSignature(props.session.quiz))
-const stored = useSalonStorage<InlineState>(`salon-quiz-inline-${props.session.slug}`, { sig: '', ans: {} })
-const picks = computed(() => (stored.value?.sig === sig.value ? stored.value.ans ?? {} : {}))
-
-const answer = (quizIndex: number, option: number) => {
-  const key = String(quizIndex)
-  if (picks.value[key] !== undefined) return
-  stored.value = { sig: sig.value, ans: { ...picks.value, [key]: option } }
-}
+const { picks, answer } = useQuizAnswers(props.session.slug, () => props.session.quiz, 'inline')
 
 const withIndex = <T,>(list: T[]) => list.map((item, index) => ({ item, index }))
 
@@ -32,7 +22,7 @@ const { cue, select, selected } = usePlayer()
 /** 這一段（影片 id 或 'all'）的測驗是否全部作答：子分頁打勾用 */
 const isDone = (scope: string) => {
   const items = withIndex(props.session.quiz).filter(({ item }) => item.scope === scope)
-  return items.length > 0 && items.every(({ index }) => picks.value[String(index)] !== undefined)
+  return items.length > 0 && items.every(({ index }) => picks.value[index] !== undefined)
 }
 const doneIcon = (scope: string) => (isDone(scope) ? 'i-lucide-circle-check' : undefined)
 
@@ -40,7 +30,7 @@ const parts = computed(() => [
   ...props.session.videos.map(v => ({ key: v.id, label: lecOf(props.session, v.id), icon: doneIcon(v.id) })),
   ...(allQuiz.value.length || allDiscuss.value.length ? [{ key: 'all', label: '整合回顧', icon: doneIcon('all') }] : []),
 ])
-const storedPart = useSalonStorage(`salon-during-part-${props.session.slug}`, '')
+const storedPart = useSalonStorage(STORAGE_KEYS.duringPart(props.session.slug), '')
 const part = ref(props.session.videos[0]?.id ?? 'all')
 const currentVideo = computed(() => props.session.videos.find(v => v.id === part.value))
 const nextPart = computed(() => parts.value[parts.value.findIndex(p => p.key === part.value) + 1])
@@ -108,7 +98,7 @@ onMounted(() => {
     :key="`${session.slug}-${currentVideo.id}`"
     :session="session"
     :video="currentVideo"
-    :quiz-picks="picks ?? {}"
+    :quiz-picks="picks"
     @pick="answer"
   />
 
@@ -128,7 +118,7 @@ onMounted(() => {
         :session="session"
         :item="item"
         :number="n + 1"
-        :pick="picks?.[String(index)]"
+        :pick="picks[index]"
         @pick="answer(index, $event)"
       />
     </div>

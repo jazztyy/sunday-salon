@@ -1,6 +1,7 @@
 // 場次與概念卡的資料結構。
-// 內容檔案的驗證在 content.config.ts（zod schema）與 scripts/check-content.mjs；這裡是元件使用的型別，
-// 兩邊要保持一致。規則見 SPEC.md「資料結構」。
+// 內容檔案的驗證在 lib/schema.ts（zod schema）與 scripts/check-content.mjs；這裡是元件使用的型別，
+// 兩邊要保持一致：檔案最後有型別層級的檢查，對不上時 `npm run typecheck` 會失敗。規則見 SPEC.md「資料結構」。
+import type { ConceptData, SessionData } from '../../lib/schema'
 
 /** [秒數, 章節名稱] */
 export type Chapter = [seconds: number, label: string]
@@ -33,6 +34,11 @@ export type Premise =
   | [text: string, objection: null, accept: string]
 
 export interface Argument {
+  /**
+   * 選填。穩定的論證代號：有填就用它當儲存的 key，沒填用論證名稱（name）的雜湊；
+   * 發佈後要改論證名稱（name）時先補上 id，舊作答和筆記才不會對不到
+   */
+  id?: string
   name: string
   /** 論證類型，例：'最佳解釋推論'、'《斐多篇》' */
   kind: string
@@ -48,6 +54,11 @@ export interface Argument {
 }
 
 export interface Vote {
+  /**
+   * 選填。穩定的題目代號：有填就用它當儲存的 key，沒填用題目文字的雜湊；
+   * 發佈後要改題目文字時先補上 id，舊作答和筆記才不會對不到
+   */
+  id?: string
   q: string
   o: string[]
 }
@@ -59,6 +70,11 @@ export type VideoRef = [videoId: string, seconds: number]
 export type Scope = string
 
 export interface DiscussItem {
+  /**
+   * 選填。穩定的題目代號：有填就用它當儲存的 key，沒填用題目文字的雜湊；
+   * 發佈後要改題目文字時先補上 id，舊作答和筆記才不會對不到
+   */
+  id?: string
   scope: Scope
   q: string
   /** 補充說明 */
@@ -72,6 +88,11 @@ export interface DiscussItem {
 }
 
 export interface QuizItem {
+  /**
+   * 選填。穩定的題目代號：有填就用它當儲存的 key，沒填用題目文字的雜湊；
+   * 發佈後要改題目文字時先補上 id，舊作答和筆記才不會對不到
+   */
+  id?: string
   scope: Scope
   q: string
   o: string[]
@@ -163,3 +184,26 @@ export interface TagFacet {
 }
 
 export type TabKey = 'before' | 'during' | 'recall' | 'sunday' | 'after'
+
+// ── schema 與手寫型別的一致性檢查（只在型別層級，不產生程式碼） ──
+// schema 推導的型別必須能指定給手寫型別，兩邊的欄位名稱也必須完全相同。
+// 這裡報錯代表 lib/schema.ts 和上面的 interface 只改了一邊。
+type Equals<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
+type Assert<T extends true> = T
+type Fits<A, B> = [A] extends [B] ? true : false
+type SameKeys<A, B> = Equals<keyof A, keyof B>
+type Item<T> = T extends readonly (infer U)[] ? U : never
+
+type S = SessionData
+export type SchemaDriftCheck = [
+  Assert<Fits<S, Session>>,
+  Assert<SameKeys<S, Session>>,
+  Assert<SameKeys<Item<S['quiz']>, QuizItem>>,
+  Assert<SameKeys<Item<S['discuss']>, DiscussItem>>,
+  Assert<SameKeys<Item<S['votes']>, Vote>>,
+  Assert<SameKeys<Item<S['args']>, Argument>>,
+  Assert<SameKeys<Item<S['videos']>, Video>>,
+  Assert<SameKeys<NonNullable<S['recap']>, Recap>>,
+  Assert<Fits<ConceptData, Omit<Concept, 'id'>>>,
+  Assert<SameKeys<ConceptData, Omit<Concept, 'id'>>>,
+]

@@ -12,7 +12,7 @@ const recap = computed(() => {
   return { audio: r.audio, chapters: r.chapters ?? [], votes: r.votes ?? [], questions: r.questions ?? [], concepts: r.concepts ?? [] }
 })
 
-const { data: allConcepts } = await useAllConcepts()
+const { data: allConcepts } = await useConceptIndex()
 const newConcepts = computed(() =>
   (recap.value?.concepts ?? []).map(id => allConcepts.value?.find(c => c.id === id)).filter(c => !!c),
 )

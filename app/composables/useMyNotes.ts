@@ -18,7 +18,7 @@ const newId = () =>
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
 export const useMyNotes = () => {
-  const notes = useSalonStorage<MyNote[]>('salon-mynotes', [])
+  const notes = useSalonStorage<MyNote[]>(STORAGE_KEYS.myNotes, [])
 
   const add = (slug: string | null): MyNote => {
     const now = new Date().toISOString()

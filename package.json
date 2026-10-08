@@ -2,14 +2,19 @@
   "name": "sunday-salon",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
-    "generate": "node scripts/check-content.mjs && nuxt generate",
+    "generate": "node scripts/check-content.mjs && nuxt generate && node scripts/check-output.mjs",
+    "check:output": "node scripts/check-output.mjs",
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare",
-    "check": "node scripts/check-content.mjs"
+    "check": "node scripts/check-content.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@nuxt/content": "^3.16.1",
@@ -22,7 +27,9 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3",
+    "vitest": "^5.0.3",
     "vue-tsc": "^3.3.11",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "zod": "^3.25.76"
   }
 }

@@ -2,12 +2,14 @@
 // 單張概念卡的內容。/c/{id} 頁面和全站的概念卡彈窗（<ConceptModal>）共用。
 // 版面：左欄是概念本身（大標題、tag、內文），下面是精簡的「出現在這些場次」（一行一場）和「相關概念」（小標籤）；
 // 右欄是筆記（Markdown 編輯器），寬螢幕時固定在側邊，手機排在下面。
-// 相關概念 = 本卡 related ∪ 把本卡列在 related 的卡片 ∪ 內文連到 /c/{id} 的卡片（反向連結），扣掉自己。
+// 相關概念 = 本卡 related ∪ 把本卡列在 related 的卡片 ∪ 內文連到 /c/{id} 的卡片（反向連結，建置時算好的 links），扣掉自己。
+// 內文只抓這一張（useConcept）；換卡時彈窗會用 :key 重新建立這個元件。
 // 這裡面的 /c/{id} 連結（內文、相關概念）會被 app.vue 攔下來改成開彈窗，所以在彈窗裡點也只是換一張卡。
 const props = defineProps<{ id: string }>()
 
-const { data: concepts } = await useAllConcepts()
-const { data: sessions } = await useAllSessions()
+const { data: concepts } = await useConceptIndex()
+const { data: sessions } = await useSessionIndex()
+const { data: full } = await useConcept(props.id)
 
 const concept = computed(() => concepts.value.find(c => c.id === props.id))
 
@@ -15,23 +17,17 @@ const concept = computed(() => concepts.value.find(c => c.id === props.id))
 const { getNote, setNote } = useReviewNotes()
 const note = computed({
   get: () => getNote(conceptKey(props.id)),
-  set: (text: string) => setNote(conceptKey(props.id), text),
+  set: (text: string) => setNote(conceptKey(props.id), text, concept.value?.title ?? ''),
 })
 
-/** 用到這張卡片的場次（useAllSessions 已經是新的在前） */
+/** 用到這張卡片的場次（useSessionIndex 已經是新的在前） */
 const usedIn = computed(() => sessions.value.filter(s => s.concepts.includes(props.id)))
-
-/**
- * 內文是否連到本卡。內文是 minimark AST，連結節點為 ['a', { href: '/c/{id}' }, …]，
- * 序列化後會出現 "/c/{id}"（前後都有引號，避免 soul 誤中 soul-x）。
- */
-const linksHere = (body: unknown): boolean => JSON.stringify(body ?? '').includes(`"/c/${props.id}"`)
 
 const related = computed(() => {
   const self = concept.value
   if (!self) return []
   return concepts.value.filter(c =>
-    c.id !== props.id && (self.related.includes(c.id) || c.related.includes(props.id) || linksHere(c.raw?.body)),
+    c.id !== props.id && (self.related.includes(c.id) || c.related.includes(props.id) || c.links.includes(props.id)),
   )
 })
 </script>
@@ -61,7 +57,7 @@ const related = computed(() => {
         內文用 Nuxt UI 的 Prose 元件渲染（ProseA 內部是 ULink → NuxtLink，/c/{id} 是站內連結）。
         Prose 預設連結是 text-primary、段落 my-5 leading-7；這裡用後代選擇器改成站內規範（連結用 secondary）。
       -->
-      <ContentRenderer v-if="concept.raw" :value="concept.raw" class="-my-3 text-body text-toned" />
+      <ContentRenderer v-if="full?.raw" :value="full.raw" class="-my-3 text-body text-toned" />
 
       <div class="flex flex-col gap-5 border-t border-default pt-5">
         <section class="flex flex-col gap-2" :aria-labelledby="`used-in-${id}`">
@@ -106,7 +102,7 @@ const related = computed(() => {
         <h3 class="font-serif text-title font-black text-highlighted">我的筆記</h3>
         <p class="text-meta text-dimmed">支援 Markdown・自動儲存・只存在這個瀏覽器，也會收進「筆記」頁</p>
       </div>
-      <MarkdownEditor
+      <LazyMarkdownEditor
         :key="id"
         v-model="note"
         placeholder="用自己的話解釋這個概念，或記下它讓你想到什麼…"

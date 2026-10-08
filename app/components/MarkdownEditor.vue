@@ -2,6 +2,7 @@
 // 筆記用的 Markdown 編輯器（Nuxt UI 的 UEditor，TipTap）。內容讀寫都是 Markdown 字串，和筆記匯出的格式一致。
 // 工具列：標題、粗體、斜體、刪除線、行內程式碼、清單、引用、復原／重做。也可以直接打 Markdown 語法（## 、**、- ），會自動轉換。
 // 只在瀏覽器渲染（筆記存在 localStorage，預先產生的 HTML 不需要編輯器）。
+// 一律用 <LazyMarkdownEditor>：TipTap／ProseMirror 很大（約 190KB gzip），不要進到每一頁的首次載入。
 import type { EditorToolbarItem } from '@nuxt/ui'
 
 const props = withDefaults(defineProps<{

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 // 論證卡片（預測試）：先猜哪個前提最站不住，再揭曉 Kagan 的判斷。規格見 SPEC.md 4.2、DESIGN.md「學習互動」。
-// 猜題紀錄存在 salon-arg-{場次 id}：{卡片索引: 前提索引}，-1 表示「直接看答案」（格式與舊版相同）。
-import type { Argument } from '~/types/session'
+// 猜題紀錄存在 salon-arg-{slug}（useArgPicks，依論證 key 記前提索引），-1 表示「直接看答案」。
+import type { Argument, Session } from '~/types/session'
 
-const props = defineProps<{ arg: Argument, index: number, sessionId: string }>()
+const props = defineProps<{ arg: Argument, session: Pick<Session, 'slug' | 'args'> }>()
 
-const picks = useSalonStorage<Record<string, number>>(`salon-arg-${props.sessionId}`, {})
+const { pickOf, save: savePick } = useArgPicks(props.session.slug, () => props.session.args)
 const open = ref(false)
 
-const pick = computed<number | undefined>(() => picks.value?.[String(props.index)])
+const pick = computed<number | undefined>(() => pickOf(props.arg))
 const done = computed(() => pick.value !== undefined)
 
 /** 使用者選的前提是否正好是 Kagan 質疑的；直接看答案（-1）時為 null，不顯示回饋 */
@@ -17,11 +17,7 @@ const hit = computed<boolean | null>(() => {
   return !!props.arg.prem[pick.value]?.[1]
 })
 
-const save = (value: number | undefined) => {
-  const key = String(props.index)
-  const { [key]: _removed, ...rest } = picks.value ?? {}
-  picks.value = value === undefined ? rest : { ...rest, [key]: value }
-}
+const save = (value: number | undefined) => savePick(props.arg, value)
 
 const premClass = (j: number, weak: boolean) => {
   const base = 'grid w-full grid-cols-[2.4em_1fr] items-start gap-2 rounded-control border px-2.5 py-2 text-left'

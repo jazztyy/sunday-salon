@@ -30,10 +30,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
 
       - run: npm run generate  # 先跑內容檢查（scripts/check-content.mjs）再建置
         env:

@@ -3,15 +3,13 @@
 // 搜尋是模糊比對（Fuse.js），打錯字或只記得片段也找得到；年份、月份各選一個（或全部）；tag 可以多選，結果要全部符合。
 // 篩選條件同步到網址 ?q=靈魂&year=2026&month=10&tag=A&tag=B，方便分享。
 import Fuse from 'fuse.js'
-import type { Session } from '~/types/session'
+import type { SessionSummary as Session } from '~/types/content'
 
 useSeoMeta({ title: '全部場次・悅讀聊天室' })
 
-const { data: sessions } = await useAllSessions()
+const { data: sessions } = await useSessionIndex()
+const { data: searchText } = await useSessionSearch()
 const { data: facets } = await useTaxonomy()
-
-const route = useRoute()
-const router = useRouter()
 
 const selected = ref<string[]>([])
 const year = ref<string | null>(null)
@@ -22,6 +20,7 @@ const query = ref('')
  * 搜尋索引：每場攤平成幾個文字欄位。權重越高，命中時排越前面也越容易過門檻。
  * ignoreLocation：中文標題的關鍵字常在句子中間，不限制命中位置。
  */
+const searchBySlug = computed(() => new Map(searchText.value.map(t => [t.slug, t])))
 const fuse = computed(() => new Fuse(
   sessions.value.map(s => ({
     slug: s.slug,
@@ -29,9 +28,7 @@ const fuse = computed(() => new Fuse(
     chip: s.chip,
     tags: s.tags,
     lede: s.lede,
-    videos: s.videos.flatMap(v => [v.lec, v.title, v.short, v.guide]),
-    chapters: s.videos.flatMap(v => v.chapters.map(c => c[1])),
-    args: s.args.map(a => a.name),
+    ...searchBySlug.value.get(s.slug),
   })),
   {
     keys: [
@@ -59,8 +56,7 @@ const matched = computed(() => {
 })
 
 /** 「本週」標記：和首頁同一套判斷，today 共用首頁的 useState（掛載後換成瀏覽器的今天） */
-const today = useState('home:today', () => taipeiToday())
-onMounted(() => { today.value = taipeiToday() })
+const today = useToday()
 const currentSlug = computed(() => pickCurrentSession(sessions.value, today.value)?.slug)
 
 const yearOf = (s: Session) => s.date.slice(0, 4)
@@ -123,14 +119,6 @@ const MAX_TAGS = 3
 
 const hasFilter = computed(() => !!(query.value.trim() || year.value || month.value || selected.value.length))
 
-const isSelected = (tag: string) => selected.value.includes(tag)
-
-const toggle = (tag: string) => {
-  selected.value = isSelected(tag)
-    ? selected.value.filter(t => t !== tag)
-    : [...selected.value, tag]
-}
-
 const clear = () => {
   selected.value = []
   query.value = ''
@@ -138,45 +126,23 @@ const clear = () => {
   month.value = null
 }
 
-const tagsFromQuery = (value: unknown): string[] =>
-  (Array.isArray(value) ? value : [value]).filter((t): t is string => typeof t === 'string' && t.length > 0)
+/** 篩選欄的 chip 選項 */
+const yearOptions = computed(() => years.value.map(y => ({ value: y, label: y, class: 'font-mono' })))
+const monthOptions = computed(() => months.value.map(m => ({ value: m, label: `${m} 月` })))
+const tagOptions = (tags: string[]) => tags.map(t => ({ value: t, label: t }))
 
-const firstOf = (value: unknown): string | null => tagsFromQuery(value)[0] ?? null
-
-// 預先產生的頁面初次載入時，Nuxt 會把網址修正回產生時的路徑（query 會被清掉），
-// 而且這一步發生在元件掛載之後。所以改讀 head 腳本存下來的原始 search，並等 Nuxt 完全就緒才寫回網址。
-const urlReady = ref(false)
-
-const syncUrl = () =>
-  router.replace({
-    query: {
-      ...route.query,
-      q: query.value.trim() || undefined,
-      year: year.value ?? undefined,
-      month: month.value ?? undefined,
-      tag: selected.value.length ? selected.value : undefined,
-    },
-    hash: route.hash,
-  })
-
-// 監聽器建在元件範圍內（離開頁面會自動清除），就緒前不寫網址
-watch([selected, year, month, query], () => {
-  if (urlReady.value) syncUrl()
-})
-
-onNuxtReady(() => {
-  const initial = new URLSearchParams(takeInitialLocation().search)
-  const hasRouteQuery = Object.keys(route.query).length > 0
-  const tags = hasRouteQuery ? tagsFromQuery(route.query.tag) : initial.getAll('tag')
-  const y = hasRouteQuery ? firstOf(route.query.year) : initial.get('year')
-  const m = hasRouteQuery ? firstOf(route.query.month) : initial.get('month')
-  query.value = (hasRouteQuery ? firstOf(route.query.q) : initial.get('q')) ?? ''
-  selected.value = [...new Set(tags)].filter(t => usedTags.value.has(t))
-  year.value = y && years.value.includes(y) ? y : null
-  month.value = m && months.value.includes(m) ? m : null
-  urlReady.value = true
-  syncUrl()
-})
+// 篩選條件同步到網址（初次載入讀原始 search、等 Nuxt 就緒才寫回，見 useUrlFilters）。
+// 月份要在年份之後套用：只接受選定年份裡有場次的月份
+useUrlFilters([
+  { key: 'q', read: () => query.value.trim() || undefined, apply: (v) => { query.value = v[0] ?? '' } },
+  { key: 'year', read: () => year.value ?? undefined, apply: ([y]) => { year.value = y && years.value.includes(y) ? y : null } },
+  { key: 'month', read: () => month.value ?? undefined, apply: ([m]) => { month.value = m && months.value.includes(m) ? m : null } },
+  {
+    key: 'tag',
+    read: () => selected.value.length ? selected.value : undefined,
+    apply: (v) => { selected.value = [...new Set(v)].filter(t => usedTags.value.has(t)) },
+  },
+])
 </script>
 
 <template>
@@ -189,170 +155,67 @@ onNuxtReady(() => {
         <p class="text-body text-muted">搜尋或依年份、月份、主題篩選過去的討論。</p>
       </header>
 
-      <div class="flex flex-col gap-8 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:items-start lg:gap-10">
-        <!-- 篩選欄：桌機固定在左邊，往下捲也看得到 -->
-        <aside
-          aria-label="篩選"
-          class="flex flex-col gap-5 lg:sticky lg:top-[calc(var(--tb,64px)+1.5rem)] lg:max-h-[calc(100vh-var(--tb,64px)-3rem)] lg:overflow-y-auto lg:pr-1"
-        >
-          <UInput
-            v-model="query"
-            type="text"
-            enterkeyhint="search"
-            icon="i-lucide-search"
-            placeholder="搜尋標題、講座、章節…"
-            aria-label="搜尋場次"
-            class="w-full"
-            :ui="{ base: 'text-ui', trailing: 'pe-1' }"
-          >
-            <template v-if="query" #trailing>
-              <UButton
-                icon="i-lucide-x"
-                aria-label="清除搜尋"
-                color="neutral"
-                variant="link"
-                size="xs"
-                @click="query = ''"
-              />
-            </template>
-          </UInput>
+      <FilterLayout>
+        <template #aside>
+          <FilterSearch v-model="query" placeholder="搜尋標題、講座、章節…" label="搜尋場次" />
+          <FilterChips v-model="year" label="年份" all-label="全部" :options="yearOptions" />
+          <FilterChips v-model="month" label="月份" all-label="全部" :options="monthOptions" />
+          <FilterChips
+            v-for="facet in visibleFacets"
+            :key="facet.key"
+            v-model="selected"
+            :label="facet.label"
+            :options="tagOptions(facet.tags)"
+            multiple
+          />
+          <FilterFooter :count="filtered.length" unit="場" :has-filter="hasFilter" @clear="clear" />
+        </template>
 
-          <div class="flex flex-col gap-1.5">
-            <span id="facet-year" class="text-ui text-muted">年份</span>
-            <div role="group" aria-labelledby="facet-year" class="flex flex-wrap gap-1.5">
-              <UButton
-                label="全部"
-                color="neutral"
-                :variant="year === null ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="year === null"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="year = null"
-              />
-              <UButton
-                v-for="y in years"
-                :key="y"
-                :label="y"
-                color="neutral"
-                :variant="year === y ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="year === y"
-                class="rounded-full px-3 font-mono"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="year = y"
-              />
-            </div>
-          </div>
+        <p v-if="!groups.length" class="text-small text-muted">沒有符合的場次。</p>
 
-          <div class="flex flex-col gap-1.5">
-            <span id="facet-month" class="text-ui text-muted">月份</span>
-            <div role="group" aria-labelledby="facet-month" class="flex flex-wrap gap-1.5">
-              <UButton
-                label="全部"
-                color="neutral"
-                :variant="month === null ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="month === null"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="month = null"
-              />
-              <UButton
-                v-for="m in months"
-                :key="m"
-                :label="`${m} 月`"
-                color="neutral"
-                :variant="month === m ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="month === m"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="month = m"
-              />
-            </div>
-          </div>
+        <section v-for="group in groups" :key="group.key" class="flex flex-col gap-3">
+          <h2 class="flex items-baseline gap-2 font-serif text-h2 leading-snug font-semibold text-highlighted">
+            {{ group.label }}
+            <span class="font-sans text-ui font-normal text-muted">{{ group.items.length }} 場</span>
+          </h2>
 
-          <div v-for="facet in visibleFacets" :key="facet.key" class="flex flex-col gap-1.5">
-            <span :id="`facet-${facet.key}`" class="text-ui text-muted">{{ facet.label }}</span>
-            <div role="group" :aria-labelledby="`facet-${facet.key}`" class="flex flex-wrap gap-1.5">
-              <UButton
-                v-for="tag in facet.tags"
-                :key="tag"
-                :label="tag"
-                color="neutral"
-                :variant="isSelected(tag) ? 'solid' : 'outline'"
-                size="xs"
-                :aria-pressed="isSelected(tag)"
-                class="rounded-full px-3"
-                :ui="{ label: 'text-ui font-medium' }"
-                @click="toggle(tag)"
-              />
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3 border-t border-default pt-3 text-ui text-muted" aria-live="polite">
-            <span>共 {{ filtered.length }} 場</span>
-            <UButton
-              v-if="hasFilter"
-              label="清除篩選"
-              color="secondary"
-              variant="link"
-              size="xs"
-              class="p-0"
-              :ui="{ label: 'text-ui' }"
-              @click="clear"
-            />
-          </div>
-        </aside>
-
-        <div class="flex min-w-0 flex-col gap-8">
-          <p v-if="!groups.length" class="text-small text-muted">沒有符合的場次。</p>
-
-          <section v-for="group in groups" :key="group.key" class="flex flex-col gap-3">
-            <h2 class="flex items-baseline gap-2 font-serif text-h2 leading-snug font-semibold text-highlighted">
-              {{ group.label }}
-              <span class="font-sans text-ui font-normal text-muted">{{ group.items.length }} 場</span>
-            </h2>
-
-            <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              <li v-for="s in group.items" :key="s.slug" class="relative">
-                <NuxtLink
-                  :to="`/s/${s.slug}`"
-                  class="flex h-full flex-col gap-2 rounded-card border bg-elevated p-4 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
-                  :class="s.slug === currentSlug ? 'border-primary' : 'border-default'"
-                >
-                  <div class="flex items-center gap-2 font-mono text-meta">
-                    <span class="text-primary">{{ shortDate(s) }}</span>
-                    <span class="text-muted">{{ lecRange(s) }}</span>
-                    <UBadge
-                      v-if="s.slug === currentSlug"
-                      label="本週"
-                      color="primary"
-                      variant="outline"
-                      class="ml-auto rounded-tag px-1.5 py-0 font-sans text-label font-medium"
-                    />
-                  </div>
-                  <span class="font-serif text-title leading-snug font-semibold text-pretty text-highlighted">
-                    {{ s.title }}
-                  </span>
-                  <div v-if="s.tags.length" class="mt-auto flex flex-wrap gap-1.5 pt-1">
-                    <UBadge
-                      v-for="tag in s.tags.slice(0, MAX_TAGS)"
-                      :key="tag"
-                      :label="tag"
-                      color="neutral"
-                      variant="outline"
-                      class="rounded-tag px-1.5 py-0 text-label font-medium"
-                    />
-                    <span v-if="s.tags.length > MAX_TAGS" class="text-label text-muted">+{{ s.tags.length - MAX_TAGS }}</span>
-                  </div>
-                </NuxtLink>
-              </li>
-            </ul>
-          </section>
-        </div>
-      </div>
+          <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <li v-for="s in group.items" :key="s.slug" class="relative">
+              <NuxtLink
+                :to="`/s/${s.slug}`"
+                class="flex h-full flex-col gap-2 rounded-card border bg-elevated p-4 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
+                :class="s.slug === currentSlug ? 'border-primary' : 'border-default'"
+              >
+                <div class="flex items-center gap-2 font-mono text-meta">
+                  <span class="text-primary">{{ shortDate(s) }}</span>
+                  <span class="text-muted">{{ lecRange(s) }}</span>
+                  <UBadge
+                    v-if="s.slug === currentSlug"
+                    label="本週"
+                    color="primary"
+                    variant="outline"
+                    class="ml-auto rounded-tag px-1.5 py-0 font-sans text-label font-medium"
+                  />
+                </div>
+                <span class="font-serif text-title leading-snug font-semibold text-pretty text-highlighted">
+                  {{ s.title }}
+                </span>
+                <div v-if="s.tags.length" class="mt-auto flex flex-wrap gap-1.5 pt-1">
+                  <UBadge
+                    v-for="tag in s.tags.slice(0, MAX_TAGS)"
+                    :key="tag"
+                    :label="tag"
+                    color="neutral"
+                    variant="outline"
+                    class="rounded-tag px-1.5 py-0 text-label font-medium"
+                  />
+                  <span v-if="s.tags.length > MAX_TAGS" class="text-label text-muted">+{{ s.tags.length - MAX_TAGS }}</span>
+                </div>
+              </NuxtLink>
+            </li>
+          </ul>
+        </section>
+      </FilterLayout>
     </main>
   </div>
 </template>

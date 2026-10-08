@@ -4,8 +4,7 @@
 const route = useRoute()
 const id = String(route.params.id)
 
-const { data: concepts } = await useAllConcepts()
-const concept = computed(() => concepts.value.find(c => c.id === id))
+const { data: concept } = await useConcept(id)
 if (!concept.value) throw createError({ statusCode: 404, statusMessage: '找不到這張概念卡', fatal: true })
 
 useSeoMeta({

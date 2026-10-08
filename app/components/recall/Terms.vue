@@ -3,12 +3,13 @@
 // 卡片內容來自這場的概念卡（session.concepts，依場次檔裡的順序）。
 // 自評存在 salon-cards-{slug}：{概念卡 id: 'shaky' | 'known'}。翻開與否只在這次瀏覽有效，不儲存。
 import type { Session } from '~/types/session'
+import type { CardRate } from '~/composables/useProgress'
 
-type Rate = 'shaky' | 'known'
+type Rate = CardRate
 
 const props = defineProps<{ session: Session }>()
 
-const { data: concepts } = useAllConcepts()
+const { data: concepts } = useConceptIndex()
 
 /** 這場的概念卡，依 session.concepts 的順序；找不到的 id 略過 */
 const cards = computed(() => {
@@ -19,10 +20,7 @@ const cards = computed(() => {
   })
 })
 
-const stored = useSalonStorage<Record<string, Rate>>(`salon-cards-${props.session.slug}`, {})
-const rates = computed<Record<string, Rate>>(() =>
-  stored.value && typeof stored.value === 'object' ? stored.value : {},
-)
+const { rates, rate: saveRate } = useCardRates(props.session.slug)
 
 const onlyShaky = ref(false)
 const opened = ref<Record<string, boolean>>({})
@@ -38,16 +36,15 @@ const toggle = (id: string) => {
   opened.value = { ...opened.value, [id]: !opened.value[id] }
 }
 
-const rate = (id: string, r: Rate) => {
-  stored.value = { ...rates.value, [id]: r }
-}
+const rate = (id: string, r: Rate) => saveRate(id, r)
 
 const RATES: [Rate, string][] = [['shaky', '還不熟'], ['known', '記得']]
 
+// hover 效果放在整張卡（has-[>button:hover]），不放在裡面的按鈕上：翻開後按鈕只佔上半部，按鈕自己變色會讓卡片上下兩截不同色
 const cardClass = (id: string) => {
-  if (opened.value[id]) return 'border-primary bg-primary-soft'
-  if (rates.value[id] === 'shaky') return 'border-error bg-muted'
-  return 'border-default bg-muted'
+  if (opened.value[id]) return 'border-primary bg-primary-soft has-[>button:hover]:border-primary/60'
+  if (rates.value[id] === 'shaky') return 'border-error bg-muted has-[>button:hover]:bg-accented'
+  return 'border-default bg-muted has-[>button:hover]:border-primary has-[>button:hover]:bg-accented'
 }
 </script>
 
@@ -71,12 +68,12 @@ const cardClass = (id: string) => {
       <div
         v-for="c in items"
         :key="c.id"
-        class="flex flex-col rounded-card border"
+        class="flex flex-col rounded-card border transition-colors"
         :class="cardClass(c.id)"
       >
         <button
           type="button"
-          class="flex min-h-[110px] cursor-pointer flex-col gap-1.5 rounded-card p-3.5 text-left text-default transition-colors hover:bg-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="flex min-h-[110px] cursor-pointer flex-col gap-1.5 rounded-card p-3.5 text-left text-default focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           :aria-expanded="!!opened[c.id]"
           @click="toggle(c.id)"
         >

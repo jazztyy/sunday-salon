@@ -4,7 +4,7 @@
 
 ## 技術
 
-Nuxt 4 + Nuxt Content 3 + Nuxt UI 4 + Tailwind CSS 4 + VueUse + TypeScript。用 `npm run generate` 輸出純靜態網站，部署到 GitHub Pages。
+Nuxt 4 + Nuxt Content 3 + Nuxt UI 4 + Tailwind CSS 4 + VueUse + TypeScript。用 `npm run generate` 輸出純靜態網站，部署到 GitHub Pages。Node 22.18 以上（見 `.nvmrc`）。push 和 PR 會由 GitHub Actions 跑內容檢查、型別檢查、測試與建置（`.github/workflows/ci.yml`）；部署目前手動觸發。
 
 內容用 Nuxt Content 3 管理，全部放在 `content/`，不用改程式。
 
@@ -18,7 +18,7 @@ Nuxt 4 + Nuxt Content 3 + Nuxt UI 4 + Tailwind CSS 4 + VueUse + TypeScript。用
 | 推薦一起看的場次 | 場次檔的 `related` 填 `slug` 和一句 `reason` |
 | 新增 tag | 先加到 `content/taxonomy.yml`，才能在場次或概念卡的 `tags` 使用 |
 
-改完先跑 `npm run check`。它會找出 tag 不在詞彙表、概念卡不存在、`[[連結]]` 連不到、名稱重複、前提質疑／接受沒有剛好填一個等錯誤，並指出是哪個檔案。`npm run generate` 會自動先跑一次，有錯就不建置。
+改完先跑 `npm run check`。它會找出拼錯或多出來的欄位、tag 不在詞彙表、概念卡不存在、`[[連結]]` 連不到、名稱或題目重複、時間超過影片長度、前提質疑／接受沒有剛好填一個等錯誤，並指出是哪個檔案。`npm run generate` 會自動先跑一次，有錯就不建置。
 
 欄位說明和完整規則見 SPEC.md 第 7、8 節；概念卡怎麼寫見 DESIGN.md 8.1。
 
@@ -29,7 +29,8 @@ npm install
 npm run dev        # 本機開發 http://localhost:3000
 npm run check      # 內容檢查
 npm run typecheck  # 型別檢查
-npm run generate   # 內容檢查通過後，輸出靜態網站到 .output/public
+npm test           # 單元測試（vitest）
+npm run generate   # 內容檢查通過後，輸出靜態網站到 .output/public，再檢查輸出（頁面齊全、payload 大小）
 npm run preview    # 預覽輸出結果（或 npx serve .output/public）
 ```
 

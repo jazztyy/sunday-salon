@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // 筆記卡（/notes 用）：外觀和 /archive 的場次卡一致。內容區是按鈕，點了由頁面打開編輯視窗。
 // deletable 時底部多一個刪除圖示（四種筆記都有）；按鈕不能包按鈕，所以外框放在外層 div。
-// 規格見 SPEC.md「筆記」。
+// 種類的名稱和徽章顏色在 utils/noteKinds.ts。規格見 SPEC.md「筆記」。
+import { NOTE_KINDS, type NoteKind } from '~/utils/noteKinds'
+
 const props = withDefaults(defineProps<{
-  /** 'discuss' 討論筆記、'review' 複習筆記、'concept' 概念筆記、'mine' 我的筆記 */
-  kind: 'discuss' | 'review' | 'concept' | 'mine'
+  kind: NoteKind
   title: string
   /** 第一行的小字：講座標籤或修改日期 */
   meta: string
@@ -22,9 +23,6 @@ const preview = computed(() => props.body
   .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
   .replace(/\n{2,}/g, '\n')
   .trim())
-
-const LABEL = { discuss: '討論筆記', review: '複習筆記', concept: '概念筆記', mine: '我的筆記' } as const
-const COLOR = { discuss: 'neutral', review: 'secondary', concept: 'secondary', mine: 'primary' } as const
 </script>
 
 <template>
@@ -38,8 +36,8 @@ const COLOR = { discuss: 'neutral', review: 'secondary', concept: 'secondary', m
       <div class="flex w-full items-center gap-2 font-mono text-meta">
         <span class="text-primary">{{ props.meta }}</span>
         <UBadge
-          :label="LABEL[props.kind]"
-          :color="COLOR[props.kind]"
+          :label="NOTE_KINDS[props.kind].label"
+          :color="NOTE_KINDS[props.kind].color"
           variant="outline"
           class="ml-auto rounded-tag px-1.5 py-0 font-sans text-label font-medium"
         />

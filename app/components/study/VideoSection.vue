@@ -7,7 +7,7 @@ const props = defineProps<{
   session: Session
   video: Video
   /** {題目在 session.quiz 的索引: 選項索引} */
-  quizPicks: Record<string, number>
+  quizPicks: Record<number, number>
 }>()
 
 const emit = defineEmits<{ pick: [quizIndex: number, option: number] }>()
@@ -60,8 +60,7 @@ const playFromStart = (e: MouseEvent) => {
         v-for="{ item, index } in args"
         :key="`${session.slug}-arg-${index}`"
         :arg="item"
-        :index="index"
-        :session-id="session.slug"
+        :session="session"
       />
     </div>
 
@@ -76,7 +75,7 @@ const playFromStart = (e: MouseEvent) => {
           :session="session"
           :item="item"
           :number="n + 1"
-          :pick="quizPicks[String(index)]"
+          :pick="quizPicks[index]"
           @pick="emit('pick', index, $event)"
         />
       </div>

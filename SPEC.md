@@ -1,6 +1,6 @@
 # 悅讀聊天室 功能規格
 
-> 版本 3.8 ・ 2026-09-29
+> 版本 3.10 ・ 2026-10-08
 >
 > 這份文件描述網站**做什麼、怎麼運作、資料怎麼放**。視覺規範請看 [DESIGN.md](DESIGN.md)。
 > 要改功能時，先在這份文件寫下變更並討論，確定後再改程式，最後更新文末的修改紀錄。
@@ -53,14 +53,14 @@
 3. 內容和程式分開。寫一場只要新增一個 YAML 檔，寫一張概念卡只要新增一個 Markdown 檔，不用碰 TypeScript。
 4. 內容有 schema（`content.config.ts`）和跨檔案檢查（`scripts/check-content.mjs`），寫錯欄位在建置前就會被擋下。
 
-**瀏覽器端沒有資料庫**：所有頁面都是預先產生的。查詢在建置階段執行，結果存進每頁的 payload，瀏覽器只讀 payload，不下載 SQLite，也不需要 WASM。`better-sqlite3` 只在 `npm install` 和建置時用到。
+**瀏覽器端沒有資料庫**：所有頁面都是預先產生的。查詢在建置階段執行，結果存進每頁的 payload 和預先產生的 JSON 檔（見 2.6），瀏覽器只讀這兩種，不下載 SQLite，也不需要 WASM。`better-sqlite3` 只在 `npm install` 和建置時用到。**不要在瀏覽器端呼叫 `queryCollection`**：Nuxt Content 會在沒有任何提示的情況下下載約 1MB 的 SQLite wasm 和整份資料。
 
 ### 2.2 輸出與發佈
 
-- 用 `npm run generate` 輸出**純靜態檔案**到 `.output/public`，可以直接放上 GitHub Pages。這個指令會先跑內容檢查，檢查失敗就不建置。
+- 用 `npm run generate` 輸出**純靜態檔案**到 `.output/public`，可以直接放上 GitHub Pages。這個指令會先跑內容檢查，檢查失敗就不建置；建置完再跑建置輸出檢查（`scripts/check-output.mjs`）：每一場、每張概念卡都要有頁面和資料檔，一般頁面的 payload 不能超過 150KB（`/notes`、`/review` 是 1MB）。
 - 部署設定在 `nuxt.config.ts`：`nitro.preset: 'github_pages'`，網址前綴由環境變數 `NUXT_APP_BASE_URL` 決定（部署時是 `/sunday-salon/`，本機是 `/`）。
-- 預先產生的頁面從 `/`、`/archive`、`/concepts` 開始，順著連結爬出所有場次頁與概念卡頁（`crawlLinks`）。所以**每一場都要出現在 `/archive`，每一張概念卡都要出現在 `/concepts`**，否則不會被產生。
-- **限制**：GitHub Pages 只放靜態檔案，網站上線後**沒有伺服器**，不能用 Nuxt 的 `server/api` 路由。需要「全體共享」的資料（例如全體立場統計、留言）時，要改用第三方服務。
+- 預先產生的頁面從 `/`、`/archive`、`/concepts` 開始，順著連結爬出所有場次頁與概念卡頁（`crawlLinks`）。所以**每一場都要出現在 `/archive`，每一張概念卡都要出現在 `/concepts`**，否則不會被產生（建置輸出檢查會擋下）。資料端點（`/data/*.json`）爬不到，由 `nuxt.config.ts` 的 `dataRoutes()` 依內容檔列出。
+- **限制**：GitHub Pages 只放靜態檔案，網站上線後**沒有伺服器**。`server/routes/data/` 的端點只在建置時執行一次，輸出成 JSON 檔；不能放需要即時運算或寫入的路由。需要「全體共享」的資料（例如全體立場統計、留言）時，要改用第三方服務（第 12 節）。
 
 ### 2.3 發佈目標
 
@@ -78,9 +78,14 @@ site/
 │   ├── sessions/2026/10-04-靈魂.yml  # 每場一個檔案，依年份分資料夾
 │   ├── concepts/soul.md             # 每張概念卡一個檔案，檔名就是 id
 │   └── taxonomy.yml                 # tag 詞彙表
-├── content.config.ts                # 內容 schema（zod）
-├── lib/wikilinks.ts                 # [[概念名稱]] 轉連結的規則（建置與檢查共用）
+├── content.config.ts                # 內容集合設定（schema 從 lib/schema.ts 匯入）
+├── lib/schema.ts                    # 內容 schema（zod）唯一來源：網站和內容檢查共用
+├── lib/wikilinks.ts                 # [[概念名稱]] 轉連結的規則、frontmatter 解析（建置與檢查共用）
 ├── scripts/check-content.mjs        # 建置前的內容檢查（見第 8 節）
+├── scripts/check-output.mjs         # 建置後的輸出檢查（頁面齊全、payload 大小）
+├── server/routes/data/              # 建置時預先產生的 JSON 資料端點（見 2.6）
+├── shared/utils/content.ts          # 內容 item → 各頁面資料形狀的轉換（資料端點用）
+├── test/                            # vitest 單元測試（app/utils 的純邏輯）
 ├── app/
 │   ├── app.vue                      # <UApp> + <NuxtPage>
 │   ├── app.config.ts                # Nuxt UI 色票對應（primary / secondary / …）
@@ -90,11 +95,18 @@ site/
 │   │   ├── s/[slug].vue             # /s/w1        → 指定場次
 │   │   ├── archive.vue              # /archive     → 全部場次
 │   │   ├── concepts/index.vue       # /concepts    → 概念卡牆
+│   │   ├── review.vue               # /review      → 複習
+│   │   ├── notes.vue                # /notes       → 筆記、作答紀錄
 │   │   └── c/[id].vue               # /c/soul      → 單張概念卡
 │   ├── components/
 │   │   ├── SessionView.vue          # 單一場次的頁面骨架
 │   │   ├── RelatedSessions.vue      # 延續討論
 │   │   ├── VideoLink.vue            # 所有影片連結
+│   │   ├── MarkdownEditor.vue       # 筆記編輯器（一律用 <LazyMarkdownEditor>）
+│   │   ├── NoteField.vue            # 有框的筆記小卡（討論卡、作答紀錄）
+│   │   ├── SessionGroupHeading.vue  # 依場次分組的標題（筆記、作答紀錄）
+│   │   ├── filter/                  # Layout / Chips / Search / Footer（列表頁的篩選欄）
+│   │   ├── note/                    # Card / Answers / Sheet / SheetProp（筆記頁）
 │   │   ├── WhyNote.vue              # 學習法註記
 │   │   ├── salon/Header.vue         # 頂部列
 │   │   ├── concept/Card.vue         # 概念卡（卡片牆、相關概念）
@@ -105,17 +117,38 @@ site/
 │   │   ├── recall/                  # Timeline / Questions / Quiz / Terms
 │   │   └── sunday/                  # Vote
 │   ├── composables/
-│   │   ├── useContent.ts            # 所有內容查詢的入口
+│   │   ├── useContent.ts            # 所有內容查詢的入口（見 2.6）、useToday、pickCurrentSession
 │   │   ├── useRelatedSessions.ts    # 延續討論的計算
 │   │   ├── usePlayer.ts             # 播放器共用狀態
+│   │   ├── useSalonStorage.ts       # 瀏覽器儲存的底層（容量滿時提示）
+│   │   ├── useProgress.ts           # 學習進度：useVotes、useArgPicks、useCardRates、useQuizAnswers
 │   │   ├── useDiscussNotes.ts       # 討論題的「我的想法」筆記
-│   │   └── useSalonStorage.ts       # 瀏覽器儲存
-│   ├── utils/videoRef.ts            # 影片段落與長度的顯示文字（mmss、minutesLabel、totalLabel、lecOf、refLabel）
-│   ├── utils/quizSignature.ts       # 題目簽章與文字雜湊（quizSignature、textHash）
-│   └── types/session.ts             # 元件用的型別（要和 content.config.ts 同步）
+│   │   ├── useReview.ts             # 複習筆記、複習作答紀錄
+│   │   ├── useMyNotes.ts            # /notes 自己新增的筆記
+│   │   ├── useQuizRecords.ts        # 作答紀錄：測驗題在邊看邊想、看完回想、複習的作答
+│   │   ├── useNoteEntries.ts        # /notes：各種筆記整理成統一的 NoteEntry
+│   │   ├── useUrlFilters.ts         # 篩選條件和網址 query 的同步（/archive、/concepts）
+│   │   ├── useConceptModal.ts       # 全站概念卡彈窗的狀態
+│   │   └── useConfirm.ts            # 確認對話框
+│   ├── utils/
+│   │   ├── storageKeys.ts           # 所有 localStorage key（見第 9 節）
+│   │   ├── quizSignature.ts         # 文字雜湊、題目 key（questionKey、answerKey）、舊格式的測驗簽章
+│   │   ├── progressFormat.ts        # 學習進度新舊儲存格式的換算
+│   │   ├── storedNote.ts            # 筆記的新舊儲存格式
+│   │   ├── review.ts                # 複習出題、題目 key（quizKey、conceptKey）
+│   │   ├── leitner.ts               # 間隔重複（box、到期日）
+│   │   ├── noteKinds.ts             # 筆記種類（名稱、徽章顏色）
+│   │   ├── noteExport.ts            # 筆記匯出（Markdown／純文字）
+│   │   ├── download.ts              # 在瀏覽器下載文字檔
+│   │   └── videoRef.ts              # 影片段落與長度的顯示文字（mmss、lecOf、refLabel、scopeLabel…）
+│   └── types/
+│       ├── session.ts               # 元件用的型別（和 lib/schema.ts 對不上時 typecheck 會失敗）
+│       └── content.ts               # 各頁面實際載入的資料形狀（精簡場次、題目資料、概念卡列表）
 ├── legacy/index.html                # v1 單一檔案版本（凍結）
 ├── public/                          # 原樣複製的靜態檔案（favicon 等）
-├── .github/workflows/deploy.yml     # GitHub Pages 部署
+├── .github/workflows/ci.yml         # push、PR 時跑檢查、型別、測試、建置
+├── .github/workflows/deploy.yml     # GitHub Pages 部署（手動觸發）
+├── .nvmrc                           # Node 版本（22.20.0；檢查腳本直接載入 .ts，要 22.18 以上）
 ├── nuxt.config.ts
 ├── DESIGN.md
 └── SPEC.md
@@ -127,11 +160,33 @@ site/
 |---|---|
 | `npm run dev` | 本機開發（`http://localhost:3000`） |
 | `npm run check` | 內容檢查（見第 8 節） |
-| `npm run generate` | 先跑 `check`，通過後輸出靜態網站到 `.output/public` |
+| `npm run generate` | 先跑 `check`，通過後輸出靜態網站到 `.output/public`，再跑建置輸出檢查 |
+| `npm run check:output` | 只跑建置輸出檢查（要先 generate） |
 | `npm run preview` | 預覽輸出結果 |
 | `npm run typecheck` | 檢查 TypeScript 型別 |
+| `npm test` | 單元測試（vitest，只測 `app/utils` 的純邏輯，不啟動 Nuxt）。`app/utils` 的檔案要明確 import 用到的函式，不能靠 auto-import |
+
+內容檢查可以用環境變數 `CONTENT_DIR` 指定別的內容資料夾（測試規則用）。
 
 也可以用 `npx serve .output/public` 預覽輸出的靜態檔案。
+
+### 2.6 資料載入
+
+完整的一場資料很大（每場約 30KB），以前每一頁都把全部場次和全部概念卡塞進 payload，總輸出量隨場次數的平方成長，大約 60–100 場就會超過 GitHub Pages 1GB 的上限。3.10 起每一頁只載入用得到的形狀（`app/types/content.ts`）：
+
+| 形狀 | 端點（建置時產生） | composable | 用在 |
+|---|---|---|---|
+| 精簡場次列表（標題、日期、tag、概念卡、影片的 id／講座） | `/data/sessions.json` | `useSessionIndex()` | 首頁挑場次、`/archive`、`/concepts`、概念卡「出現在」、延續討論 |
+| `/archive` 搜尋文字（影片、章節、論證名稱） | `/data/search.json` | `useSessionSearch()` | 只有 `/archive` |
+| 筆記、複習用的題目（quiz 全部、discuss 的題目） | `/data/study.json` | `useStudySessions()` | `/notes`、`/review` |
+| 單一場次（完整） | `/data/sessions/{slug}.json` | `useSession(slug)`、`useCurrentSession(index)` | 場次頁、首頁 |
+| 概念卡列表（不含內文；`links` 是內文連到的卡，建置時算好） | `/data/concepts.json` | `useConceptIndex()` | 名詞卡、概念卡牆、彈窗、相關概念 |
+| 單張概念卡（含內文） | `/data/concepts/{id}.json` | `useConcept(id)` | `/c/{id}`、概念卡彈窗 |
+
+- 所有 composable 都是 `useAsyncData` 加 `$fetch` 那個 JSON。預先產生頁面時結果存進該頁的 payload；瀏覽器端碰到 payload 沒有的資料（例如在任何頁面打開概念卡彈窗、首頁換了本週那一場）才去抓 JSON。
+- 首頁：預先產生時內嵌建置當天挑到的那一場；掛載後用瀏覽器的今天重挑，挑到別場就抓那一場的 JSON。
+- 概念卡彈窗（`<LazyConceptModal>`）只在打開時載入；文字編輯器一律用 `<LazyMarkdownEditor>`（TipTap 約 190KB gzip），不放進每一頁的首次載入。
+- 新增頁面要用內容時，先看上表有沒有合適的形狀；需要新形狀時在 `app/types/content.ts`、`shared/utils/content.ts`、`server/routes/data/` 各加一個，並加進 `nuxt.config.ts` 的 `dataRoutes()` 和 `scripts/check-output.mjs`。
 
 ---
 
@@ -148,7 +203,7 @@ site/
 | `/archive?q=…&year=…&month=…&tag=…` | 篩選後的結果，可以分享 |
 | `/concepts` | 概念卡牆，依「領域」分組；`?q=…` 是搜尋結果 |
 | `/review` | 複習：從討論過的場次出選擇題（測驗題＋概念卡題），間隔重複排程，每題可以寫筆記 |
-| `/notes` | 筆記：討論筆記、複習筆記和自己新增的筆記，依場次分組，可以搜尋 |
+| `/notes` | 筆記：討論筆記、複習筆記和自己新增的筆記，依場次分組，可以搜尋；上方切到「作答紀錄」看每一場測驗題答過的結果 |
 | `/c/{id}` | 單張概念卡，例如 `/c/soul`。找不到時顯示 404 |
 
 - 場次頁沒有 hash 時，打開上次停留的分頁；第一次來的人從「看之前」開始。
@@ -158,6 +213,7 @@ site/
 - 每個分頁底部有「下一步：{下一個分頁} →」。「邊看邊想」只在最後一段（整合回顧）顯示，其他段落用「下一段」按鈕，避免兩個往下走的按鈕同時出現。
 - **實作注意**：靜態頁面初次載入時，Nuxt 路由會把網址換成預先產生頁面的路徑，**hash 和 query 都會在任何元件掛載前被拿掉**。所以 `nuxt.config.ts` 在 `<head>` 放了一行腳本，先把它們存到 `window.__salonInitialHash`、`window.__salonInitialSearch`。元件掛載時呼叫 `takeInitialLocation()`（`useContent.ts`）讀取一次，讀完就清掉。場次頁的分頁 hash 和 `/archive` 的 `?tag=` 都靠它。改動路由、分頁或篩選邏輯時不要拿掉它。
   - 另外，Nuxt 會在元件掛載**之後**再做一次網址修正（網址多了 query 或結尾的 `/` 時會改回產生時的路徑）。所以要把狀態**寫回網址**的頁面（例如 `/archive` 的 `?tag=`），必須等 `onNuxtReady()` 之後才寫，否則會被覆蓋。只改 hash 的場次頁不受影響。
+  - 這套讀寫網址 query 的邏輯集中在 `composables/useUrlFilters.ts`（`/archive`、`/concepts` 共用）。新增可分享篩選的頁面時用它，不要自己再寫一份。
 
 ### 3.2 頂部列
 
@@ -209,7 +265,7 @@ site/
 | 右欄・我的筆記 | 寬螢幕（`lg`）固定在右側 340px，手機排在下面。Markdown 編輯器（`<MarkdownEditor>`），存在 `salon-review-notes` 的 `c:{id}`，和 `/review` 這張卡的概念卡題**共用同一則**，也會出現在 `/notes` 的「概念筆記」 |
 
 - 彈窗寬度 `sm:max-w-5xl`，打開時不自動聚焦（避免關閉按鈕一打開就出現焦點框）。
-- **`<MarkdownEditor>`**（`components/MarkdownEditor.vue`）：Nuxt UI 的 `UEditor`（TipTap），`content-type="markdown"`，讀寫都是 Markdown 字串，和筆記匯出的格式一致。工具列：標題（H2、H3）、粗體、斜體、刪除線、行內程式碼、項目清單、編號清單、引用、復原、重做；也可以直接打 `## `、`**…**`、`- ` 等語法。只在瀏覽器渲染（`ClientOnly`）。概念卡彈窗、`/notes` 的編輯彈窗、`/review` 的筆記都用它；場次頁討論題的「我的想法」仍是一般文字框。
+- **`<MarkdownEditor>`**（`components/MarkdownEditor.vue`）：Nuxt UI 的 `UEditor`（TipTap），`content-type="markdown"`，讀寫都是 Markdown 字串，和筆記匯出的格式一致。工具列：標題（H2、H3）、粗體、斜體、刪除線、行內程式碼、項目清單、編號清單、引用、復原、重做；也可以直接打 `## `、`**…**`、`- ` 等語法。只在瀏覽器渲染（`ClientOnly`）。概念卡彈窗、`/notes` 的編輯彈窗、`/review` 的筆記、場次頁討論題的「我的想法」（3.9 起）都用它。
 
 ### 3.6 複習（`/review`）
 
@@ -230,7 +286,7 @@ site/
   3. 答對時問「有把握／猜的」（預設有把握）。旁邊顯示「下次複習：明天／N 天後」。
   4. 筆記：「寫筆記」打開文字框，提示是費曼技巧（用最簡單的話向沒看過影片的朋友解釋）。已經有筆記的題目直接顯示。
   5. 「下一題」時才把結果寫進作答紀錄，所以可以先改「有把握／猜的」。
-- **間隔重複**（`useReviewLog`，簡化的 Leitner）：每題有熟練程度 `box`（0–5）。有把握答對 +1；猜對不變；答錯回到 0。下次到期日 = 今天 + `[1, 2, 4, 7, 15, 30][box]` 天（台灣日期）。
+- **間隔重複**（`useReviewLog`，簡化的 Leitner；公式在 `utils/leitner.ts` 的 `nextBox`、`nextLogEntry`，作答時和畫面上的「下次複習」共用）：每題有熟練程度 `box`（0–5）。有把握答對 +1；猜對不變；答錯回到 0。下次到期日 = 今天 + `[1, 2, 4, 7, 15, 30][box]` 天（台灣日期）。
 - **結果頁**：答對幾題；低於 8 成時建議先「只練答錯的」（精熟學習）；顯示做過的題目裡明天到期幾題；按鈕「只練答錯的」（立刻用答錯的題目再來一輪，連續再學習）和「再抽一輪」；下面列出答錯的題目和正解。
 - 一輪的題目順序、作答只在這次瀏覽有效；作答紀錄和筆記存在瀏覽器。
 
@@ -240,11 +296,17 @@ site/
   - **討論筆記**：各場討論題的「我的想法」（`salon-notes-{slug}`），在「邊看邊想」或「週日討論」寫的都會出現。卡片標題是題目，小字是講座標籤（或「整合回顧」），內容是筆記。編輯視窗裡可以修改，另有「回到題目，看 Kagan 怎麼說 ›」連到 `/s/{slug}#sunday`。清空內容等於刪除，和在討論卡片上清空一樣。
   - **複習筆記**：在 `/review` 做**測驗題**時寫的筆記（`salon-review-notes`，key 是題目的 key），算在它的場次。卡片標題是題目，小字是講座標籤或「整合回顧」，徽章用 `secondary`。編輯視窗裡有連到那一場「看完回想」的連結。
   - **概念筆記**：概念卡彈窗裡寫的筆記，也就是 `/review` 概念卡題的筆記（同一個 key `c:{id}`），算在第一次用到那張卡的場次。卡片標題是詞條，小字是「概念卡」。編輯視窗裡有「看概念卡 ›」（開概念卡彈窗）。題目文字改掉後，舊筆記對不到題目，不再顯示。
+  - **題目已修改**：筆記的 key 是題目文字的雜湊，題目文字改掉（或概念卡不再被任何場次使用）後就對不到，原處不再顯示。這些筆記集中列成這一種，不會默默消失：標題是存筆記時記下的題目（3.9 以前的筆記沒記，顯示「（找不到原本的題目）」），小字是「原題目已修改」，算在原本的場次（概念卡的算「其他」）。編輯視窗有一段說明，可以把內容搬到新題目或我的筆記；清空或刪除就從瀏覽器刪掉。種類篩選只在有這種筆記時出現。
   - **我的筆記**：按「新增筆記」自己寫（`salon-mynotes`），有標題、內容、屬於哪一場（預設是本週那一場，可以選「不屬於任何場次」），可以編輯、刪除（刪除前確認）。
 - **版面和 `/archive` 一致**：左邊是固定不動的篩選欄（`lg` 以上；手機放在上方），依序是「新增筆記」、搜尋框、**種類**（全部／討論筆記／複習筆記／概念筆記／我的筆記，附數量）、**場次**（全部、有筆記的場次 chip、「其他」），最下面是則數和「清除篩選」。右邊是 `<NoteCard>`（`components/note/Card.vue`）網格，外觀同場次卡：第一行是講座標籤或修改日期（`text-primary`）和種類徽章（討論筆記 `neutral`／我的筆記 `primary`），接著是標題（最多兩行）和內容（最多三行）。篩選條件不寫進網址（筆記是私人的，沒有分享的需要）。整張卡是按鈕，點了打開編輯視窗（`UModal`），樣式仿 Heptabase 卡片：上方是種類徽章、「自動儲存・只存在這個瀏覽器」和關閉圖示（**刪除不放在彈窗裡**，在外層卡片底部的垃圾桶圖示，四種筆記都有，刪除前確認：我的筆記整則刪除；討論、複習、概念筆記是清空筆記內容，題目和概念卡不受影響）；大字標題（我的筆記可以直接改，其他種類是題目或詞條）；一排屬性（場次——我的筆記可以改；修改時間；連結）；分隔線下面是沒有外框的書寫區（`<MarkdownEditor>`）。卡片上的內容預覽會去掉 Markdown 符號，只顯示文字。內容一改就自動儲存，沒有「完成」按鈕，按關閉、點外面或 Esc 關閉。新增筆記會直接打開編輯視窗。
 - **依場次分組**，新的在前；每組標題是場次 chip（連到場次頁）和則數，下一行是那場的題目。組內先列討論筆記（題目順序），再列我的筆記（最近修改的在前）。不屬於任何場次的我的筆記放在最後的「其他筆記」。
 - **匯出**：篩選欄最下面有「Markdown」「純文字」兩個按鈕，下載**目前篩選出來的筆記**（沒篩選就是全部），檔名 `悅讀聊天室筆記-{YYYY-MM-DD}.md`／`.txt`。內容依場次分組（和畫面上一樣），每則有種類標籤（討論筆記・講座 8、複習筆記・…、概念筆記、我的筆記・修改日期）、題目或標題、筆記內容。Markdown 用 `##` 場次、`###` 種類、`>` 引用題目，筆記內的換行用行尾兩個空白保留；純文字用 `■` 場次、`【】` 種類、`―――` 分隔。在瀏覽器產生檔案（Blob），不經過任何伺服器。
+- **程式結構**（3.10）：每種筆記的名稱、徽章顏色（討論筆記 `neutral`、複習與概念筆記 `secondary`、題目已修改 `neutral`、我的筆記 `primary`）等定義在 `utils/noteKinds.ts`（`NOTE_KINDS`）；各來源整理成統一的 `NoteEntry` 在 `composables/useNoteEntries.ts`；匯出在 `utils/noteExport.ts`（有測試固定格式）。**新增一種筆記**只要在 `NOTE_KINDS` 加一筆、在 `useNoteEntries` 加一個轉換函式；只有需要可以編輯的標題或場次時才改視窗模板。種類篩選依 `NOTE_KINDS` 的順序，「題目已修改」只在有這種筆記時出現。
 - 搜尋是 Fuse.js 模糊比對，範圍是筆記內容、標題、題目。正在編輯的那則不會因為搜尋、篩選或清空而從畫面上消失。
+- **作答紀錄**（3.9 起）：頁面上方的 `UTabs`（pill）切換「筆記｜作答紀錄」，不寫進網址。作答紀錄是 `<NoteAnswers>`（`components/note/Answers.vue`），資料來自 `useQuizRecords`：每一場測驗題在「邊看邊想」（`salon-quiz-inline-{slug}`）、「看完回想」（`salon-quiz-{slug}`）、`/review`（`salon-review-log`）的作答，簽章不同（題目改過）就當作沒答；只列至少答過一次的題目。
+  - 版面同筆記：左邊篩選欄是**結果**（全部／答錯過／都答對，附數量；任何一處答錯過就算「答錯過」）、**場次**、題數，以及「到「複習」用間隔重複練習 ›」；右邊依場次（新的在前）→ 講座（影片順序，整合回顧最後）分組，組內照題目順序。卡片是對錯徽章、題目（最多三行）、每個地方的對錯（✓／✗），有筆記時加「有筆記」。
+  - 點卡片打開視窗，照**提取練習**設計：先只給題目和選項（不標答案，也不顯示自己選了哪個），自己想過再按「我想好了，看答案與解析」，才標出正解（綠）和自己選錯的選項（紅，註明是哪裡選的）、解析與影片段落連結（`/notes` 沒有播放器，開 YouTube 新分頁）。每次打開都從「先回想」開始。屬性列有場次・講座、各處作答紀錄（複習是對幾次、錯幾次）、「回到這一場的「邊看邊想」 ›」。
+  - 視窗下方是筆記（`<MarkdownEditor>`），和 `/review` 同一則（`salon-review-notes` 的 `q:{slug}:{雜湊}`），所以會出現在「複習筆記」。提示文字引導用自己的話解釋為什麼是這個答案（費曼技巧）。
 - 全部存在瀏覽器，預先產生的 HTML 是空的，掛載後才顯示。第 12 節接 Supabase 後再考慮跨裝置同步。
 
 ---
@@ -309,7 +371,7 @@ site/
 | 帶著這個問題看 | 這支影片的 `guide` | — |
 | 論證 | 這支影片的論證卡片（`args` 裡 `vid` 是這支的） | 預測試，見下方 |
 | 看完這段，測一下 | `quiz` 裡 `scope` 是這支的題目（`<StudyQuizItem>`） | 作答後鎖定，顯示正解、解析和原片段連結 |
-| 想一想 | `discuss` 裡 `scope` 是這支的題目（`<StudyDiscussCard>`） | 可以先按「寫下我的想法」寫筆記（選填）。按「我想好了，看 Kagan 怎麼說」→ 顯示 `answer` 和參考段落連結；有筆記時兩者並排 |
+| 想一想 | `discuss` 裡 `scope` 是這支的題目（`<StudyDiscussCard>`） | 可以先按「寫下我的想法」寫筆記（選填，Markdown 卡片）。按「我想好了，看 Kagan 怎麼說」→ 顯示 `answer` 和參考段落連結；有筆記時兩者並排 |
 
 最後一個子分頁是**「整合回顧」**：`scope` 是 `'all'` 的測驗題與討論題，跨影片整合。每一段底部有「下一段：… →」按鈕。
 
@@ -393,10 +455,11 @@ site/
 
 ## 7. 資料結構
 
-- 內容全部放在 `content/`，schema 定義在 `content.config.ts`（zod）。
-- 元件使用的型別在 `app/types/session.ts`。**改欄位時兩邊要一起改。**
+- 內容全部放在 `content/`，schema（zod）的唯一來源是 `lib/schema.ts`：`content.config.ts` 和內容檢查都從這裡匯入。內容檢查用嚴格版本，**拼錯或多出來的欄位會報錯**（Nuxt Content 本身會默默丟掉）。
+- 元件使用的型別在 `app/types/session.ts`（手寫，有說明註解）。檔案最後有型別層級的比對：和 schema 推導出來的型別對不上時，`npm run typecheck` 會失敗。**改欄位時兩邊要一起改。**
 - **Nuxt Content 不會替巢狀物件補 schema 的預設值**（例如 `recap` 裡的 `.default([])`）：只填部分欄位時，其他欄位讀出來是 `undefined`，元件要自己補（`tab/After.vue`）。頂層欄位的預設值則正常。
-- 所有查詢都透過 `app/composables/useContent.ts`（`useAllSessions`、`useSession`、`useAllConcepts`、`useTaxonomy`），元件和頁面不要直接呼叫 `queryCollection`。
+- 所有查詢都透過 `app/composables/useContent.ts`（見 2.6），元件和頁面不要直接呼叫 `queryCollection`。
+- **題目的 `id`（選填）**：quiz、discuss、votes、args 都可以加 `id`（小寫英數和連字號，最長 40 字）。瀏覽器裡的筆記和作答用「題目 key」記：有 `id` 用 `id`，沒有用題目文字（論證是 `name`）的雜湊。**發佈後要改題目文字時，先把 `id` 補上，值填改之前的題目雜湊**（`textHash(舊題目)`，網站上的 key 就是它）——這樣筆記、複習紀錄、立場題、論證卡都沿用，只有那一題的測驗作答要重答。不補的話，大家的筆記會變成「題目已修改」。新寫的題目可以不填。
 
 ### 7.1 場次：`content/sessions/{年}/{月-日}-{主題}.yml`
 
@@ -447,7 +510,8 @@ args:
     verdict: 結論評語
 argsNote: …                       # 可省略：論證地圖上方的補充說明
 votes:                            # 2–4 題，每題 2–4 個選項
-  - q: 立場題
+  - id: free-will                 # 選填：穩定的題目代號（見 7 開頭「題目的 id」），quiz、discuss、args 也都可以加
+    q: 立場題
     o: [選項, 選項]
 discuss:                          # 每支影片至少 1 題，'all' 至少 1 題
   - scope: S-fwH_uBPD0            # 影片 id，或 all（整合回顧，跨影片）
@@ -535,7 +599,7 @@ facets:
 
 ## 8. 內容檢查
 
-`scripts/check-content.mjs` 檢查 schema 管不到的跨檔案規則。執行 `npm run check`；`npm run generate` 會先自動執行。有任何錯誤就列出檔案和原因，並中止建置。
+`scripts/check-content.mjs` 先用嚴格 schema 驗證每個檔案，再檢查 schema 管不到的跨檔案規則。執行 `npm run check`；`npm run generate` 會先自動執行。有任何錯誤就列出檔案和原因，並中止建置。
 
 | 檢查 | 對象 |
 |---|---|
@@ -551,7 +615,15 @@ facets:
 | 影片 id 不在本場 `videos` 裡 | 場次 `picks`、`args`、`quiz` 與 `discuss` 的 `refs` |
 | `scope` 不是本場影片 id 也不是 `'all'` | 場次 `quiz`、`discuss` |
 | 某支影片或 `'all'` 沒有測驗題或討論題 | 場次 `quiz`、`discuss` |
-| 檔案不在 `date` 年份的資料夾 | 場次 |
+| 檔案路徑和 `date` 不一致（年份資料夾、檔名的 `{月}-{日}-`） | 場次 |
+| 欄位不符 schema、有不認得的欄位（拼錯）、缺少必填欄位 | 場次、概念卡、詞彙表 |
+| 題目 key（`id` 或題目雜湊）重複 | 場次 `quiz`、`discuss`、`votes`、`args`（用 `name`） |
+| 時間點超過影片長度 | 場次 `quiz`／`discuss` 的 `refs`、`picks`、`args.t`、影片 `chapters` |
+| 章節時間沒有遞增 | 影片 `chapters`、`recap.chapters` |
+| `slug` 不是小寫英數和連字號 | 場次 |
+| 立場題選項不是 2–4 個 | 場次 `votes` |
+| `related` 連到自己 | 概念卡 |
+| `recap.concepts` 不在本場 `concepts` 裡 | 場次 |
 
 ---
 
@@ -559,31 +631,38 @@ facets:
 
 全部存在使用者自己的瀏覽器，不會上傳，也不跨裝置同步。
 
-- 一律透過 `useSalonStorage(key, 預設值)` 讀寫（包裝 VueUse 的 `useLocalStorage`）。
+- key 全部定義在 `app/utils/storageKeys.ts`（`STORAGE_KEYS`），不要在元件裡自己拼字串。
+- 元件透過具名的 composable 讀寫：學習進度用 `useProgress.ts`（`useVotes`、`useArgPicks`、`useCardRates`、`useQuizAnswers`），筆記用 `useDiscussNotes`、`useReviewNotes`、`useMyNotes`，作答紀錄用 `useReviewLog`。之後搬到 Supabase 時只改這些 composable 的內部。
+- 底層一律是 `useSalonStorage(key, 預設值)`（包裝 VueUse 的 `useLocalStorage`）。**預設值要用 `{}`、`[]` 或字串**：VueUse 依預設值的型別選序列化方式，預設 `null` 會把物件存成 `"[object Object]"`。
+- `writeDefaults: false`：只有真的寫入時才建立 key（`/notes` 會替每一場建立好幾個讀取，否則每場都多出空的 key）。
 - 使用 `initOnMounted`：預先產生的 HTML 一律用預設值，頁面掛載後才讀 localStorage，避免 hydration 不一致。
 - 無痕模式或儲存被封鎖時，VueUse 會退回記憶體中的值，網站照常運作，只是不會記住狀態。
 
 | Key | 內容 |
 |---|---|
 | `salon-tab` | 上次停留的分頁 |
-| `salon-arg-{slug}` | 論證卡片的猜題紀錄 `{卡片索引: 前提索引}`，`-1` 表示直接看答案 |
-| `salon-quiz-{slug}` | 「看完回想」的自我測驗 `{sig: 題目簽章, order: [題目順序], ans: {題目索引: 選項索引}}` |
-| `salon-quiz-inline-{slug}` | 「邊看邊想」的測驗作答 `{sig: 題目簽章, ans: {題目索引: 選項索引}}`，索引是 `quiz` 陣列裡的位置（3.1 起） |
+| `salon-arg-{slug}` | 論證卡片的猜題紀錄 `{v: 2, picks: {論證 key: 前提索引}}`，`-1` 表示直接看答案（3.10 起；以前是 `{卡片索引: 前提索引}`） |
+| `salon-quiz-{slug}` | 「看完回想」的自我測驗 `{v: 2, order: [作答 key], ans: {作答 key: 選項索引}}`（3.10 起；以前是 `{sig, order: [題目索引], ans: {題目索引: 選項索引}}`） |
+| `salon-quiz-inline-{slug}` | 「邊看邊想」的測驗作答 `{v: 2, ans: {作答 key: 選項索引}}`（3.10 起；3.1–3.9 是 `{sig, ans: {題目索引: 選項索引}}`） |
 | `salon-during-part-{slug}` | 「邊看邊想」上次停在哪個子分頁：影片 id 或 `all`（3.2 起） |
 | `salon-cards-{slug}` | 名詞卡自評 `{概念卡 id: 'shaky' 或 'known'}`（3.0 起） |
-| `salon-vote-{slug}` | 立場題 `{題目索引: 選項}`（3.5 起；3.4 以前的 `{pre, post}` 物件會被當成沒選） |
-| `salon-review-notes` | `/review` 每題的筆記，`c:{id}` 同時是概念卡彈窗裡的筆記 `{題目 key: 筆記}`。key 見 3.6（`q:{slug}:{題目雜湊}`、`c:{概念卡 id}`）；改了題目文字，舊筆記就對不到 |
+| `salon-vote-{slug}` | 立場題 `{v: 2, picks: {題目 key: 選項}}`（3.10 起；3.5–3.9 是 `{題目索引: 選項}`；3.4 以前的 `{pre, post}` 物件會被當成沒選） |
+| `salon-review-notes` | `/review` 每題的筆記，`c:{id}` 同時是概念卡彈窗裡的筆記 `{題目 key: {q: 題目（概念卡是詞條）, text: 筆記}}`（3.9 起；以前是 `{題目 key: 筆記}`）。key 見 3.6（`q:{slug}:{題目 key}`、`c:{概念卡 id}`）；改了題目文字，舊筆記對不到新題目，在 `/notes` 列成「題目已修改」 |
 | `salon-review-log` | `/review` 的作答紀錄 `{題目 key: {right, wrong, lastCorrect, last (ISO 時間), box (0–5), due (YYYY-MM-DD)}}`，間隔重複用 |
 | `salon-mynotes` | `/notes` 自己新增的筆記 `[{id, title, body, slug (屬於哪一場，可為 null), createdAt, updatedAt}]`（ISO 時間），最新新增的在前 |
-| `salon-notes-{slug}` | 討論題的「我的想法」`{題目文字的雜湊: 筆記}`（3.3 起）。用題目文字雜湊（`textHash()`）當 key，調整題目順序不影響；**改了題目文字，舊筆記就不再顯示** |
+| `salon-notes-{slug}` | 討論題的「我的想法」`{題目 key: {q: 題目, text: 筆記}}`（3.9 起；3.3–3.8 是 `{題目文字的雜湊: 筆記}`）。用題目 key（`questionKey()`：有 `id` 用 `id`，沒有用題目文字的雜湊）當 key，調整題目順序不影響；**改了題目文字，舊筆記在原處不再顯示**，改列在 `/notes` 的「題目已修改」 |
 
+- **筆記連題目一起存（3.9）**：`salon-notes-{slug}`、`salon-review-notes` 的值讀取時兩種格式都接受（`utils/storedNote.ts` 的 `noteText()`／`noteQuestion()`）；舊的字串筆記不主動轉換，下次修改時才換成新格式。
+- **容量滿了要說**：localStorage 每個網站約 5MB，所有 `salon-*` 共用。`useSalonStorage` 寫入失敗（`QuotaExceededError`）時跳錯誤提示「沒有存到」，請使用者先匯出筆記再刪掉不需要的；同一頁 10 秒內只提示一次。修改仍留在記憶體，重新整理後消失。VueUse 預設只印在 console，使用者會以為存好了。
+- **不做防抖**：筆記每打一個字就整包寫回 localStorage。實測 2,000 則（約 1.2MB）寫一次約 2ms，感覺不到；加防抖反而會讓同一頁多個元件各自持有的舊資料互相覆蓋。資料量大到有感時再改，或在第 12 節搬到 Supabase 時一起改成一則一列。
 - `slug` 就是 2.0 的 `id`，值沒變，所以舊訪客的進度都還在。
 - `salon-cards-{slug}` 在 3.0 改成用概念卡 id 當 key。2.0 用卡片索引（`"0"`、`"1"`）存的舊值會被忽略，名詞卡自評等於重來一次。
 - `salon-session`（上次查看的場次）在 3.0 已不再使用。
 - `salon-quiz-inline-{slug}` 和 `salon-quiz-{slug}` 分開存，所以隔天在「看完回想」重測時從頭開始。
-- 兩者都記下**題目簽章**（`utils/quizSignature.ts`，由題目、選項、正解算出）。發佈後修改了任何一題，簽章就會不同，作答紀錄自動重置，避免舊答案對到新題目。
+- **題目 key 和作答 key（3.10）**：立場題、論證卡用題目 key（`questionKey()`：`id` 或題目／論證名稱的雜湊）；測驗作答用作答 key（`answerKey()`：`id` 或題目，加上選項和正解的雜湊）。所以調整順序、插入新題不會對錯題；改了某一題的選項或正解，只有那一題要重答。「看完回想」的順序存作答 key，新題目接在最後，刪掉的題目略過。
+- **舊格式換算（3.10）**：依題目索引存的舊資料，讀取時用目前的題目順序換算（`utils/progressFormat.ts`，有測試）。測驗的舊資料要簽章（`quizSignature()`）和目前題目相同才換算，不同就當作沒答（和以前一樣）。換算後不主動寫回，下次作答時才存成新格式。
 - 討論題的「看 Kagan 怎麼說」展開狀態不存。
-- `salon-quiz-{slug}` 沒有紀錄或簽章不同時，掛載後直接存一個打亂的順序（預先產生的 HTML 用固定順序，避免 hydration 不一致）。
+- `salon-quiz-{slug}` 沒有紀錄（或舊資料對不上）時，掛載後直接存一個打亂的順序（預先產生的 HTML 用固定順序，避免 hydration 不一致）。
 
 > 修改資料結構時要考慮舊資料的相容性。例如 1.0 版測驗改成 `{order, ans}` 格式時，就有加上舊格式的判斷，避免舊訪客打開時出錯。
 
@@ -619,7 +698,6 @@ facets:
 | 問題 | 選項或備註 |
 |---|---|
 | 上線方式 | GitHub Pages 免費方案需要**公開 repo**。目前 repo 是私人、Pages 關閉。`.github/workflows/deploy.yml` 目前**只能手動觸發**（`workflow_dispatch`），等 Kai 確認後再開啟 push 到 `main` 自動部署 |
-| 部署時的內容檢查 | `deploy.yml` 目前直接執行 `npx nuxt generate`，**不會跑內容檢查**。應改成 `npm run generate` |
 | 錄音平台 | 「活動後」目前只放錄音連結。平台（Spotify、SoundCloud、YouTube…）決定後再考慮內嵌播放器，和剪輯流程一起討論 |
 | 全體立場統計 | 目前：用現場會議軟體投票，人數填進 `recap.votes`；立場題存在各自的瀏覽器。**已決定的下一步**：接 Supabase，用「**名字＋4 位數 PIN**」辨識參加者（先取名的人拿到名字；換裝置輸入名字＋PIN 就看得到自己之前的選擇）。不用 IP 或瀏覽器指紋。規格草案見**第 12 節** |
 | Heptabase 匯入 | Kai 之後會透過 MCP 連線在 Heptabase 做筆記和討論。**未決定、未實作**：是否要把 Heptabase 的卡片匯入或同步成概念卡？同步方向、以哪邊為準都還沒定 |
@@ -643,6 +721,9 @@ facets:
 | 測驗作答 | `salon-quiz-{slug}`、`salon-quiz-inline-{slug}` | **要（第三期）** | 換裝置不用重做 |
 | 論證猜題 | `salon-arg-{slug}` | **要（第三期）** | 同上 |
 | 名詞卡自評 | `salon-cards-{slug}` | **要（第三期）** | 同上 |
+| 複習筆記、概念筆記 | `salon-review-notes` | **要（第二期）** | 和討論筆記一起：`/notes` 跨裝置最有價值的就是筆記 |
+| 我的筆記 | `salon-mynotes` | **要（第二期）** | 同上 |
+| 複習作答紀錄 | `salon-review-log` | **要（第三期）** | 間隔重複的排程，換裝置不用重來 |
 | 上次的分頁、子分頁 | `salon-tab`、`salon-during-part-{slug}` | **不要** | 介面偏好，本來就該跟著裝置 |
 
 不需要 Supabase 的：場次內容、概念卡、tag（仍是建置時產生的靜態資料）。已決定不做的：活動資訊、事先收集問題、複習提醒（見修改紀錄 3.3）。
@@ -652,7 +733,7 @@ facets:
 **使用者看到的流程**
 
 1. **沒取名不能投票**（Kai 決定）：沒取名時點立場題的選項，會跳出「取名／登入」視窗，完成後再記下剛才點的選項。立場題上方提示「取個名字就能投票，換裝置也看得到自己的選擇」。
-2. **取新名字**：輸入名字＋設定 4 位數 PIN（輸入兩次）。名字沒人用過就取得成功。上雲前就存在瀏覽器裡的舊選擇與筆記（`salon-vote-*`、`salon-notes-*`）**一起上傳**，上傳後清掉瀏覽器裡的版本。名字已被使用時顯示「這個名字已經有人用了，換一個，或用 PIN 登入」。
+2. **取新名字**：輸入名字＋設定 4 位數 PIN（輸入兩次）。名字沒人用過就取得成功。上雲前就存在瀏覽器裡的舊選擇與筆記（`salon-vote-*`、`salon-notes-*` 等，對照 `STORAGE_KEYS`）**一起上傳**，上傳後清掉瀏覽器裡的版本。上傳前先經過 `utils/progressFormat.ts`、`utils/storedNote.ts` 換成新格式，空物件跳過；比對 key 要精確（`salon-quiz-` 也會比對到 `salon-quiz-inline-`）。名字已被使用時顯示「這個名字已經有人用了，換一個，或用 PIN 登入」。
 3. **用已有的名字登入**（換裝置時）：輸入名字＋PIN。成功後載入雲端的選擇、筆記與進度；這個瀏覽器原本的資料，雲端沒有的才補上去，**雲端已有的以雲端為準**。之後兩台裝置都改同一筆時，以最後寫入的為準。
 4. **已登入時**：顯示「以『小明』的身分儲存」，旁邊可以「登出」「改 PIN」「刪除我的資料」。
 5. **忘記 PIN**（Kai 決定）：沒有 email，無法自助重設。顯示「忘記 PIN 請聯絡主辦人」，由 Kai 手動重設。
@@ -706,7 +787,7 @@ participant_devices (
 votes (
   participant_id uuid not null references participants on delete cascade,
   session_slug   text not null,               -- 例：w1
-  question       int  not null,               -- votes 的題目索引
+  question       text not null,               -- 題目 key（questionKey：id 或題目雜湊），不用索引，題目順序改了也對得到
   choice         int  not null,
   updated_at     timestamptz not null default now(),
   primary key (participant_id, session_slug, question)
@@ -718,22 +799,35 @@ sessions_schedule (
   starts_at    timestamptz not null
 )
 
--- 我的想法（第二期）：key 和瀏覽器版一樣用題目文字的雜湊
+-- 筆記（第二期）：討論筆記、複習筆記、概念筆記。key 和瀏覽器版一樣
 notes (
   participant_id uuid not null references participants on delete cascade,
-  session_slug   text not null,
-  question_hash  text not null,               -- textHash(題目)
-  body           text not null check (char_length(body) <= 5000),
+  kind           text not null check (kind in ('discuss', 'review')),  -- discuss：salon-notes-*；review：salon-review-notes（含概念筆記 c:{id}）
+  session_slug   text not null default '',    -- discuss 是場次；review 留空（key 本身已含場次，概念筆記不屬於任何場次）
+  question_key   text not null,               -- discuss：題目 key；review：q:{slug}:{題目 key} 或 c:{概念卡 id}
+  question       text not null default '',    -- 存筆記時的題目（概念筆記是詞條）；題目改掉後 /notes 靠它列出「題目已修改」
+  body           text not null check (char_length(body) <= 20000),  -- 前端也要擋同樣的上限
   updated_at     timestamptz not null default now(),
-  primary key (participant_id, session_slug, question_hash)
+  primary key (participant_id, kind, session_slug, question_key)
+)
+
+-- 我的筆記（第二期）：對應 salon-mynotes
+my_notes (
+  id             uuid primary key,
+  participant_id uuid not null references participants on delete cascade,
+  title          text not null default '',
+  body           text not null check (char_length(body) <= 20000),
+  session_slug   text,                        -- 可為 null（不屬於任何場次）
+  created_at     timestamptz not null,
+  updated_at     timestamptz not null
 )
 
 -- 學習進度（第三期）：內容和瀏覽器版的 JSON 完全相同，一種進度一列
 progress (
   participant_id uuid not null references participants on delete cascade,
   session_slug   text not null,
-  kind           text not null check (kind in ('quiz', 'quiz-inline', 'arg', 'cards')),
-  data           jsonb not null,              -- 例：quiz 是 {sig, order, ans}
+  kind           text not null check (kind in ('quiz', 'quiz-inline', 'arg', 'cards', 'review-log')),
+  data           jsonb not null,              -- 和瀏覽器版 3.10 的新格式相同，例：quiz 是 {v: 2, order, ans}；review-log 的 session_slug 留空
   updated_at     timestamptz not null default now(),
   primary key (participant_id, session_slug, kind)
 )
@@ -821,6 +915,8 @@ RLS：
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-10-08 | 3.10 | 為之後擴充整理架構。**資料載入**（新增 2.6）：每一頁不再內嵌全部場次和概念卡，改成精簡列表、單場、題目資料、單張概念卡等形狀，由建置時產生的 `/data/*.json` 提供；首頁掛載後換場次時才抓那一場；概念卡彈窗和文字編輯器改成需要時才載入；新增建置輸出檢查（頁面齊全、payload 上限）。**內容**：schema 集中到 `lib/schema.ts`，內容檢查改成嚴格比對，新增題目 key 重複、時間超過片長、章節遞增、檔名日期、slug 格式、立場題選項數等規則；題目可加選填的 `id`；手寫型別和 schema 對不上時 typecheck 失敗。**儲存**：key 集中到 `STORAGE_KEYS`；立場題、論證卡、測驗作答改用題目 key（`{v: 2, …}`），舊格式讀取時換算；元件改用 `useProgress.ts` 的具名 composable；`writeDefaults: false`。**工具**：vitest 單元測試、CI workflow、deploy 加上型別檢查和測試、`.nvmrc`。第 12 節補上筆記類資料表、立場題 `question` 改成 text |
+| 2026-10-08 | 3.9 | 筆記儲存：`salon-notes-{slug}`、`salon-review-notes` 改成連題目一起存（`{q, text}`，舊格式照讀）；`/notes` 新增「題目已修改」，題目改掉後對不到的筆記不再默默消失；localStorage 容量滿時提示「沒有存到」。討論題的「我的想法」改用 `<MarkdownEditor>` 卡片，和其他筆記一致，可以隨時收起。`/notes` 新增「作答紀錄」（`<NoteAnswers>`、`useQuizRecords`）：每一場測驗題答過的結果，先回想再看答案，可以直接寫複習筆記 |
 | 2026-09-29 | 3.8 | 播放器新增「放大影片」（桌機），浮到畫面中間、不加遮罩，頁面照樣可以捲動，可以拖曳移動，預設在側欄。「看之前」單欄改成置中 |
 | 2026-09-29 | 3.7 | 「看之前」不顯示側欄，開始播放後才出現；「邊看邊想」只在最後一段顯示「下一步」 |
 | 2026-09-29 | 3.6 | 12.7 匿名登入不開 CAPTCHA（Kai 決定：使用者約 5 人），只靠預設頻率限制，出現濫用再開 |

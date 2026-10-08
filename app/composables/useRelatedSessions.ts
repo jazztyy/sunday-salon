@@ -4,9 +4,10 @@
 // 排除自己、同一場只出現一次（人工連結優先），最多 5 筆。
 import type { MaybeRefOrGetter } from 'vue'
 import type { Session } from '~/types/session'
+import type { SessionSummary } from '~/types/content'
 
 export interface RelatedSession {
-  session: Session
+  session: SessionSummary
   kind: 'manual' | 'shared'
   reason: string
   /** 共用的概念卡 id（人工連結也會附上，沒有就是空陣列） */
@@ -23,16 +24,16 @@ const sharedReason = (titles: string[]): string => {
   return `都談到：${head}${rest}`
 }
 
-export const useRelatedSessions = (session: MaybeRefOrGetter<Session>) => {
-  const { data: sessions } = useAllSessions()
-  const { data: concepts } = useAllConcepts()
+export const useRelatedSessions = (session: MaybeRefOrGetter<Pick<Session, 'slug' | 'concepts' | 'related'>>) => {
+  const { data: sessions } = useSessionIndex()
+  const { data: concepts } = useConceptIndex()
 
   return computed<RelatedSession[]>(() => {
     const current = toValue(session)
     const others = sessions.value.filter(s => s.slug !== current.slug)
     const titleOf = new Map(concepts.value.map(c => [c.id, c.title]))
     const mine = new Set(current.concepts)
-    const sharedWith = (s: Session) => s.concepts.filter(id => mine.has(id))
+    const sharedWith = (s: SessionSummary) => s.concepts.filter(id => mine.has(id))
 
     const manual = new Map<string, RelatedSession>()
     for (const { slug, reason } of current.related) {

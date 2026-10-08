@@ -1,24 +1,13 @@
 <script setup lang="ts">
 // 立場題：一列 pill，選一個立場（只有一輪，3.5 起拿掉「討論後」）。
-// 儲存格式：salon-vote-{slug} = {題目索引: 選項索引}，同一場次所有題目共用一個物件。
+// 不存狀態：選項由父元件（tab/Sunday.vue 的 useVotes）保管。
 import type { Vote } from '~/types/session'
 
-type VoteRecord = Record<string, number>
+const props = defineProps<{ vote: Vote, picked?: number }>()
+const emit = defineEmits<{ choose: [option: number] }>()
 
-const props = defineProps<{ vote: Vote, index: number, sessionId: string }>()
-
-const store = useSalonStorage<VoteRecord>(`salon-vote-${props.sessionId}`, {})
 const uid = useId()
-
-// 3.4 以前的格式是 {pre, post} 物件，不是數字就當作沒選
-const picked = computed(() => {
-  const v = store.value?.[String(props.index)]
-  return typeof v === 'number' ? v : undefined
-})
-
-const choose = (option: number) => {
-  store.value = { ...store.value, [String(props.index)]: option }
-}
+const choose = (option: number) => emit('choose', option)
 </script>
 
 <template>

@@ -4,7 +4,7 @@ import { zh_tw } from '@nuxt/ui/locale'
 
 // 站內點概念卡（任何 /c/{id} 連結）都改成開彈窗，不換頁；用 Cmd/Ctrl/中鍵點仍然照常開新分頁。
 // 在 capture 階段攔截，比 NuxtLink 自己的點擊處理先執行。直接打開 /c/{id} 網址仍然是完整頁面。
-const { open } = useConceptModal()
+const { id: conceptId, open } = useConceptModal()
 const { baseURL } = useRuntimeConfig().app
 
 onMounted(() => {
@@ -27,7 +27,8 @@ onMounted(() => {
 <template>
   <UApp :locale="zh_tw">
     <NuxtPage />
-    <ConceptModal />
+    <!-- 打開時才載入（彈窗、概念卡內文、筆記編輯器都不放進每一頁的首次載入） -->
+    <LazyConceptModal v-if="conceptId" />
     <ConfirmDialog />
   </UApp>
 </template>

@@ -15,7 +15,7 @@ const TABS: { key: TabKey, label: string }[] = [
 
 const route = useRoute()
 const router = useRouter()
-const lastTab = useSalonStorage<TabKey>('salon-tab', 'before')
+const lastTab = useSalonStorage<TabKey>(STORAGE_KEYS.tab, 'before')
 const { embed, playing, floating } = usePlayer()
 
 const isTab = (v: string): v is TabKey => TABS.some(t => t.key === v)

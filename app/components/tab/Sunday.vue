@@ -37,6 +37,9 @@ const notesMarkdown = computed(() => {
   return [`# ${props.session.chip}：我的討論筆記`, props.session.title, ...sections].join('\n\n') + '\n'
 })
 
+// 立場題（salon-vote-{slug}，依題目 key 記選項）
+const { pickOf: votePick, choose: chooseVote } = useVotes(props.session.slug, () => props.session.votes)
+
 const { copy, isSupported } = useClipboard({ legacy: true })
 const toast = useToast()
 const copyNotes = async () => {
@@ -54,7 +57,13 @@ const copyNotes = async () => {
     <h2 class="font-serif text-h2 font-black leading-snug text-highlighted">立場題</h2>
     <p class="text-small text-muted">活動前選好你的立場，討論時可以拿來對照。你的選擇只存在自己的瀏覽器，別人看不到。</p>
     <div class="flex flex-col gap-3.5">
-      <SundayVote v-for="(v, i) in session.votes" :key="`${session.slug}-${i}`" :vote="v" :index="i" :session-id="session.slug" />
+      <SundayVote
+        v-for="v in session.votes"
+        :key="questionKey(v, v.q)"
+        :vote="v"
+        :picked="votePick(v)"
+        @choose="chooseVote(v, $event)"
+      />
     </div>
   </section>
 
