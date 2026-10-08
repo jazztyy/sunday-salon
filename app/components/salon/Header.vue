@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 頂部列：站名＋網站導覽（本週／全部場次／概念卡）＋手機「影片章節」按鈕＋深淺色切換。
+// 頂部列：站名＋網站導覽（本週／全部場次／概念卡／複習／筆記）＋手機「影片章節」按鈕＋深淺色切換。
 // 場次頁會傳入 tabs，第二列顯示五個學習階段分頁；其他頁面只有第一列。
 // 層級：第一列是全站導覽（只用字色：選中金色、其他灰色，沒有底色或底線），第二列是「這一場」的學習階段（金色底線，唯一有底線的導覽），
 // 第二列前面的場次標記（context）說明這些分頁屬於哪一場。
@@ -23,6 +23,8 @@ const NAV = [
   { label: '本週', to: '/', match: (p: string) => p === '/' || p.startsWith('/s/') },
   { label: '全部場次', to: '/archive', match: (p: string) => p.startsWith('/archive') },
   { label: '概念卡', to: '/concepts', match: (p: string) => p.startsWith('/concepts') || p.startsWith('/c/') },
+  { label: '複習', to: '/review', match: (p: string) => p.startsWith('/review') },
+  { label: '筆記', to: '/notes', match: (p: string) => p.startsWith('/notes') },
 ]
 
 const navItems = computed(() => NAV.map(item => ({ ...item, active: item.match(route.path) })))

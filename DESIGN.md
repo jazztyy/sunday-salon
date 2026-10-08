@@ -161,7 +161,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 |---|---|---|---|
 | 場次頁 | `SessionView.vue` | `UButton`、`UDrawer` | 頂部列＋場次標頭＋分頁內容＋下一步＋頁尾＋側欄。分頁與網址 hash 同步。**場次標頭只在「看之前」顯示**，其他分頁把第一屏留給內容，改放一個 `sr-only` 的 h1 |
 | 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。影片章節按鈕在 640px 以下只顯示圖示（`i-lucide-list-video`，保留 `aria-label`），避免把導覽擠出畫面。640px 以下站名降一級（`text-lead`）、間距收緊，**兩列在 360px 寬都不需要橫向捲動**：第二列分頁的 trigger 用 `px-1 gap-1`、文字 `text-ui`（640px 以上 `px-2.5 gap-1.5 text-small`）。**導覽層級**：第一列全站導覽**只用字色區分**（選中 `text-primary`、其他 `text-muted`，沒有底色也沒有底線）；第二列學習階段是這一頁的主導覽，**金色底線只給它用**，前面有場次標記「10/4 靈魂 ›」（`context`，640px 以上才顯示）。步驟數字不加框（`font-mono text-meta leading-none`），和文字垂直置中（trigger 用 `items-center`），目前階段的數字用 `text-primary`。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
-| 導覽 | 在 `<SalonHeader>` 裡 | `UButton`（`color="neutral" variant="link"`） | 三項：本週（`/`）・全部場次（`/archive`）・概念卡（`/concepts`），`text-ui`。目前所在的項目用 `text-primary`。2.0 的場次 chip 列已移除 |
+| 導覽 | 在 `<SalonHeader>` 裡 | `UButton`（`color="neutral" variant="link"`） | 五項：本週（`/`）・全部場次（`/archive`）・概念卡（`/concepts`）・複習（`/review`）・筆記（`/notes`），`text-ui`。目前所在的項目用 `text-primary`。2.0 的場次 chip 列已移除 |
 | 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | **只在場次頁顯示**（`/`、`/s/{slug}`）。五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
 | 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，靠右一個主要按鈕「下一步：看完回想 →」，不另外加文字標籤和分隔線。「邊看邊想」只在最後一段（整合回顧）顯示，其他段落由「下一段」按鈕代替，**同一個畫面只有一個往下走的按鈕** |
 
