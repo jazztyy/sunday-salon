@@ -67,10 +67,14 @@ export const useCurrentSession = (index: Ref<SessionSummary[]>) => {
   const load = useSessionLoader()
   return useAsyncData('session:current', () => load(slug.value), {
     watch: [slug],
-    // 掛載後換了一場（watch 觸發）一定要重抓；預設的 getCachedData 在 hydration 時會拿 payload 裡建置當天那一場
-    getCachedData: (key, nuxtApp, ctx) => ctx.cause === 'watch'
-      ? undefined
-      : (nuxtApp.isHydrating ? nuxtApp.payload.data[key] : nuxtApp.static.data[key]),
+    // payload 裡存的是建置當天那一場。hydration 時照用（掛載後 today 換掉，watch 會重抓）；
+    // 從別頁點「本週」進來時 today 已經是今天，slug 不會再變、watch 不會觸發，所以快取的場次不是這個 slug 就要重抓
+    getCachedData: (key, nuxtApp, ctx) => {
+      if (ctx.cause === 'watch') return undefined
+      if (nuxtApp.isHydrating) return nuxtApp.payload.data[key]
+      const cached = nuxtApp.static.data[key] ?? nuxtApp.payload.data[key]
+      return cached?.slug === slug.value ? cached : undefined
+    },
   })
 }
 
