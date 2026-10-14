@@ -3,13 +3,14 @@
 // 預設跟著播放器目前的影片（「邊看邊想」切子分頁、點到別支影片的段落時都會換過來）。
 // 依播放器目前的影片與秒數標出目前章節（SPEC.md「播放器規格」）。
 // 活動後的討論錄音在 YouTube 時，最後多一個「討論錄音」按鈕，列出錄音的時間戳。
+// 錄音用 cue() 而不是 select()：它不是講座，不能改「選擇的講座」，否則「邊看邊想」會找不到對應的子分頁。
 import type { Session } from '~/types/session'
 
 // hideTitle：放在已有標題的容器裡（手機抽屜）時隱藏「影片章節」字樣
 const props = defineProps<{ session: Session, hideTitle?: boolean }>()
 const emit = defineEmits<{ played: [] }>()
 
-const { vid, seconds, select } = usePlayer()
+const { vid, seconds, select, cue } = usePlayer()
 
 const recording = computed(() => recordingOf(props.session))
 
@@ -65,7 +66,7 @@ const isNow = (id: string, t: number) => vid.value === id && nowT.value === t
         size="xs"
         class="rounded-full px-3"
         :ui="{ label: 'text-ui font-medium' }"
-        @click="select(recording.id)"
+        @click="cue(recording.id)"
       />
     </div>
 

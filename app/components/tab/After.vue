@@ -14,7 +14,11 @@ const recap = computed(() => {
 
 // 錄音在 YouTube 時用側欄的內嵌播放器播放，時間戳可以點；不在 YouTube 時只放連結
 const recording = computed(() => recordingOf(props.session))
-const { embed, play } = usePlayer()
+const { embed, play, cue } = usePlayer()
+// 切到「活動後」時播放器換成討論錄音（不播放），側欄章節清單會跟著換。換回「邊看邊想」時那邊會換回講座
+onMounted(() => {
+  if (recording.value) cue(recording.value.id)
+})
 const onPlayRecording = (e: MouseEvent) => {
   if (!embed.value || !recording.value) return
   e.preventDefault()
