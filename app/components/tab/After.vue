@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 「活動後」分頁：活動結束後填了 recap 才顯示回顧（錄音、大家的立場、現場問題、新增概念卡），
+// 「活動後」分頁：活動結束後填了 recap 才顯示回顧（錄音、討論回顧、大家的立場、現場問題、新增概念卡），
 // 還沒填時顯示預告文字。規格見 SPEC.md 5.5。
 import type { Session } from '~/types/session'
 
@@ -9,8 +9,17 @@ const props = defineProps<{ session: Session }>()
 const recap = computed(() => {
   const r = props.session.recap
   if (!r) return null
-  return { audio: r.audio, chapters: r.chapters ?? [], votes: r.votes ?? [], questions: r.questions ?? [], concepts: r.concepts ?? [] }
+  return { audio: r.audio, chapters: r.chapters ?? [], notes: r.notes ?? [], votes: r.votes ?? [], questions: r.questions ?? [], concepts: r.concepts ?? [] }
 })
+
+// 錄音在 YouTube 時用側欄的內嵌播放器播放，時間戳可以點；不在 YouTube 時只放連結
+const recording = computed(() => recordingOf(props.session))
+const { embed, play } = usePlayer()
+const onPlayRecording = (e: MouseEvent) => {
+  if (!embed.value || !recording.value) return
+  e.preventDefault()
+  play(recording.value.id)
+}
 
 const { data: allConcepts } = await useConceptIndex()
 const newConcepts = computed(() =>
@@ -50,16 +59,31 @@ const h3Class = 'font-serif text-title font-bold text-highlighted'
           v-if="recap.audio"
           :to="recap.audio.url"
           target="_blank"
-          icon="i-lucide-headphones"
+          :icon="recording ? 'i-lucide-play' : 'i-lucide-headphones'"
           :label="recap.audio.label"
           class="self-start rounded-control px-3.5"
+          @click="onPlayRecording"
         />
         <ol v-if="recap.chapters.length" class="flex flex-col">
           <li v-for="[t, label] in recap.chapters" :key="t" class="grid grid-cols-[3.4em_1fr] gap-2 py-0.5 text-ui text-toned">
-            <span class="pt-px font-mono text-meta font-medium tabular-nums text-muted">{{ mmss(t) }}</span>
+            <VideoLink
+              v-if="recording"
+              :vid="recording.id"
+              :t="t"
+              class="pt-px font-mono text-meta font-medium tabular-nums no-underline hover:underline"
+            >{{ mmss(t) }}</VideoLink>
+            <span v-else class="pt-px font-mono text-meta font-medium tabular-nums text-muted">{{ mmss(t) }}</span>
             <span>{{ label }}</span>
           </li>
         </ol>
+      </div>
+
+      <div v-if="recap.notes.length" class="flex flex-col gap-3">
+        <h3 :class="h3Class">討論回顧</h3>
+        <div v-for="(n, i) in recap.notes" :key="i" class="flex flex-col gap-1.5 rounded-card border border-default bg-elevated px-3.5 py-3">
+          <p class="font-medium text-highlighted">{{ n.title }}</p>
+          <p class="text-body-sm text-toned">{{ n.body }}</p>
+        </div>
       </div>
 
       <div v-if="voteRows.length" class="flex flex-col gap-3">

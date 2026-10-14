@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lecOf, minutesLabel, mmss, refLabel, scopeLabel, totalLabel } from '~/utils/videoRef'
+import { lecOf, minutesLabel, mmss, recordingOf, refLabel, scopeLabel, totalLabel, youtubeId } from '~/utils/videoRef'
 import { session } from './fixtures'
 
 describe('mmss', () => {
@@ -42,4 +42,39 @@ describe('scopeLabel', () => {
   it("'all' 是整合回顧", () => expect(scopeLabel(s, 'all')).toBe('整合回顧'))
   it('影片 id → 講座標籤', () => expect(scopeLabel(s, 'abc')).toBe('講座 5'))
   it('找不到影片回傳空字串', () => expect(scopeLabel(s, 'zzz')).toBe(''))
+})
+
+describe('youtubeId', () => {
+  it.each([
+    ['https://youtu.be/kvUpM2r06QQ', 'kvUpM2r06QQ'],
+    ['https://youtu.be/kvUpM2r06QQ?si=abc', 'kvUpM2r06QQ'],
+    ['https://www.youtube.com/watch?v=kvUpM2r06QQ&t=30s', 'kvUpM2r06QQ'],
+    ['https://m.youtube.com/watch?v=kvUpM2r06QQ', 'kvUpM2r06QQ'],
+    ['https://www.youtube.com/embed/kvUpM2r06QQ', 'kvUpM2r06QQ'],
+    ['https://www.youtube.com/live/kvUpM2r06QQ', 'kvUpM2r06QQ'],
+  ])('%s → %s', (url, expected) => expect(youtubeId(url)).toBe(expected))
+
+  it.each([
+    'https://open.spotify.com/episode/abc',
+    'https://www.youtube.com/@Kai-li9zp',
+    'https://youtu.be/',
+    'not a url',
+  ])('%s → null', url => expect(youtubeId(url)).toBeNull())
+})
+
+describe('recordingOf', () => {
+  it('YouTube 錄音回傳 id 和時間戳', () => {
+    const recap = { audio: { url: 'https://youtu.be/kvUpM2r06QQ', label: '收聽' }, chapters: [[0, '開場']] as [number, string][] }
+    expect(recordingOf({ recap })).toEqual({ id: 'kvUpM2r06QQ', chapters: [[0, '開場']] })
+  })
+
+  it('沒填 chapters 時是空陣列', () => {
+    expect(recordingOf({ recap: { audio: { url: 'https://youtu.be/kvUpM2r06QQ', label: '收聽' } } })?.chapters).toEqual([])
+  })
+
+  it('沒有錄音或不在 YouTube 時為 null', () => {
+    expect(recordingOf({})).toBeNull()
+    expect(recordingOf({ recap: {} })).toBeNull()
+    expect(recordingOf({ recap: { audio: { url: 'https://open.spotify.com/episode/abc', label: '收聽' } } })).toBeNull()
+  })
 })

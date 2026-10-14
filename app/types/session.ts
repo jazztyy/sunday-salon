@@ -154,6 +154,8 @@ export interface Recap {
   audio?: { url: string, label: string }
   /** 錄音時間戳 */
   chapters?: Chapter[]
+  /** 討論回顧：每段一個小標和內文 */
+  notes?: { title: string, body: string }[]
   /** 依 votes 的題目順序，每題各選項的人數（現場投票） */
   votes?: number[][]
   /** 現場冒出的好問題、沒聊完的問題 */

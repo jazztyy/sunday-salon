@@ -2,6 +2,7 @@
 // 影片章節清單：側欄（桌機）與手機抽屜共用。一次只列一支影片的章節，上方的按鈕選擇講座（播放器一起換）。
 // 預設跟著播放器目前的影片（「邊看邊想」切子分頁、點到別支影片的段落時都會換過來）。
 // 依播放器目前的影片與秒數標出目前章節（SPEC.md「播放器規格」）。
+// 活動後的討論錄音在 YouTube 時，最後多一個「討論錄音」按鈕，列出錄音的時間戳。
 import type { Session } from '~/types/session'
 
 // hideTitle：放在已有標題的容器裡（手機抽屜）時隱藏「影片章節」字樣
@@ -10,19 +11,22 @@ const emit = defineEmits<{ played: [] }>()
 
 const { vid, seconds, select } = usePlayer()
 
+const recording = computed(() => recordingOf(props.session))
+
 const shownId = ref(props.session.videos[0]?.id ?? '')
+const showRecording = computed(() => !!recording.value && shownId.value === recording.value.id)
 const shown = computed(() => props.session.videos.find(v => v.id === shownId.value) ?? props.session.videos[0])
 
 // 播放器換影片時，清單跟著換
 watch(vid, (id) => {
-  if (id && props.session.videos.some(v => v.id === id)) shownId.value = id
+  if (id && (props.session.videos.some(v => v.id === id) || id === recording.value?.id)) shownId.value = id
 }, { immediate: true })
 
 watch(() => props.session.slug, () => { shownId.value = props.session.videos[0]?.id ?? '' })
 
 /** 目前章節的秒數（最後一個 <= 目前秒數的章節），不是目前影片時為 null */
 const nowT = computed(() => {
-  const v = props.session.videos.find(x => x.id === vid.value)
+  const v = recording.value?.id === vid.value ? recording.value : props.session.videos.find(x => x.id === vid.value)
   if (!v) return null
   return v.chapters.reduce((hit, [t]) => (seconds.value >= t ? t : hit), v.chapters[0]?.[0] ?? 0)
 })
@@ -51,9 +55,48 @@ const isNow = (id: string, t: number) => vid.value === id && nowT.value === t
         :ui="{ label: 'text-ui font-medium' }"
         @click="select(v.id)"
       />
+      <UButton
+        v-if="recording"
+        label="討論錄音"
+        icon="i-lucide-headphones"
+        :aria-pressed="showRecording"
+        color="neutral"
+        :variant="showRecording ? 'solid' : 'outline'"
+        size="xs"
+        class="rounded-full px-3"
+        :ui="{ label: 'text-ui font-medium' }"
+        @click="select(recording.id)"
+      />
     </div>
 
-    <div v-if="shown" class="flex flex-col gap-2">
+    <div v-if="recording && showRecording" class="flex flex-col gap-2">
+      <div class="flex flex-col">
+        <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">活動後</span>
+        <span class="text-small font-bold text-highlighted">討論錄音</span>
+      </div>
+      <VideoLink :vid="recording.id" :t="0" class="self-start text-meta" @played="emit('played')">從頭播放</VideoLink>
+      <ol v-if="recording.chapters.length" class="flex flex-col">
+        <li
+          v-for="[t, label] in recording.chapters"
+          :key="t"
+          class="grid grid-cols-[3.4em_1fr] gap-2 py-0.5 text-ui"
+          :class="isNow(recording.id, t) ? 'font-bold text-highlighted' : 'text-toned'"
+          :aria-current="isNow(recording.id, t) ? 'true' : undefined"
+        >
+          <VideoLink
+            :vid="recording.id"
+            :t="t"
+            class="pt-px font-mono text-meta font-medium tabular-nums no-underline hover:underline"
+            @played="emit('played')"
+          >
+            <span :class="{ 'text-primary': isNow(recording.id, t) }">{{ mmss(t) }}</span>
+          </VideoLink>
+          <span>{{ label }}</span>
+        </li>
+      </ol>
+    </div>
+
+    <div v-else-if="shown" class="flex flex-col gap-2">
       <div class="flex flex-col">
         <span class="font-mono text-meta font-medium tracking-[.06em] text-primary">{{ shown.lec }}・{{ minutesLabel(shown.duration) }}</span>
         <span class="text-small font-bold text-highlighted">{{ shown.short }}</span>

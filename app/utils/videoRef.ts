@@ -1,5 +1,5 @@
 // 影片段落的顯示工具：秒數格式、影片長度、[videoId, 秒數] → 「講座 5 · 17:17」。
-import type { Scope, VideoRef } from '~/types/session'
+import type { Chapter, Recap, Scope, VideoRef } from '~/types/session'
 
 /** 查講座標籤需要的場次欄位。完整 Session、SessionSummary、StudySession 都符合 */
 export interface WithVideos { videos: { id: string, lec: string }[] }
@@ -31,3 +31,26 @@ export const refLabel = (session: WithVideos, [vid, sec]: VideoRef) => {
 /** 題目範圍 → 標籤：'all' 是「整合回顧」，其餘是影片 id → 講座標籤（找不到影片時是空字串） */
 export const scopeLabel = (session: WithVideos, scope: Scope) =>
   scope === 'all' ? '整合回顧' : lecOf(session, scope)
+
+/** YouTube 網址 → 影片 id（youtu.be/…、watch?v=…、embed/…、shorts/…、live/…）；不是 YouTube 時回傳 null */
+export const youtubeId = (url: string): string | null => {
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return null
+  }
+  const host = u.hostname.replace(/^(www|m|music)\./, '')
+  const id = host === 'youtu.be'
+    ? u.pathname.split('/')[1]
+    : host === 'youtube.com' || host === 'youtube-nocookie.com'
+      ? (u.searchParams.get('v') ?? u.pathname.match(/^\/(?:embed|shorts|live)\/([^/]+)/)?.[1])
+      : null
+  return id && /^[\w-]{11}$/.test(id) ? id : null
+}
+
+/** 討論錄音放在 YouTube 時，回傳影片 id 和錄音時間戳，讓內嵌播放器播放；沒有錄音或不在 YouTube 時為 null */
+export const recordingOf = (session: { recap?: Recap }): { id: string, chapters: Chapter[] } | null => {
+  const id = session.recap?.audio ? youtubeId(session.recap.audio.url) : null
+  return id ? { id, chapters: session.recap?.chapters ?? [] } : null
+}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 側欄：內嵌播放器＋目前章節＋章節清單。規格見 SPEC.md「播放器規格」。
 // 播放器只在 YouTube API 載入成功（embed）時顯示，但掛載點一定要存在。
-import type { Session } from '~/types/session'
+import type { Chapter, Session } from '~/types/session'
 
 const props = defineProps<{ session: Session }>()
 
@@ -98,8 +98,15 @@ watch(() => props.session.slug, () => {
   mountPlayer()
 })
 
-/** 「講座 N・目前章節名稱」 */
+const recording = computed(() => recordingOf(props.session))
+
+/** 「講座 N・目前章節名稱」；播放討論錄音時是「討論錄音・段落」 */
 const nowLabel = computed(() => {
+  const rec = recording.value
+  if (rec && rec.id === vid.value) {
+    const chapter = rec.chapters.reduce<Chapter | undefined>((hit, c) => (seconds.value >= c[0] ? c : hit), rec.chapters[0])
+    return chapter ? `討論錄音・${chapter[1]}` : '討論錄音'
+  }
   const v = props.session.videos.find(x => x.id === vid.value)
   if (!v || !v.chapters.length) return ''
   const chapter = v.chapters.reduce((hit, c) => (seconds.value >= c[0] ? c : hit), v.chapters[0]!)
@@ -176,8 +183,8 @@ const nowLabel = computed(() => {
             @click="floating = !floating"
           />
         </div>
-        <!-- 字幕說明放在播放器正下方：語言是看影片的第一個門檻 -->
-        <p v-if="session.captionTip" class="flex gap-1.5 text-meta leading-relaxed text-muted">
+        <!-- 字幕說明放在播放器正下方：語言是看影片的第一個門檻。播討論錄音時不顯示（說明是講課程影片的） -->
+        <p v-if="session.captionTip && vid !== recording?.id" class="flex gap-1.5 text-meta leading-relaxed text-muted">
           <UIcon name="i-lucide-captions" class="mt-0.5 size-4 flex-none" aria-hidden="true" />
           <span>{{ session.captionTip }}</span>
         </p>
