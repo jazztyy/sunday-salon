@@ -1,6 +1,6 @@
 # 悅讀聊天室 設計系統
 
-> 版本 3.14 ・ 2026-10-08 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
+> 版本 3.15 ・ 2026-10-25 ・ 對應 `app/assets/css/main.css`、`app/app.config.ts`、`app/components/` 與 `app/pages/`
 >
 > 改任何畫面之前先讀這份。新增元件前先查「元件目錄」有沒有現成的。規格有變動時，**先改這份文件，再改程式**。
 > 功能與資料結構請看 [SPEC.md](SPEC.md)。
@@ -12,7 +12,7 @@
 1. **一次只做一件事。** 場次頁照學習階段分成五個分頁（看之前 → 邊看邊想 → 看完回想 → 週日討論 → 活動後），不把所有內容堆在同一頁往下滾。長內容一律收合。
 2. **影片永遠在手邊。** 章節和播放器固定在側欄（手機版固定在頂部），不管讀到哪裡，一點時間戳就跳到影片對應的段落。
 3. **狀態用形式表達，不只靠文字。** 質疑是紅色、接受是綠色、目前位置是金色，一眼就能看出來。
-4. **視覺語彙取自題材。** 主色是「金星金」：第一場的晨星與昏星其實都是金星。輔色是「暮色藍」。不用 emoji，不用漸層，也不用裝飾性插圖。
+4. **視覺語彙取自題材。** 主色是「金星金」：第一場的晨星與昏星其實都是金星。輔色是「暮色藍」。不用 emoji，不用漸層，也不用裝飾性插圖。**例外是「補充資料」分頁**（6.9）：示意圖照原著的意象畫，用來解釋內容；翻頁書的書脊陰影、光點的光暈可以用漸層。
 5. **暗色是預設。** 夜空底色配金星金，最貼近題材，也適合晚上看影片。淺色主題保留，可以用頂部列的切換按鈕切換。兩個主題都要能用，不是只顧暗色。
 6. **每個互動都有退路。** 猜題可以「直接看答案」，播放器可以「收起影片」，沒有播放器時時間戳就退回一般連結。
 7. **概念是連結的單位。** 場次之間不直接比，而是透過共用的概念卡相連。讀者從任何一張卡都能走到談過它的場次。
@@ -69,6 +69,8 @@
 | 角色 | Utility | 值 | 用途 |
 |---|---|---|---|
 | 遮罩 | `bg-scrim` | 暗 `rgba(0,0,0,.6)`／淺 `rgba(10,12,20,.45)` | 自訂遮罩。`UDrawer` 自帶遮罩，一般不用另外加 |
+| 劃線 | `hl-mark` | 暗 `rgba(226,180,85,.3)`／淺 `rgba(226,180,85,.42)` | 原文引文裡讀書會劃線的段落（底部半高的金色底線）。只用在「補充資料」 |
+| SVG 用色 | `text-line`、`text-primary-soft`、`text-void`、`text-void-ink` | 邊框色、金星金淡底、兩個主題都很暗的「黑色麻袋」與上面的人形 | 只給 SVG 用：元素寫 `fill="currentColor"` 或 `stroke="currentColor"`，顏色由這些 utility 決定（`text-inverted` 剛好等於頁面底色，可以當填色） |
 | 陰影 | Nuxt UI 預設 | — | 只有浮起的圖層（`UDrawer`）有陰影。卡片不加陰影 |
 
 `bg-*-soft` 和 `bg-scrim` 是本專案自訂的 utility，定義在 `main.css` 最下方的 `@utility`，值來自 `--salon-*` 變數。
@@ -162,7 +164,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 場次頁 | `SessionView.vue` | `UButton`、`UDrawer` | 頂部列＋場次標頭＋分頁內容＋下一步＋頁尾＋側欄。分頁與網址 hash 同步。**場次標頭只在「看之前」顯示**，其他分頁把第一屏留給內容，改放一個 `sr-only` 的 h1 |
 | 頂部列 | `salon/Header.vue`（`<SalonHeader>`） | `UTabs`、`UColorModeButton`、`UButton` | 站名＋導覽＋主題切換＋（手機）影片章節按鈕，場次頁多一列分頁。影片章節按鈕在 640px 以下只顯示圖示（`i-lucide-list-video`，保留 `aria-label`），避免把導覽擠出畫面。640px 以下站名降一級（`text-lead`）、間距收緊，**兩列在 360px 寬都不需要橫向捲動**：第二列分頁的 trigger 用 `px-1 gap-1`、文字 `text-ui`（640px 以上 `px-2.5 gap-1.5 text-small`）。**導覽層級**：第一列全站導覽**只用字色區分**（選中 `text-primary`、其他 `text-muted`，沒有底色也沒有底線）；第二列學習階段是這一頁的主導覽，**金色底線只給它用**，前面有場次標記「10/4 靈魂 ›」（`context`，640px 以上才顯示）。步驟數字不加框（`font-mono text-meta leading-none`），和文字垂直置中（trigger 用 `items-center`），目前階段的數字用 `text-primary`。sticky，底色 `bg-default`，量測自身高度寫進 `--tb`。所有頁面共用 |
 | 導覽 | 在 `<SalonHeader>` 裡 | `UButton`（`color="neutral" variant="link"`） | 五項：本週（`/`）・全部場次（`/archive`）・概念卡（`/concepts`）・複習（`/review`）・筆記（`/notes`），`text-ui`。目前所在的項目用 `text-primary`。2.0 的場次 chip 列已移除 |
-| 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | **只在場次頁顯示**（`/`、`/s/{slug}`）。五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**分頁數量固定是 5 個**，新功能放進現有的分頁 |
+| 分頁 | 在 `<SalonHeader>` 裡 | `UTabs` | **只在場次頁顯示**（`/`、`/s/{slug}`）。五個學習階段，前面有 mono 步驟數字。選中的分頁用 `text-primary` 底線。**學習階段固定是 5 個**，新功能放進現有的分頁；唯一的例外是場次有補充資料時，最後多一個「補充資料」（Kai 決定，2026-10-25）。六個分頁時，640px 以下不顯示步驟數字，360px 寬才放得下 |
 | 下一步 | 在 `SessionView.vue` 裡 | `UButton color="neutral"` | 每個分頁的底部，靠右一個主要按鈕「下一步：看完回想 →」，不另外加文字標籤和分隔線。「邊看邊想」只在最後一段（整合回顧）顯示，其他段落由「下一段」按鈕代替，**同一個畫面只有一個往下走的按鈕** |
 
 ### 6.2 分頁
@@ -174,6 +176,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 3 看完回想 | `tab/Recall.vue` | `<TabRecall>` |
 | 4 週日討論 | `tab/Sunday.vue` | `<TabSunday>` |
 | 5 活動後 | `tab/After.vue` | `<TabAfter>` |
+| （6 補充資料） | `tab/Extra.vue` | `<TabExtra>`，只在場次有 `supplement` 時出現（6.9） |
 
 每個分頁元件都收 `session: Session` 一個 prop。
 
@@ -268,11 +271,23 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 | 延續討論 | `RelatedSessions.vue`（`<RelatedSessions>`） | `UBadge` | 「看之前」「活動後」分頁的底部。`h2` 標題「延續討論」，下方最多 5 列，每列：場次標題（連結）、日期、理由（`text-small text-toned`）、來源徽章。沒有相關場次時整個區塊不顯示 |
 | 來源徽章 | 在 `<RelatedSessions>` 裡 | `UBadge variant="outline"` | 兩種，`rounded-tag text-label`：「主辦人推薦」（`color="primary"`，人工連結，理由是 `reason`）、「共同概念」（`color="neutral"`，自動計算，理由是「都談到：靈魂、二元論」）。不用 `success`／`error` |
 
+### 6.9 補充資料
+
+規格見 SPEC.md 5.6。元件在 `components/supplement/`，分頁本身是 `tab/Extra.vue`。
+
+| 元件 | 用途與規則 |
+|---|---|
+| `<SupplementNotice>` | 原著裡的一份文件（例：第一章的黑框訃聞）。`bg-elevated`，外框 `border-8 border-inverted`、內框一條細線，文字置中，上方一根燭火（`text-primary`，CSS 動畫閃動） |
+| `<SupplementBook>` | 翻頁書。容器寬 640px 以上兩頁攤開，以下一次一頁。書頁用 CSS 3D（`perspective-distant`、`transform-3d`、`backface-hidden`），角度由彈簧（`utils/spring.ts`，不回彈）逐格計算；角度鎖在 0 到 −180 度，每張書頁有一點 `translateZ` 高度差，3D 排序才和疊放順序一致（不會露出下面的舊頁）。書頁 `bg-elevated`、書脊陰影 `.book-spine-*`、封面 `bg-inverted`。下方「上一頁／下一頁」（`UButton` outline）和章節編號 |
+| `<SupplementSpans>` | 每章涵蓋的時間，橫向長條、對數刻度。長條 `bg-inverted`，倒敘前的序章 `bg-accented`，`light` 的章節 `bg-primary` |
+| `<SupplementQuote>` | 原文引文：`font-serif text-lead`，`==…==` 的段落套 `hl-mark`，下面一行出處 `text-ui text-muted` |
+| `<SupplementFigure>` | 依 key 顯示這本書專用的示意圖（`supplement/ivan/*`）：上坡下坡（SVG，小球沿著生命線越墜越快）、火車錯覺（循環動畫）、凱撒的三段論（互動）、誰在說謊（關係圖）、黑色麻袋（可播放）。比畫面寬的 SVG 放在 `overflow-x-auto` 的容器裡 |
+
 ---
 
 ## 7. 實作規則
 
-- **只用 Tailwind utility。** 元件裡不寫 `<style>`，不寫 inline `style`，不寫 hex 色碼，不寫 px 字級。全域樣式只放在 `main.css`。唯一的例外是**跟著滑鼠即時計算的位置**（懸浮播放器拖曳時的 `transform`），只能用 `:style` 綁定。
+- **只用 Tailwind utility。** 元件裡不寫 `<style>`，不寫 inline `style`，不寫 hex 色碼，不寫 px 字級。全域樣式只放在 `main.css`。例外只有**程式即時計算的值**，只能用 `:style` 綁定或在程式裡寫進元素：懸浮播放器拖曳時的 `transform`、翻頁書每一格的書頁角度與陰影、資料決定的長條寬度、閱讀進度條。
 - **Nuxt UI 優先。** 按鈕、分頁、抽屜、收合、徽章、主題切換都用 Nuxt UI 元件。Nuxt UI 沒有的才自己寫。
 - **調整 Nuxt UI 元件用 `ui` prop**（例如 `:ui="{ base: 'rounded-full' }"`），不要用全域 CSS 覆寫它的 class。要全站改，改 `app.config.ts`。
 - **所有影片連結都用 `<VideoLink>`。**
@@ -288,6 +303,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 內容換掉時用短的過場，讓人看得出「換了什麼」，不是裝飾。
 
 - **原則**：短（150–220ms）、只動透明度和小位移（上浮 6px 以內、左右 20px 以內），離開比進來快（120ms ease-in）。不做高度動畫、彈跳、縮放。`prefers-reduced-motion` 時全部關閉（`main.css` 全域規則）。
+- **「補充資料」分頁的例外**（6.9）：這一頁是讀物導讀，示意動畫可以比較長、可以循環（翻頁、劃線、長條、示意圖），但仍然**不彈跳**（翻頁的彈簧不回彈）。捲動到才播放的動畫，只在元素還在畫面下方時先藏起來，已經在畫面上的不動；**有延遲的動畫要先套用起始狀態**（WAAPI 用 `fill: 'both'`），延遲期間才不會先露出完整內容再閃一下。程式驅動的動畫（WAAPI、`requestAnimationFrame`）不受全域 CSS 規則影響，要自己檢查 `usePreferredReducedMotion()`。
 - **過場一覽**（`main.css`，搭配 `<Transition name="…">`）：
   - `page`：淡出 → 淡入上浮。換頁（`nuxt.config.ts` 的 `app.pageTransition`，out-in）。
   - `rise`：淡出 → 淡入上浮 6px。場次分頁、`/notes` 的檢視切換、複習的三個畫面、揭曉（解析、Kagan 怎麼說、我的想法、論證判斷、先回想→選項）、複習範圍的清單與月份展開。
@@ -377,6 +393,7 @@ Nuxt UI 元件的預設圓角由 `--ui-radius: 0.25rem`（4px，等於 `rounded-
 
 | 日期 | 版本 | 變更 |
 |---|---|---|
+| 2026-10-25 | 3.15 | 新增「補充資料」分頁（6.9，Kai 決定的例外：第 6 個分頁、示意圖、較長的示意動畫）。新增 `hl-mark` 劃線、SVG 用色 utility（`text-line`、`text-primary-soft`、`text-void`、`text-void-ink`）、翻頁書的書脊陰影。inline style 的例外加上翻頁角度、資料長條、閱讀進度條。7.1 補上「有延遲的動畫要先套用起始狀態」 |
 | 2026-10-08 | 3.14 | 手機篩選欄固定在頂部列下方（搜尋＋「篩選（N）」一行），筆記頁的新增筆記改成右下角浮動按鈕。新增 7.1「動態」：換頁、分頁、子分頁、複習換題、揭曉、展開都有短過場（`page`、`rise`、`slide-next/prev`、`fade`、`animate-reveal`），概念卡換卡不再閃（預先載入＋舊卡疊著淡出）；載入骨架（筆記、複習、首頁換場次、概念卡彈窗、文字編輯器）；過場時保住焦點 |
 | 2026-10-08 | 3.13 | 概念卡牆改成兩排網格＋「顯示全部」（`<ConceptRow>`），新增上一則／下一則（`<ConceptPager>`）。單選的場次篩選改成可搜尋的下拉選單（`<FilterSelect>`）；複習範圍改成預設＋自己選（`<FilterScopePicker>`）。篩選欄新增 `<FilterSummary>`（已選＋清除篩選），`<FilterChips>` 加上 `limit` 收起；側欄底部的「共 N 場」改成只給螢幕閱讀器的 `<FilterStatus>` |
 | 2026-10-08 | 3.12 | 抽出共用元件，畫面不變：篩選欄 `<FilterLayout>`、`<FilterChips>`、`<FilterSearch>`、`<FilterFooter>`（`/archive`、`/concepts`、`/review`、`/notes`）；筆記視窗 `<NoteSheet>`、筆記小卡 `<NoteField>`、場次分組標題 `<SessionGroupHeading>`；筆記種類集中在 `NOTE_KINDS`。文字編輯器、概念卡彈窗改成需要時才載入 |

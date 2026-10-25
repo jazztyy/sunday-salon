@@ -117,9 +117,11 @@ const onTabChange = (value: string | number) => {
       >
         <!-- 手機寬度縮小間距與字級，讓五個分頁不用橫向捲動就放得下（360px 寬） -->
         <!-- 步驟數字：不加框，和文字垂直置中（leading-none）；目前階段用金色 -->
+        <!-- 有「補充資料」（六個分頁）時，640px 以下拿掉數字，360px 寬才放得下 -->
         <template #leading="{ index }">
           <span
             class="shrink-0 font-mono text-meta font-medium leading-none tabular-nums group-data-[state=active]:text-primary"
+            :class="(tabs?.length ?? 0) > 5 && 'max-sm:hidden'"
           >{{ index + 1 }}</span>
         </template>
       </UTabs>

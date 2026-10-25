@@ -51,6 +51,82 @@ const build = (strict: boolean) => {
     verdict: z.string(),
   })
 
+  // 補充資料（SPEC.md 5.6）：「補充資料」分頁的內容。引文的 text 用 ==…== 標出讀書會劃線的段落
+  const quote = obj({ text: z.string(), cite: z.string() })
+  // 只適用某一本書的示意圖（components/supplement/{書}/），圖上的文字寫在元件裡
+  const figure = z.enum(['ivan-slope', 'ivan-train', 'ivan-syllogism', 'ivan-people', 'ivan-sack'])
+
+  const supplement = obj({
+    eyebrow: z.string(),
+    title: z.string(),
+    original: z.string().optional(), // 原文書名
+    epigraph: quote.optional(),
+    lede: z.string(),
+    // 原著裡的一份文件，例：第一章的訃聞
+    notice: obj({
+      lines: z.array(z.string()),
+      name: z.string(),
+      role: z.string(),
+      date: z.string(),
+      note: z.string(),
+      caption: z.string(),
+    }).optional(),
+    facts: z.array(z.tuple([z.string(), z.string()])).default([]), // [項目, 內容]
+    plot: obj({
+      title: z.string(),
+      intro: z.string(),
+      // 翻頁書：每章一頁。light 標出最後看見光的那一章（金色）
+      chapters: z.array(obj({
+        num: z.string(),
+        arc: z.string(),
+        title: z.string(),
+        body: z.string(),
+        light: z.boolean().default(false),
+      })).min(1),
+      ending: obj({ line: z.string(), sub: z.string() }).optional(), // 翻頁書的最後一頁
+      // 每章涵蓋的時間（小時），num 對應 chapters
+      spans: obj({
+        title: z.string(),
+        caption: z.string(),
+        rows: z.array(obj({
+          num: z.string(),
+          label: z.string(),
+          hours: z.number().positive(),
+          prologue: z.boolean().default(false), // 倒敘之前的序章，用淡色
+        })),
+      }).optional(),
+    }),
+    themes: obj({
+      title: z.string(),
+      intro: z.string(),
+      figures: z.array(figure).default([]), // 主旨前的示意圖
+      items: z.array(obj({
+        title: z.string(),
+        body: z.string(),
+        quotes: z.array(quote).default([]),
+        figure: figure.optional(),
+      })),
+    }).optional(),
+    // 原著和本場影片的對照
+    pairs: obj({
+      title: z.string(),
+      intro: z.string(),
+      items: z.array(obj({
+        lec: z.string(),
+        title: z.string(),
+        kagan: z.string(),
+        novel: z.string(),
+        quote: quote.optional(),
+        think: obj({ label: z.string(), text: z.string() }).optional(), // 本場的投票或討論題
+      })),
+    }).optional(),
+    questions: obj({
+      title: z.string(),
+      items: z.array(obj({ q: z.string(), sub: z.string().optional() })),
+    }).optional(),
+    sources: z.array(z.string()).default([]),
+  })
+
   const session = obj({
     slug: z.string(), // 網址與 localStorage key 用，例：'w1'，發佈後不可以改
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // 活動日期 ISO，用來依月份分組
@@ -100,6 +176,7 @@ const build = (strict: boolean) => {
       questions: z.array(z.string()).default([]), // 現場冒出的好問題、沒聊完的問題
       concepts: z.array(z.string()).default([]), // 這場討論後新增的概念卡 id
     }).optional(),
+    supplement: supplement.optional(), // 有填才出現「補充資料」分頁
   })
 
   // 概念卡的 frontmatter（id 是檔名，不在這裡）

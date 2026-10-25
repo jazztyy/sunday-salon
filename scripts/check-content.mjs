@@ -153,6 +153,26 @@ for (const { file, data: s } of sessions) {
       else if (!sessionConcepts.has(c)) err(file, `recap.concepts 的概念卡「${c}」也要列在這場的 concepts 裡`)
     }
   }
+  // 補充資料（SPEC.md 5.6）：章節編號是翻頁書的頁，不可以重複；時間長條要對到章節；劃線 ==…== 要成對
+  if (s.supplement) {
+    const sup = s.supplement
+    const nums = new Set()
+    for (const c of sup.plot.chapters) {
+      if (nums.has(c.num)) err(file, `補充資料的章節編號「${c.num}」重複`)
+      nums.add(c.num)
+    }
+    for (const r of sup.plot.spans?.rows ?? []) {
+      if (!nums.has(r.num)) err(file, `補充資料的時間長條「${r.num}」不在 plot.chapters 裡`)
+    }
+    const quotes = [
+      sup.epigraph,
+      ...(sup.themes?.items ?? []).flatMap(i => i.quotes ?? []),
+      ...(sup.pairs?.items ?? []).map(i => i.quote),
+    ].filter(Boolean)
+    for (const q of quotes) {
+      if ((q.text.match(/==/g) ?? []).length % 2) err(file, `補充資料的引文「${q.text.slice(0, 20)}…」的劃線 == 沒有成對`)
+    }
+  }
   for (const a of s.args ?? []) {
     checkVid(a.vid, `論證「${a.name}」`)
     checkTime(a.vid, a.t, `論證「${a.name}」`)

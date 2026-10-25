@@ -9,23 +9,26 @@ export const SESSION_TABS: { key: TabKey, label: string }[] = [
   { key: 'sunday', label: '週日討論' },
   { key: 'after', label: '活動後' },
 ]
+
+/** 場次有補充資料（supplement）時，最後多一個分頁（SPEC.md 5.6） */
+export const EXTRA_TAB: { key: TabKey, label: string } = { key: 'extra', label: '補充資料' }
 </script>
 
 <script setup lang="ts">
 // 單一場次的頁面骨架：頂部列、分頁內容、側欄（播放器＋章節）、手機章節抽屜。
-// 分頁與網址 hash 同步（#before / #during / #recall / #sunday / #after），規格見 SPEC.md「資訊架構」。
+// 分頁與網址 hash 同步（#before / #during / #recall / #sunday / #after，有補充資料時多 #extra），規格見 SPEC.md「資訊架構」。
 import type { Session } from '~/types/session'
 
 const props = defineProps<{ session: Session }>()
 
-const TABS = SESSION_TABS
+const TABS = computed(() => (props.session.supplement ? [...SESSION_TABS, EXTRA_TAB] : SESSION_TABS))
 
 const route = useRoute()
 const router = useRouter()
 const lastTab = useSalonStorage<TabKey>(STORAGE_KEYS.tab, 'before')
 const { embed, playing, floating } = usePlayer()
 
-const isTab = (v: string): v is TabKey => TABS.some(t => t.key === v)
+const isTab = (v: string): v is TabKey => TABS.value.some(t => t.key === v)
 
 const tab = ref<TabKey>('before')
 
@@ -39,8 +42,14 @@ const tabMotion = ref(false)
 
 onMounted(() => {
   const fromHash = takeInitialLocation().hash.slice(1)
-  tab.value = isTab(fromHash) ? fromHash : lastTab.value
+  // 上次停在「補充資料」、這場卻沒有補充資料時，從「看之前」開始
+  tab.value = isTab(fromHash) ? fromHash : isTab(lastTab.value) ? lastTab.value : 'before'
   nextTick(() => { tabMotion.value = true })
+})
+
+// 站內換到沒有補充資料的場次時，離開「補充資料」分頁
+watch(TABS, () => {
+  if (!isTab(tab.value)) tab.value = 'before'
 })
 
 watch(tab, (value) => {
@@ -58,14 +67,14 @@ const onTabEntered = () => {
   document.querySelector<HTMLElement>('[aria-label="學習階段"] [role="tab"][aria-selected="true"]')?.focus({ preventScroll: true })
 }
 
-const nextTab = computed(() => TABS[TABS.findIndex(t => t.key === tab.value) + 1])
+const nextTab = computed(() => TABS.value[TABS.value.findIndex(t => t.key === tab.value) + 1])
 
 // 「邊看邊想」還有下一段時由分頁自己的「下一段」按鈕帶路，同一個畫面只留一個往下走的按鈕
 const duringAtLastPart = ref(false)
 const showNext = computed(() => nextTab.value && (tab.value !== 'during' || duringAtLastPart.value))
 
-// 「看之前」還沒開始看影片，不顯示側欄；點了精選片段開始播放後才出現
-const showAside = computed(() => tab.value !== 'before' || playing.value)
+// 「看之前」還沒開始看影片、「補充資料」不是影片內容，都不顯示側欄；開始播放後才出現
+const showAside = computed(() => (tab.value !== 'before' && tab.value !== 'extra') || playing.value)
 
 const chaptersOpen = ref(false)
 
@@ -117,6 +126,7 @@ const totalSeconds = computed(() => props.session.videos.reduce((sum, v) => sum 
             <TabDuring v-else-if="tab === 'during'" v-model:at-last-part="duringAtLastPart" :session="session" />
             <TabRecall v-else-if="tab === 'recall'" :session="session" />
             <TabSunday v-else-if="tab === 'sunday'" :session="session" />
+            <TabExtra v-else-if="tab === 'extra' && session.supplement" :session="session" />
             <TabAfter v-else :session="session" />
 
             <div v-if="showNext" class="flex justify-end">

@@ -143,6 +143,88 @@ export interface Session {
   after: string
   /** 活動結束後才填 */
   recap?: Recap
+  /** 補充資料：有填才出現「補充資料」分頁（SPEC.md 5.6） */
+  supplement?: Supplement
+}
+
+/** 原文引文。text 裡用 ==…== 標出讀書會劃線的段落 */
+export interface SupplementQuote {
+  text: string
+  /** 出處，例：'第六章 · 魏岑芳譯' */
+  cite: string
+}
+
+/** 只適用某一本書的示意圖（components/supplement/{書}/） */
+export type SupplementFigureKey = 'ivan-slope' | 'ivan-train' | 'ivan-syllogism' | 'ivan-people' | 'ivan-sack'
+
+export interface SupplementChapter {
+  /** 章節編號，例：'XII'，不可以重複 */
+  num: string
+  /** 所屬的段落，例：'最後三天'（目錄和頁首用） */
+  arc: string
+  title: string
+  body: string
+  /** 最後看見光的那一章，用金色標出 */
+  light?: boolean
+}
+
+export interface SupplementSpan {
+  /** 對應 chapters 的 num */
+  num: string
+  /** 顯示的長度，例：'二十多年' */
+  label: string
+  /** 涵蓋的時間（小時），長條用對數刻度 */
+  hours: number
+  /** 倒敘之前的序章，用淡色 */
+  prologue?: boolean
+}
+
+/**
+ * 補充資料。巢狀欄位的預設值 Nuxt Content 不會補（SPEC.md 7），
+ * 有預設值的欄位在這裡都是選填，元件自己補
+ */
+export interface Supplement {
+  eyebrow: string
+  title: string
+  /** 原文書名 */
+  original?: string
+  epigraph?: SupplementQuote
+  lede: string
+  /** 原著裡的一份文件，例：第一章的訃聞 */
+  notice?: { lines: string[], name: string, role: string, date: string, note: string, caption: string }
+  /** [項目, 內容] */
+  facts?: [label: string, value: string][]
+  plot: {
+    title: string
+    intro: string
+    chapters: SupplementChapter[]
+    /** 翻頁書的最後一頁 */
+    ending?: { line: string, sub: string }
+    spans?: { title: string, caption: string, rows: SupplementSpan[] }
+  }
+  themes?: {
+    title: string
+    intro: string
+    /** 主旨前的示意圖 */
+    figures?: SupplementFigureKey[]
+    items: { title: string, body: string, quotes?: SupplementQuote[], figure?: SupplementFigureKey }[]
+  }
+  /** 原著和本場影片的對照 */
+  pairs?: {
+    title: string
+    intro: string
+    items: {
+      lec: string
+      title: string
+      kagan: string
+      novel: string
+      quote?: SupplementQuote
+      /** 本場的投票或討論題 */
+      think?: { label: string, text: string }
+    }[]
+  }
+  questions?: { title: string, items: { q: string, sub?: string }[] }
+  sources?: string[]
 }
 
 /**
@@ -185,7 +267,8 @@ export interface TagFacet {
   tags: string[]
 }
 
-export type TabKey = 'before' | 'during' | 'recall' | 'sunday' | 'after'
+/** 'extra' 是補充資料，只在場次有 supplement 時出現 */
+export type TabKey = 'before' | 'during' | 'recall' | 'sunday' | 'after' | 'extra'
 
 // ── schema 與手寫型別的一致性檢查（只在型別層級，不產生程式碼） ──
 // schema 推導的型別必須能指定給手寫型別，兩邊的欄位名稱也必須完全相同。
@@ -206,6 +289,8 @@ export type SchemaDriftCheck = [
   Assert<SameKeys<Item<S['args']>, Argument>>,
   Assert<SameKeys<Item<S['videos']>, Video>>,
   Assert<SameKeys<NonNullable<S['recap']>, Recap>>,
+  Assert<SameKeys<NonNullable<S['supplement']>, Supplement>>,
+  Assert<SameKeys<Item<NonNullable<S['supplement']>['plot']['chapters']>, SupplementChapter>>,
   Assert<Fits<ConceptData, Omit<Concept, 'id'>>>,
   Assert<SameKeys<ConceptData, Omit<Concept, 'id'>>>,
 ]
